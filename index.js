@@ -1,21 +1,22 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const app = express();
 const cookieParser = require("cookie-parser");
-
-const { PORT } = require("./config/variables.js");
 const dbConnect = require("./config/dbConnect.js");
 const userRoute = require("./routes/user/userRoute.js");
+
+const app = express();
+const { PORT } = require("./config/variables.js");
 
 app.set("trust proxy", true);
 
 // DATABASE CONNECTION
 dbConnect();
 
-app.use(cookieParser()); 
+app.use(cookieParser());
 app.use(express.json());
 
-const allowedOrigins = ["http://16.171.12.142:3000","http://localhost:5173","http://127.0.0.1:5500","http://localhost:4000/","http://localhost:56222","http://localhost:56966","https://edujobz.netlify.app",'http://localhost:3000','http://localhost:3001','https://parmywheels-admin-ui.vercel.app','https://parmywheels-vendor-ui.vercel.app'];
+const allowedOrigins = ["http://16.171.12.142:3000", "http://localhost:5173", "http://127.0.0.1:5500", "http://localhost:4000/", "http://localhost:56222", "http://localhost:56966", "https://edujobz.netlify.app", "http://localhost:3000", "http://localhost:3001", "https://parmywheels-admin-ui.vercel.app", "https://parmywheels-vendor-ui.vercel.app"];
 const corsOptions = {
   origin: function (origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -33,10 +34,17 @@ app.use(cors(corsOptions));
 app.disable("x-powered-by");
 
 app.use("/", userRoute);
-// app.use("/employee", vendorRoute);
-// app.use("/admin", adminRoute);
 
-// Cron job definition to decrement subscription days every day at midnight
+// 404 Route Handling
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
+});
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);

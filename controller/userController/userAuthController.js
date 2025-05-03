@@ -4,64 +4,47 @@ const bcrypt = require('bcrypt');
 const userModel = require('../../models/userschema');
 const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
+const { v4: uuidv4 } = require('uuid'); // Import uuid
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const appleKeysClient = jwksClient({ 
   jwksUri: 'https://appleid.apple.com/auth/keys' 
 });
 
-
+const generateUserUUID = () => uuidv4(); // Define the function
 
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    console.log("Signup request:", req.body);
     const { userName, userMobile, userEmail, userPassword } = req.body;
-    
-    if (!userMobile) {
-      return res.status(400).json({ message: "Mobile number is required." });
-    }
-
     const mobile = parseInt(userMobile);
-    if (isNaN(mobile)) {
-      return res.status(400).json({ message: "Invalid mobile number format." });
-    }
 
-    const existUser = await userModel.findOne({ 
-      $or: [{ userMobile: mobile }, { userEmail: userEmail }] 
+    const existUser = await userModel.findOne({
+      $or: [{ userMobile: mobile }, { userEmail }]
     });
-
     if (existUser) {
-      return res.status(400).json({ 
-        message: "User already registered with this mobile number or email." 
-      });
+      return res.status(400).json({ message: "User already registered." });
     }
 
     const hashedPassword = await bcrypt.hash(userPassword, 10);
-    const uuid = generateUserUUID();
 
-    const userData = {
-      uuid,
+    const newUser = new userModel({
+      uuid: uuidv4(),
       userName,
-      userEmail: userEmail || "",
       userMobile: mobile,
+      userEmail,
       userPassword: hashedPassword,
-    };
-
-    const newUser = new userModel(userData);
-    await newUser.save();
-
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-    res.status(201).json({ 
-      message: "User registered successfully.", 
-      user: newUser,
-      token 
     });
 
+    await newUser.save();
+
+    // Generate JWT token
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+    res.status(201).json({ message: "User registered successfully.", user: newUser, token });
   } catch (err) {
     console.error("Error in registration:", err);
-    res.status(500).json({ message: "Internal server error." });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
