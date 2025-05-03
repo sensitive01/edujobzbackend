@@ -1,1 +1,1 @@
-# edujobzbackend
+# edujobz
