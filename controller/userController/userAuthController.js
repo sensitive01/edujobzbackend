@@ -105,7 +105,7 @@ const googleAuth = async (req, res) => {
         userName: payload.name,
         userProfilePic: payload.picture,
         isVerified: true
-      });
+      });      
       await user.save();
     }
 
