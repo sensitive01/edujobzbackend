@@ -6,10 +6,10 @@ const userSchema = new mongoose.Schema({
   appleId: String,
   userName: String,
   userEmail: String,
+  userMobile: String,               // <-- Add this
+  userPassword: String,            // <-- Add this
   userProfilePic: String,
-  password: String,
   isVerified: { type: Boolean, default: false }
 });
-
 
 module.exports = mongoose.model('User', userSchema);
