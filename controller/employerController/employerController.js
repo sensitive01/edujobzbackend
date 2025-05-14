@@ -1,7 +1,7 @@
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-const userModel = require('../../models/employeeschema');
+const userModel = require('../../models/employerSchema');
 const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
 const { v4: uuidv4 } = require('uuid'); // Import uuid

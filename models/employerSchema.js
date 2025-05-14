@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const employeeschema = new mongoose.Schema({
+const employerschema = new mongoose.Schema({
   uuid: String,
   googleId: String,
   appleId: String,
@@ -12,4 +12,4 @@ const employeeschema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }
 });
 
-module.exports = mongoose.model('employee', employeeschema);
+module.exports = mongoose.model('Employer', employerschema);
