@@ -52,15 +52,15 @@ const signUp = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { userMobile, userEmail, userPassword } = req.body;
-    
+
     if (!userMobile && !userEmail) {
       return res.status(400).json({ message: "Mobile or email is required." });
     }
 
     const user = await userModel.findOne({
       $or: [
-        { userMobile: userMobile ? parseInt(userMobile) : null },
-        { userEmail: userEmail || "" }
+        ...(userMobile ? [{ userMobile: parseInt(userMobile) }] : []),
+        ...(userEmail ? [{ userEmail }] : [])
       ]
     });
 
@@ -74,10 +74,13 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ 
+
+    const { userPassword: _, ...safeUser } = user._doc;
+
+    res.json({
       message: "Login successful",
-      user,
-      token 
+      user: safeUser,
+      token
     });
 
   } catch (err) {
