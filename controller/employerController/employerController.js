@@ -23,7 +23,7 @@ const signUp = async (req, res) => {
       $or: [{ userMobile: mobile }, { userEmail }]
     });
     if (existUser) {
-      return res.status(400).json({ message: "User already registered." });
+      return res.status(400).json({ message: "Employer already registered." });
     }
 
     const hashedPassword = await bcrypt.hash(userPassword, 10);
@@ -41,7 +41,7 @@ const signUp = async (req, res) => {
     // Generate JWT token
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.status(201).json({ message: "User registered successfully.", user: newUser, token });
+    res.status(201).json({ message: "Employer registered successfully.", user: newUser, token });
   } catch (err) {
     console.error("Error in registration:", err);
     res.status(500).json({ message: "Server error" });
