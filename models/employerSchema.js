@@ -4,7 +4,7 @@ const employerschema = new mongoose.Schema({
   uuid: String,
   googleId: String,
   appleId: String,
-  userName: String,
+  schoolName: String,
   userEmail: String,
   userMobile: String,               // <-- Add this
   userPassword: String,            // <-- Add this

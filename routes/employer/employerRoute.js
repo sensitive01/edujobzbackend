@@ -2,19 +2,19 @@ const express = require("express");
 const multer = require("multer");
 const employerRoute = express();
 
-const employeeController = require("../../controller/employerController/employerController");
+const employerController = require("../../controller/employerController/employerController");
 
 
 
-employerRoute.post('/signup', employeeController.signUp);
+employerRoute.post('/signup', employerController.signUp);
 
 // Email/Mobile Login
-employerRoute.post('/login', employeeController.login);
+employerRoute.post('/login', employerController.login);
 
 // Google Sign-In
-employerRoute.post('/google', employeeController.googleAuth);
+employerRoute.post('/google', employerController.googleAuth);
 
 // Apple Sign-In
-employerRoute.post('/apple', employeeController.appleAuth);
+employerRoute.post('/apple', employerController.appleAuth);
 
 module.exports = employerRoute;

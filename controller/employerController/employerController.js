@@ -16,7 +16,7 @@ const generateUserUUID = () => uuidv4(); // Define the function
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    const { userName, userMobile, userEmail, userPassword } = req.body;
+    const { schoolName, userMobile, userEmail, userPassword } = req.body;
     const mobile = parseInt(userMobile);
 
     const existUser = await userModel.findOne({
@@ -30,7 +30,7 @@ const signUp = async (req, res) => {
 
     const newUser = new userModel({
       uuid: uuidv4(),
-      userName,
+      schoolName,
       userMobile: mobile,
       userEmail,
       userPassword: hashedPassword,
