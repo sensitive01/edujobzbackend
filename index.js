@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const dbConnect = require("./config/dbConnect.js");
-const userRoute = require("./routes/user/userRoute.js");
+const employeeRoute = require("./routes/employee/employeeRoute.js");
 
 const app = express();
 const { PORT } = require("./config/variables.js");
@@ -33,7 +33,7 @@ app.use(cors(corsOptions));
 
 app.disable("x-powered-by");
 
-app.use("/", userRoute);
+app.use("/", employeeRoute);
 
 // 404 Route Handling
 app.use((req, res) => {
