@@ -150,10 +150,39 @@ const appleAuth = async (req, res) => {
     res.status(401).json({ message: 'Invalid Apple token' });
   }
 };
+const getEmployerDetails = async (req, res) => {
+  try {
+    // Get the employee ID from the authenticated user (from JWT)
+    // OR from request params if you want to allow fetching by ID
+   const employeeId = req.userId || req.params.id;
 
+
+    if (!employeeId) {
+      return res.status(400).json({ message: "Employer ID is required" });
+    }
+
+    // Find the employee and exclude the password
+    const employee = await userModel.findById(employeeId).select('-userPassword');
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
+
+    res.json(employee);
+  } catch (err) {
+    console.error("Error fetching employer details:", err);
+    
+    if (err.kind === 'ObjectId') {
+      return res.status(400).json({ message: "Invalid employer ID format" });
+    }
+    
+    res.status(500).json({ message: "Server error" });
+  }
+};
 module.exports = {
   signUp,
   login,
   googleAuth,
-  appleAuth
+  appleAuth,
+  getEmployerDetails,
 };
