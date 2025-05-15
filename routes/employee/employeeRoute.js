@@ -16,5 +16,6 @@ employeeRoute.post('/google', employeeController.googleAuth);
 
 // Apple Sign-In
 employeeRoute.post('/apple', employeeController.appleAuth);
+employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
 
 module.exports = employeeRoute;
