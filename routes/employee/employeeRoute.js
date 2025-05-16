@@ -18,4 +18,9 @@ employeeRoute.post('/google', employeeController.googleAuth);
 employeeRoute.post('/apple', employeeController.appleAuth);
 employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
 
+
+employeeRoute.post('/uploadfile/:employid', employeeController.uploadFile);
+employeeRoute.put('/updateprofile/:employid', employeeController.updateProfile);
+
+
 module.exports = employeeRoute;

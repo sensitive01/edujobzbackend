@@ -184,10 +184,95 @@ const getEmployeeDetails = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+const updateProfile = async (req, res) => {
+  try {
+    const { employid } = req.params;
+    const updateData = req.body;
+
+    // Convert gradeLevels string to array if needed
+    if (updateData.gradeLevels && typeof updateData.gradeLevels === 'string') {
+      updateData.gradeLevels = updateData.gradeLevels.split(',').map(item => item.trim());
+    }
+
+    // Convert skills string to array if needed
+    if (updateData.skills && typeof updateData.skills === 'string') {
+      updateData.skills = updateData.skills.split(',').map(item => item.trim());
+    }
+
+    const updatedProfile = await Profile.findOneAndUpdate(
+      { employId: employid },
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.json(updatedProfile);
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Upload file (resume, cover letter, or profile image)
+const uploadFile = async (req, res) => {
+  try {
+    const { employid } = req.params;
+    const { fileType } = req.query; // 'resume', 'coverLetter', or 'profileImage'
+    
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Upload to S3 or your preferred storage
+    const uploadResult = await uploadFileToS3(req.file, `${employid}/${fileType}`);
+
+    // Update the profile with the file information
+    let updateData = {};
+    if (fileType === 'profileImage') {
+      updateData.profileImage = uploadResult.url;
+    } else if (fileType === 'resume') {
+      updateData.resume = {
+        name: req.file.originalname,
+        url: uploadResult.url,
+        key: uploadResult.key
+      };
+    } else if (fileType === 'coverLetter') {
+      updateData.coverLetterFile = {
+        name: req.file.originalname,
+        url: uploadResult.url,
+        key: uploadResult.key
+      };
+    }
+
+    const updatedProfile = await Profile.findOneAndUpdate(
+      { employId: employid },
+      { $set: updateData },
+      { new: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.json({
+      message: 'File uploaded successfully',
+      url: uploadResult.url,
+      fileName: req.file.originalname
+    });
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
 module.exports = {
   signUp,
   login,
   googleAuth,
   getEmployeeDetails,
-  appleAuth
+  appleAuth,
+  uploadFile,
+  updateProfile
 };
