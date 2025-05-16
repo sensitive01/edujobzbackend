@@ -1,54 +1,38 @@
-const cloudinary = require("cloudinary").v2;
-const { CloudinaryStorage } = require("multer-storage-cloudinary"); // Make sure this is installed
+// config/cloudinary.js
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Cloudinary config
 cloudinary.config({
   cloud_name: "dsyqzw9ft",
   api_key: "639592464425626",
   api_secret: "1bdQpon4QnDnkKOFCtORmyjU2c0",
 });
 
-// Function to upload image buffers
-const profileImageStorage  = async (imageBuffer, folder) => {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
-      {
-        folder: folder,
-        resource_type: "auto",
-      },
-      (error, result) => {
-        if (error) {
-          return reject(new Error("Cloudinary upload failed: " + error.message));
-        }
-        resolve(result.secure_url);
-      }
-    ).end(imageBuffer);
-  });
-};
+const profileImageStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'profile_images',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    public_id: (req, file) => `profile_${Date.now()}`,
+  },
+});
 
-// Storage config for resumes
 const resumeStorage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+  cloudinary,
   params: {
-    folder: 'employee/resumes',
+    folder: 'resumes',
     allowed_formats: ['pdf', 'doc', 'docx'],
-    resource_type: 'raw'
-  }
+    public_id: (req, file) => `resume_${Date.now()}`,
+  },
 });
 
-// Storage config for cover letters
 const coverLetterStorage = new CloudinaryStorage({
-  cloudinary: cloudinary,
+  cloudinary,
   params: {
-    folder: 'employee/cover_letters',
+    folder: 'cover_letters',
     allowed_formats: ['pdf', 'doc', 'docx'],
-    resource_type: 'raw'
-  }
+    public_id: (req, file) => `cover_letter_${Date.now()}`,
+  },
 });
 
-// Export everything you want to use
-module.exports = {
-  profileImageStorage,
-  resumeStorage,
-  coverLetterStorage
-};
+module.exports = { cloudinary, profileImageStorage, resumeStorage, coverLetterStorage };

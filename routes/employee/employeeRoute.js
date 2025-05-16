@@ -1,43 +1,65 @@
 const express = require("express");
-const multer = require("multer");
 const employeeRoute = express();
-const storage = multer.memoryStorage(); 
-const upload = multer({ storage: storage });
+
 const employeeController = require("../../controller/employeeController/employeeController");
-// ...existing code...
-const { profileImageStorage, resumeStorage, coverLetterStorage } = require("../../config/cloudinary");
-// ...existing code...
-const uploadProfileImage = multer({ storage: profileImageStorage }).single('image');
-const uploadResume = multer({ storage: resumeStorage }).single('file');
-const uploadCoverLetter = multer({ storage: coverLetterStorage }).single('file');
 
+// multer & cloudinary storages
+const multer = require('multer');
+const {
+  profileImageStorage,
+  resumeStorage,
+  coverLetterStorage,
+} = require('../../config/cloudinary');
 
-employeeRoute.post('/signup', employeeController.signUp);
+const uploadFileMiddleware = (req, res, next) => {
+  let fileType = req.query.fileType;
+  if (fileType) fileType = fileType.trim();
 
-// Email/Mobile Login
-employeeRoute.post('/login', employeeController.login);
+  const validFileTypes = ['profileImage', 'resume', 'coverLetter'];
+  if (!fileType || !validFileTypes.includes(fileType)) {
+    return res.status(400).json({
+      message: 'Invalid or missing fileType',
+      receivedFileType: fileType,
+      validFileTypes,
+    });
+  }
 
-// Google Sign-In
-employeeRoute.post('/google', employeeController.googleAuth);
+  let storage;
+  switch (fileType) {
+    case 'profileImage':
+      storage = profileImageStorage;
+      break;
+    case 'resume':
+      storage = resumeStorage;
+      break;
+    case 'coverLetter':
+      storage = coverLetterStorage;
+      break;
+  }
 
-// Apple Sign-In
-employeeRoute.post('/apple', employeeController.appleAuth);
-employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
+  // multer expects the file field to match fileType
+  const upload = multer({ storage }).single(fileType);
 
-const selectUploadMiddleware = (req, res, next) => {
-  // Use req.body instead of req.query
-  const { fileType } = req.body;
-
-  if (fileType === 'profileImage') return uploadProfileImage(req, res, next);
-  if (fileType === 'resume') return uploadResume(req, res, next);
-  if (fileType === 'coverLetter') return uploadCoverLetter(req, res, next);
-
-  return res.status(400).json({ message: 'Invalid file type' });
+  upload(req, res, function (err) {
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(400).json({ message: err.message });
+    }
+    next();
+  });
 };
 
 
-employeeRoute.post('/uploadfile/:employid', selectUploadMiddleware, employeeController.uploadFile);
 
-
+// Existing routes
+employeeRoute.post('/signup', employeeController.signUp);
+employeeRoute.post('/login', employeeController.login);
+employeeRoute.post('/google', employeeController.googleAuth);
+employeeRoute.post('/apple', employeeController.appleAuth);
+employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
 employeeRoute.put('/updateprofile/:employid', employeeController.updateProfile);
+
+// NEW: Upload file route with middleware
+employeeRoute.post('/uploadfile/:employid', uploadFileMiddleware, employeeController.uploadFile);
+
 module.exports = employeeRoute;

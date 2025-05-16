@@ -4,14 +4,12 @@ const bcrypt = require('bcrypt');
 const userModel = require('../../models/employeeschema');
 const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
-const { v4: uuidv4 } = require('uuid'); // Import uuid
+const { v4: uuidv4 } = require('uuid');
 const { cloudinary, profileImageStorage, resumeStorage, coverLetterStorage } = require('../../config/cloudinary');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const appleKeysClient = jwksClient({ 
   jwksUri: 'https://appleid.apple.com/auth/keys' 
 });
-
-const generateUserUUID = () => uuidv4(); // Define the function
 
 // Email/Mobile Signup
 const signUp = async (req, res) => {
@@ -102,7 +100,7 @@ const googleAuth = async (req, res) => {
     let user = await userModel.findOne({ googleId: payload.sub });
     if (!user) {
       user = new userModel({
-        uuid: generateUserUUID(),
+        uuid: uuidv4(),
         googleId: payload.sub,
         userEmail: payload.email,
         userName: payload.name,
@@ -133,7 +131,7 @@ const appleAuth = async (req, res) => {
     
     if (!user) {
       user = new userModel({
-        uuid: generateUserUUID(),
+        uuid: uuidv4(),
         appleId: decoded.sub,
         userEmail: decoded.email,
         userName: "Apple User",
@@ -153,20 +151,15 @@ const appleAuth = async (req, res) => {
     res.status(401).json({ message: 'Invalid Apple token' });
   }
 };
-// Add this to your existing controller file
 
 const getEmployeeDetails = async (req, res) => {
   try {
-    // Get the employee ID from the authenticated user (from JWT)
-    // OR from request params if you want to allow fetching by ID
-   const employeeId = req.userId || req.params.id;
-
+    const employeeId = req.userId || req.params.id;
 
     if (!employeeId) {
       return res.status(400).json({ message: "Employee ID is required" });
     }
 
-    // Find the employee and exclude the password
     const employee = await userModel.findById(employeeId).select('-userPassword');
 
     if (!employee) {
@@ -176,59 +169,48 @@ const getEmployeeDetails = async (req, res) => {
     res.json(employee);
   } catch (err) {
     console.error("Error fetching employee details:", err);
-    
     if (err.kind === 'ObjectId') {
       return res.status(400).json({ message: "Invalid employee ID format" });
     }
-    
     res.status(500).json({ message: "Server error" });
   }
 };
-// controllers/employeeController.js
+
+
+// employeeController.js
 
 const uploadFile = async (req, res) => {
   try {
     const { employid } = req.params;
-    const { fileType } = req.body; // Changed from query to body
+    const fileType = req.query.fileType || req.body.fileType;
     
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    let result;
+    // Get the uploaded file URL from Cloudinary
+    const fileUrl = req.file.path;
+    const fileName = req.file.originalname;
+
+    // Update the employee record based on fileType
     let updateField = {};
-    const publicId = `employee_${employid}_${Date.now()}`;
-
-    // Configure upload options based on file type
-    const uploadOptions = {
-      public_id: publicId,
-      folder: `employee/${fileType}s`, // Creates folders like employee/resumes, employee/profileImages
-      resource_type: fileType === 'profileImage' ? 'image' : 'raw'
-    };
-
-    // Upload to Cloudinary
-    result = await cloudinary.uploader.upload(req.file.path, uploadOptions);
-
-    // Determine what to update based on file type
-    switch(fileType) {
+    switch (fileType) {
       case 'profileImage':
-        updateField = { userProfilePic: result.secure_url };
+        updateField = { userProfilePic: fileUrl };
         break;
       case 'resume':
         updateField = { 
           resume: {
-            name: req.file.originalname,
-            url: result.secure_url,
-            key: result.public_id
+            name: fileName,
+            url: fileUrl
           }
         };
         break;
       case 'coverLetter':
-        updateField = {
+        updateField = { 
           coverLetterFile: {
-            name: req.file.originalname,
-            url: result.secure_url,
-            key: result.public_id
+            name: fileName,
+            url: fileUrl
           }
         };
         break;
@@ -236,32 +218,27 @@ const uploadFile = async (req, res) => {
         return res.status(400).json({ message: 'Invalid file type' });
     }
 
-    // Update the profile
-    const updatedProfile = await Profile.findOneAndUpdate(
-      { employId: employid },
+    // Update the employee record
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employid,
       { $set: updateField },
       { new: true }
     );
 
-    if (!updatedProfile) {
-      return res.status(404).json({ message: 'Profile not found' });
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: 'Employee not found' });
     }
 
-    res.json({
+    res.status(200).json({
       success: true,
-      message: 'File uploaded successfully',
-      url: result.secure_url,
-      fileName: req.file.originalname,
-      fileType: fileType
+      url: fileUrl,
+      name: fileName,
+      message: 'File uploaded successfully'
     });
-    
+
   } catch (error) {
     console.error('Error uploading file:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'File upload failed',
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Error uploading file', error: error.message });
   }
 };
 
@@ -291,7 +268,8 @@ const updateProfile = async (req, res) => {
       console.log('Error parsing JSON fields, assuming they are already objects');
     }
 
-    const updatedProfile = await Profile.findOneAndUpdate(
+    // You may need to replace 'Profile' with your actual profile model if different
+    const updatedProfile = await userModel.findOneAndUpdate(
       { employId: employid },
       { $set: updateData },
       { new: true, runValidators: true }
@@ -318,6 +296,7 @@ const updateProfile = async (req, res) => {
     });
   }
 };
+
 module.exports = {
   signUp,
   login,
