@@ -188,29 +188,39 @@ const uploadFile = async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Get the uploaded file URL from Cloudinary
-    const fileUrl = req.file.path;
-    const fileName = req.file.originalname;
+    // Upload to Cloudinary based on file type
+    let uploadOptions = {
+      folder: `employee_documents/${employid}`,
+    };
 
-    // Update the employee record based on fileType
+    if (fileType === 'profileImage') {
+      uploadOptions.format = 'jpg';
+      uploadOptions.transformation = [{ width: 500, height: 500, crop: 'fill' }];
+    } else if (fileType === 'resume' || fileType === 'coverLetter') {
+      uploadOptions.resource_type = 'raw';
+    }
+
+    const result = await cloudinary.uploader.upload(req.file.path, uploadOptions);
+
+    // Prepare update object based on file type
     let updateField = {};
     switch (fileType) {
       case 'profileImage':
-        updateField = { userProfilePic: fileUrl };
+        updateField = { userProfilePic: result.secure_url };
         break;
       case 'resume':
         updateField = { 
           resume: {
-            name: fileName,
-            url: fileUrl
+            name: req.file.originalname,
+            url: result.secure_url
           }
         };
         break;
       case 'coverLetter':
         updateField = { 
           coverLetterFile: {
-            name: fileName,
-            url: fileUrl
+            name: req.file.originalname,
+            url: result.secure_url
           }
         };
         break;
@@ -218,7 +228,7 @@ const uploadFile = async (req, res) => {
         return res.status(400).json({ message: 'Invalid file type' });
     }
 
-    // Update the employee record
+    // Update employee record
     const updatedEmployee = await Employee.findByIdAndUpdate(
       employid,
       { $set: updateField },
@@ -231,67 +241,50 @@ const uploadFile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      url: fileUrl,
-      name: fileName,
+      url: result.secure_url,
+      name: req.file.originalname,
       message: 'File uploaded successfully'
     });
 
   } catch (error) {
     console.error('Error uploading file:', error);
-    res.status(500).json({ message: 'Error uploading file', error: error.message });
+    res.status(500).json({ 
+      message: 'Error uploading file', 
+      error: error.message 
+    });
   }
 };
 
 const updateProfile = async (req, res) => {
   try {
     const { employid } = req.params;
-    let updateData = req.body;
+    const profileData = req.body;
 
-    // Convert string fields to arrays if needed
-    if (updateData.gradeLevels && typeof updateData.gradeLevels === 'string') {
-      updateData.gradeLevels = updateData.gradeLevels.split(',').map(item => item.trim());
-    }
-
-    if (updateData.skills && typeof updateData.skills === 'string') {
-      updateData.skills = updateData.skills.split(',').map(item => item.trim());
-    }
-
-    // Parse education and work experience if they're strings
-    try {
-      if (typeof updateData.education === 'string') {
-        updateData.education = JSON.parse(updateData.education);
-      }
-      if (typeof updateData.workExperience === 'string') {
-        updateData.workExperience = JSON.parse(updateData.workExperience);
-      }
-    } catch (e) {
-      console.log('Error parsing JSON fields, assuming they are already objects');
-    }
-
-    // You may need to replace 'Profile' with your actual profile model if different
-    const updatedProfile = await userModel.findOneAndUpdate(
-      { employId: employid },
-      { $set: updateData },
-      { new: true, runValidators: true }
+    // Update employee profile
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employid,
+      { $set: profileData },
+      { new: true }
     );
 
-    if (!updatedProfile) {
+    if (!updatedEmployee) {
       return res.status(404).json({ 
         success: false,
-        message: 'Profile not found' 
+        message: 'Employee not found' 
       });
     }
 
-    res.json({
+    res.status(200).json({
       success: true,
-      message: 'Profile updated successfully',
-      profile: updatedProfile
+      data: updatedEmployee,
+      message: 'Profile updated successfully'
     });
+
   } catch (error) {
     console.error('Error updating profile:', error);
     res.status(500).json({ 
       success: false,
-      message: 'Server error',
+      message: 'Error updating profile', 
       error: error.message 
     });
   }
