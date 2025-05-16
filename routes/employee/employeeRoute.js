@@ -25,7 +25,8 @@ employeeRoute.post('/apple', employeeController.appleAuth);
 employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
 
 const selectUploadMiddleware = (req, res, next) => {
-  const { fileType } = req.query;
+  // Use req.body instead of req.query
+  const { fileType } = req.body;
 
   if (fileType === 'profileImage') return uploadProfileImage(req, res, next);
   if (fileType === 'resume') return uploadResume(req, res, next);
@@ -34,9 +35,9 @@ const selectUploadMiddleware = (req, res, next) => {
   return res.status(400).json({ message: 'Invalid file type' });
 };
 
+
 employeeRoute.post('/uploadfile/:employid', selectUploadMiddleware, employeeController.uploadFile);
 
 
-employeeRoute.put('/updateprofile/:employid', uploadProfileImage, employeeController.updateProfile);
-
+employeeRoute.put('/updateprofile/:employid', employeeController.updateProfile);
 module.exports = employeeRoute;

@@ -265,9 +265,6 @@ const uploadFile = async (req, res) => {
   }
 };
 
-// Update profile (with optional image upload)
-// controllers/employeeController.js
-
 const updateProfile = async (req, res) => {
   try {
     const { employid } = req.params;
