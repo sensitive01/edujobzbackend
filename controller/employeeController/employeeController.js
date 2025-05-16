@@ -184,105 +184,114 @@ const getEmployeeDetails = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+// controllers/employeeController.js
+
 const uploadFile = async (req, res) => {
   try {
     const { employid } = req.params;
-    const { fileType } = req.query; // 'resume', 'coverLetter', or 'profileImage'
+    const { fileType } = req.body; // Changed from query to body
     
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    let updateData = {};
-    let publicId = `employee_${employid}_${Date.now()}`;
+    let result;
+    let updateField = {};
+    const publicId = `employee_${employid}_${Date.now()}`;
 
-    try {
-      // Upload to Cloudinary
-      let result;
-      if (fileType === 'profileImage') {
-        result = await cloudinary.uploader.upload(req.file.path, {
-          public_id: publicId,
-          folder: 'employee/profile_images'
-        });
-        updateData.profileImage = result.secure_url;
-      } else if (fileType === 'resume') {
-        result = await cloudinary.uploader.upload(req.file.path, {
-          public_id: publicId,
-          folder: 'employee/resumes',
-          resource_type: 'raw'
-        });
-        updateData.resume = {
-          name: req.file.originalname,
-          url: result.secure_url,
-          key: result.public_id
+    // Configure upload options based on file type
+    const uploadOptions = {
+      public_id: publicId,
+      folder: `employee/${fileType}s`, // Creates folders like employee/resumes, employee/profileImages
+      resource_type: fileType === 'profileImage' ? 'image' : 'raw'
+    };
+
+    // Upload to Cloudinary
+    result = await cloudinary.uploader.upload(req.file.path, uploadOptions);
+
+    // Determine what to update based on file type
+    switch(fileType) {
+      case 'profileImage':
+        updateField = { userProfilePic: result.secure_url };
+        break;
+      case 'resume':
+        updateField = { 
+          resume: {
+            name: req.file.originalname,
+            url: result.secure_url,
+            key: result.public_id
+          }
         };
-      } else if (fileType === 'coverLetter') {
-        result = await cloudinary.uploader.upload(req.file.path, {
-          public_id: publicId,
-          folder: 'employee/cover_letters',
-          resource_type: 'raw'
-        });
-        updateData.coverLetterFile = {
-          name: req.file.originalname,
-          url: result.secure_url,
-          key: result.public_id
+        break;
+      case 'coverLetter':
+        updateField = {
+          coverLetterFile: {
+            name: req.file.originalname,
+            url: result.secure_url,
+            key: result.public_id
+          }
         };
-      }
-
-      // Update the profile
-      const updatedProfile = await Profile.findOneAndUpdate(
-        { employId: employid },
-        { $set: updateData },
-        { new: true }
-      );
-
-      if (!updatedProfile) {
-        return res.status(404).json({ message: 'Profile not found' });
-      }
-
-      res.json({
-        message: 'File uploaded successfully',
-        url: result.secure_url,
-        fileName: req.file.originalname
-      });
-    } catch (uploadError) {
-      console.error('Cloudinary upload error:', uploadError);
-      return res.status(500).json({ message: 'File upload failed' });
+        break;
+      default:
+        return res.status(400).json({ message: 'Invalid file type' });
     }
+
+    // Update the profile
+    const updatedProfile = await Profile.findOneAndUpdate(
+      { employId: employid },
+      { $set: updateField },
+      { new: true }
+    );
+
+    if (!updatedProfile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'File uploaded successfully',
+      url: result.secure_url,
+      fileName: req.file.originalname,
+      fileType: fileType
+    });
+    
   } catch (error) {
     console.error('Error uploading file:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      success: false,
+      message: 'File upload failed',
+      error: error.message 
+    });
   }
 };
 
 // Update profile (with optional image upload)
+// controllers/employeeController.js
+
 const updateProfile = async (req, res) => {
   try {
     const { employid } = req.params;
-    const updateData = req.body;
+    let updateData = req.body;
 
-    // Handle image upload if present
-    if (req.file) {
-      try {
-        const result = await cloudinary.uploader.upload(req.file.path, {
-          folder: 'employee/profile_images',
-          public_id: `profile_${employid}_${Date.now()}`
-        });
-        updateData.profileImage = result.secure_url;
-      } catch (uploadError) {
-        console.error('Cloudinary upload error:', uploadError);
-        return res.status(500).json({ message: 'Profile image upload failed' });
-      }
-    }
-
-    // Convert gradeLevels string to array if needed
+    // Convert string fields to arrays if needed
     if (updateData.gradeLevels && typeof updateData.gradeLevels === 'string') {
       updateData.gradeLevels = updateData.gradeLevels.split(',').map(item => item.trim());
     }
 
-    // Convert skills string to array if needed
     if (updateData.skills && typeof updateData.skills === 'string') {
       updateData.skills = updateData.skills.split(',').map(item => item.trim());
+    }
+
+    // Parse education and work experience if they're strings
+    try {
+      if (typeof updateData.education === 'string') {
+        updateData.education = JSON.parse(updateData.education);
+      }
+      if (typeof updateData.workExperience === 'string') {
+        updateData.workExperience = JSON.parse(updateData.workExperience);
+      }
+    } catch (e) {
+      console.log('Error parsing JSON fields, assuming they are already objects');
     }
 
     const updatedProfile = await Profile.findOneAndUpdate(
@@ -292,13 +301,24 @@ const updateProfile = async (req, res) => {
     );
 
     if (!updatedProfile) {
-      return res.status(404).json({ message: 'Profile not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Profile not found' 
+      });
     }
 
-    res.json(updatedProfile);
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      profile: updatedProfile
+    });
   } catch (error) {
     console.error('Error updating profile:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error',
+      error: error.message 
+    });
   }
 };
 module.exports = {
