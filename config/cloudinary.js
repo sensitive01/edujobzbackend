@@ -1,4 +1,3 @@
-// config/cloudinary.js
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
@@ -13,7 +12,8 @@ const profileImageStorage = new CloudinaryStorage({
   params: {
     folder: 'profile_images',
     allowed_formats: ['jpg', 'jpeg', 'png'],
-    public_id: (req, file) => `profile_${Date.now()}`,
+    public_id: () => `profile_${Date.now()}`,
+    transformation: [{ width: 500, height: 500, crop: 'fill' }],
   },
 });
 
@@ -21,8 +21,9 @@ const resumeStorage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: 'resumes',
+    resource_type: 'raw',
     allowed_formats: ['pdf', 'doc', 'docx'],
-    public_id: (req, file) => `resume_${Date.now()}`,
+    public_id: () => `resume_${Date.now()}`,
   },
 });
 
@@ -30,8 +31,9 @@ const coverLetterStorage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: 'cover_letters',
+    resource_type: 'raw',
     allowed_formats: ['pdf', 'doc', 'docx'],
-    public_id: (req, file) => `cover_letter_${Date.now()}`,
+    public_id: () => `cover_letter_${Date.now()}`,
   },
 });
 

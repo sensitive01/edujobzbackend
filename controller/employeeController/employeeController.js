@@ -183,44 +183,32 @@ const uploadFile = async (req, res) => {
   try {
     const { employid } = req.params;
     const fileType = req.query.fileType || req.body.fileType;
-    
+
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Upload to Cloudinary based on file type
-    let uploadOptions = {
-      folder: `employee_documents/${employid}`,
-    };
+    const result = req.file; // Uploaded file from multer-storage-cloudinary
 
-    if (fileType === 'profileImage') {
-      uploadOptions.format = 'jpg';
-      uploadOptions.transformation = [{ width: 500, height: 500, crop: 'fill' }];
-    } else if (fileType === 'resume' || fileType === 'coverLetter') {
-      uploadOptions.resource_type = 'raw';
-    }
-
-    const result = await cloudinary.uploader.upload(req.file.path, uploadOptions);
-
-    // Prepare update object based on file type
+    // Prepare field update
     let updateField = {};
     switch (fileType) {
       case 'profileImage':
-        updateField = { userProfilePic: result.secure_url };
+        updateField = { userProfilePic: result.path };
         break;
       case 'resume':
-        updateField = { 
+        updateField = {
           resume: {
-            name: req.file.originalname,
-            url: result.secure_url
+            name: result.originalname,
+            url: result.path
           }
         };
         break;
       case 'coverLetter':
-        updateField = { 
+        updateField = {
           coverLetterFile: {
-            name: req.file.originalname,
-            url: result.secure_url
+            name: result.originalname,
+            url: result.path
           }
         };
         break;
@@ -228,7 +216,7 @@ const uploadFile = async (req, res) => {
         return res.status(400).json({ message: 'Invalid file type' });
     }
 
-    // Update employee record
+    // Update employee document
     const updatedEmployee = await Employee.findByIdAndUpdate(
       employid,
       { $set: updateField },
@@ -241,17 +229,14 @@ const uploadFile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      url: result.secure_url,
-      name: req.file.originalname,
+      url: result.path,
+      name: result.originalname,
       message: 'File uploaded successfully'
     });
 
   } catch (error) {
     console.error('Error uploading file:', error);
-    res.status(500).json({ 
-      message: 'Error uploading file', 
-      error: error.message 
-    });
+    res.status(500).json({ message: 'Error uploading file', error: error.message });
   }
 };
 
