@@ -187,21 +187,37 @@ const uploadFile = async (req, res) => {
 
     // Validate inputs
     if (!employid || !mongoose.isValidObjectId(employid)) {
-      return res.status(400).json({ message: 'Valid employee ID is required' });
+      return res.status(400).json({ success: false, message: 'Valid employee ID is required' });
     }
 
     if (!fileType) {
-      return res.status(400).json({ message: 'File type is required' });
+      return res.status(400).json({ success: false, message: 'File type is required' });
     }
 
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
+
+    // Validate Cloudinary response
+    if (!req.file.secure_url) {
+      console.error('Cloudinary upload failed: No secure_url returned', req.file);
+      return res.status(500).json({
+        success: false,
+        message: 'File upload failed: No URL returned from Cloudinary',
+      });
+    }
+
+    // Log Cloudinary response for debugging
+    console.log('Cloudinary upload response:', {
+      originalname: req.file.originalname,
+      secure_url: req.file.secure_url,
+      public_id: req.file.public_id,
+    });
 
     // Find the employee
     const currentEmployee = await userModel.findById(employid);
     if (!currentEmployee) {
-      return res.status(404).json({ message: 'Employee not found' });
+      return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
     // Delete old file from Cloudinary if it exists
@@ -227,7 +243,7 @@ const uploadFile = async (req, res) => {
           }
           break;
         default:
-          return res.status(400).json({ message: 'Invalid file type provided' });
+          return res.status(400).json({ success: false, message: 'Invalid file type provided' });
       }
     } catch (deleteError) {
       console.error('Error deleting old file:', deleteError);
@@ -253,7 +269,7 @@ const uploadFile = async (req, res) => {
         };
         break;
       default:
-        return res.status(400).json({ message: 'Invalid file type provided' });
+        return res.status(400).json({ success: false, message: 'Invalid file type provided' });
     }
 
     // Update employee document
@@ -264,9 +280,10 @@ const uploadFile = async (req, res) => {
     );
 
     if (!updatedEmployee) {
-      return res.status(404).json({ message: 'Failed to update employee' });
+      return res.status(404).json({ success: false, message: 'Failed to update employee' });
     }
 
+    // Send response
     res.status(200).json({
       success: true,
       fileType,
@@ -285,7 +302,6 @@ const uploadFile = async (req, res) => {
     });
   }
 };
-
 
 const updateProfile = async (req, res) => {
   try {
