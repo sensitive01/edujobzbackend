@@ -240,11 +240,10 @@ const uploadFile = async (req, res) => {
       fileType,
       file: {
         name: result.originalname || result.filename || 'Unnamed',
-        url: result.path,
+        url: result.path
       },
       message: 'File uploaded and saved successfully'
     });
-
   } catch (error) {
     console.error('Error uploading file:', error);
     res.status(500).json({
