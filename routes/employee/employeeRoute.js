@@ -46,7 +46,7 @@ employeeRoute.post('/apple', employeeController.appleAuth);
 employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
 
 // Upload file to Cloudinary
-employeeRoute.post(
+employeeRoute.put(
   '/uploadfile/:employid',
   dynamicUploadMiddleware,
   employeeController.uploadFile
