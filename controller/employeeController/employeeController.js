@@ -197,10 +197,18 @@ const uploadFile = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    const result = req.file; // Multer-storage-cloud PREDICTION: The suggestion was cut off here, but it seems to be heading toward ensuring the Cloudinary result is handled correctly.
+    const result = req.file;
 
     // Log Cloudinary result for debugging
     console.log('Cloudinary result:', result);
+
+    // Validate Cloudinary result
+    if (!result.path) {
+      return res.status(500).json({
+        success: false,
+        message: 'Cloudinary upload failed: No file URL returned',
+      });
+    }
 
     // Prepare field update
     let updateField;
@@ -211,7 +219,7 @@ const uploadFile = async (req, res) => {
       case 'resume':
         updateField = {
           resume: {
-            name: result.originalname || result.filename || 'Unnamed',
+            name: result.originalname || 'Unnamed',
             url: result.path,
           },
         };
@@ -219,7 +227,7 @@ const uploadFile = async (req, res) => {
       case 'coverLetter':
         updateField = {
           coverLetterFile: {
-            name: result.originalname || result.filename || 'Unnamed',
+            name: result.originalname || 'Unnamed',
             url: result.path,
           },
         };
@@ -229,7 +237,7 @@ const uploadFile = async (req, res) => {
     }
 
     // Update employee document
-    const updatedEmployee = await Employee.findByIdAndUpdate(
+    const updatedEmployee = await userModel.findByIdAndUpdate(
       employid,
       { $set: updateField },
       { new: true, runValidators: true }
@@ -243,13 +251,18 @@ const uploadFile = async (req, res) => {
       success: true,
       fileType,
       file: {
-        name: result.originalname || result.filename || 'Unnamed',
+        name: result.originalname || 'Unnamed',
         url: result.path,
       },
       message: 'File uploaded and saved successfully',
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error('Error uploading file:', {
+      message: error.message,
+      stack: error.stack,
+      fileType: req.query.fileType || req.body.fileType,
+      employid: req.params.employid,
+    });
     res.status(500).json({
       success: false,
       message: 'Internal server error during file upload',
@@ -257,7 +270,6 @@ const uploadFile = async (req, res) => {
     });
   }
 };
-
 const updateProfile = async (req, res) => {
   try {
     const { employid } = req.params;

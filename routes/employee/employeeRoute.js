@@ -67,63 +67,12 @@ employeeRoute.post('/apple', employeeController.appleAuth);
 employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
 
 // Upload file to Cloudinary
-// employeeRoute.put(
-//   '/uploadfile/:employid',
-//   uploadMiddleware,
-//   employeeController.uploadFile
-// );
-employeeRoute.put('/updateprofile/:employid', async (req, res) => {
-  try {
-    const { employid } = req.params;
+employeeRoute.put(
+  '/uploadfile/:employid',
+  uploadMiddleware,
+  employeeController.uploadFile
+);
 
-    if (!mongoose.isValidObjectId(employid)) {
-      return res.status(400).json({ success: false, message: 'Invalid employee ID' });
-    }
-
-    const updateData = req.body;
-
-    // Log incoming data for debugging
-    console.log('Update data:', updateData);
-
-    // Validate and format resume and coverLetterFile
-    if (updateData.resume) {
-      updateData.resume = {
-        name: updateData.resume.name || '',
-        url: updateData.resume.url || '',
-      };
-    }
-
-    if (updateData.coverLetterFile) {
-      updateData.coverLetterFile = {
-        name: updateData.coverLetterFile.name || '',
-        url: updateData.coverLetterFile.url || '',
-      };
-    }
-
-    const updatedEmployee = await Employee.findByIdAndUpdate(
-      employid,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedEmployee) {
-      return res.status(404).json({ success: false, message: 'Employee not found' });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: 'Profile updated successfully',
-      data: updatedEmployee,
-    });
-  } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error during profile update',
-      error: error.message,
-    });
-  }
-});
 // Update profile
 employeeRoute.put('/updateprofile/:employid', employeeController.updateProfile);
 

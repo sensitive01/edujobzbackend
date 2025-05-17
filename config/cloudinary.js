@@ -8,32 +8,31 @@ cloudinary.config({
 });
 
 const profileImageStorage = new CloudinaryStorage({
-  cloudinary,
+  cloudinary: cloudinary,
   params: {
-    folder: 'profile_images',
+    folder: 'employee_profile_images',
     allowed_formats: ['jpg', 'jpeg', 'png'],
-    public_id: () => `profile_${Date.now()}`,
-    transformation: [{ width: 500, height: 500, crop: 'fill' }],
+    public_id: (req, file) => `${req.params.employid}_profile_${Date.now()}`,
   },
 });
 
+// Storage for resumes
 const resumeStorage = new CloudinaryStorage({
-  cloudinary,
+  cloudinary: cloudinary,
   params: {
-    folder: 'resumes',
-    resource_type: 'raw',
+    folder: 'employee_resumes',
     allowed_formats: ['pdf', 'doc', 'docx'],
-    public_id: () => `resume_${Date.now()}`,
+    public_id: (req, file) => `${req.params.employid}_resume_${Date.now()}`,
   },
 });
 
+// Storage for cover letters
 const coverLetterStorage = new CloudinaryStorage({
-  cloudinary,
+  cloudinary: cloudinary,
   params: {
-    folder: 'cover_letters',
-    resource_type: 'raw',
+    folder: 'employee_cover_letters',
     allowed_formats: ['pdf', 'doc', 'docx'],
-    public_id: () => `cover_letter_${Date.now()}`,
+    public_id: (req, file) => `${req.params.employid}_cover_letter_${Date.now()}`,
   },
 });
 
