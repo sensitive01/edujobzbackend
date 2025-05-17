@@ -184,19 +184,20 @@ const uploadFile = async (req, res) => {
     const { employid } = req.params;
     const fileType = req.query.fileType || req.body.fileType;
 
-    if (!employid) {
-      return res.status(400).json({ message: 'Missing employee ID' });
+    // Validate inputs
+    if (!employid || !mongoose.isValidObjectId(employid)) {
+      return res.status(400).json({ message: 'Valid employee ID is required' });
     }
 
     if (!fileType) {
-      return res.status(400).json({ message: 'Missing file type (fileType)' });
+      return res.status(400).json({ message: 'File type (fileType) is required' });
     }
 
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const result = req.file; // multer-storage-cloudinary stores the file info here
+    const result = req.file; // Multer-storage-cloudinary stores the file info here
 
     // Prepare field update
     let updateField;
@@ -208,16 +209,16 @@ const uploadFile = async (req, res) => {
         updateField = {
           resume: {
             name: result.originalname || result.filename || 'Unnamed',
-            url: result.path
-          }
+            url: result.path,
+          },
         };
         break;
       case 'coverLetter':
         updateField = {
           coverLetterFile: {
             name: result.originalname || result.filename || 'Unnamed',
-            url: result.path
-          }
+            url: result.path,
+          },
         };
         break;
       default:
@@ -225,10 +226,10 @@ const uploadFile = async (req, res) => {
     }
 
     // Update employee document
-    const updatedEmployee = await userModel.findByIdAndUpdate(
+    const updatedEmployee = await Employee.findByIdAndUpdate(
       employid,
       { $set: updateField },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
     if (!updatedEmployee) {
@@ -240,20 +241,19 @@ const uploadFile = async (req, res) => {
       fileType,
       file: {
         name: result.originalname || result.filename || 'Unnamed',
-        url: result.path
+        url: result.path,
       },
-      message: 'File uploaded and saved successfully'
+      message: 'File uploaded and saved successfully',
     });
   } catch (error) {
     console.error('Error uploading file:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error during file upload',
-      error: error.message
+      error: error.message,
     });
   }
 };
-
 
 const updateProfile = async (req, res) => {
   try {
