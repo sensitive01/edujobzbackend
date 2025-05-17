@@ -184,14 +184,22 @@ const uploadFile = async (req, res) => {
     const { employid } = req.params;
     const fileType = req.query.fileType || req.body.fileType;
 
+    if (!employid) {
+      return res.status(400).json({ message: 'Missing employee ID' });
+    }
+
+    if (!fileType) {
+      return res.status(400).json({ message: 'Missing file type (fileType)' });
+    }
+
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const result = req.file; // Uploaded file from multer-storage-cloudinary
+    const result = req.file; // multer-storage-cloudinary stores the file info here
 
     // Prepare field update
-    let updateField = {};
+    let updateField;
     switch (fileType) {
       case 'profileImage':
         updateField = { userProfilePic: result.path };
@@ -199,7 +207,7 @@ const uploadFile = async (req, res) => {
       case 'resume':
         updateField = {
           resume: {
-            name: result.originalname,
+            name: result.originalname || result.filename || 'Unnamed',
             url: result.path
           }
         };
@@ -207,13 +215,13 @@ const uploadFile = async (req, res) => {
       case 'coverLetter':
         updateField = {
           coverLetterFile: {
-            name: result.originalname,
+            name: result.originalname || result.filename || 'Unnamed',
             url: result.path
           }
         };
         break;
       default:
-        return res.status(400).json({ message: 'Invalid file type' });
+        return res.status(400).json({ message: 'Invalid file type provided' });
     }
 
     // Update employee document
@@ -229,16 +237,24 @@ const uploadFile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      url: result.path,
-      name: result.originalname,
-      message: 'File uploaded successfully'
+      fileType,
+      file: {
+        name: result.originalname || result.filename || 'Unnamed',
+        url: result.path,
+      },
+      message: 'File uploaded and saved successfully'
     });
 
   } catch (error) {
     console.error('Error uploading file:', error);
-    res.status(500).json({ message: 'Error uploading file', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during file upload',
+      error: error.message
+    });
   }
 };
+
 
 const updateProfile = async (req, res) => {
   try {

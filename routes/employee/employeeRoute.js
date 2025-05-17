@@ -15,18 +15,27 @@ const getStorage = (fileType) => {
   }
 };
 
-// Dynamic middleware for fileType-based upload
+
 const dynamicUploadMiddleware = (req, res, next) => {
   const fileType = req.query.fileType || req.body.fileType;
-  const storage = getStorage(fileType);
+  let storage;
 
-  if (!storage) return res.status(400).json({ message: "Invalid or missing fileType" });
+  switch (fileType) {
+    case 'profileImage':
+      storage = profileImageStorage;
+      break;
+    case 'resume':
+      storage = resumeStorage;
+      break;
+    case 'coverLetter':
+      storage = coverLetterStorage;
+      break;
+    default:
+      return res.status(400).json({ message: 'Invalid file type' });
+  }
 
   const upload = multer({ storage }).single('file');
-  upload(req, res, function (err) {
-    if (err) return res.status(500).json({ message: "Upload error", error: err.message });
-    next();
-  });
+  upload(req, res, next);
 };
 
 // Existing routes
