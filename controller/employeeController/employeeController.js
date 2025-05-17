@@ -200,7 +200,7 @@ const uploadFile = async (req, res) => {
     const result = req.file; // Multer-storage-cloudinary stores the file info here
 
     // First, get the current employee to check for existing files
-    const currentEmployee = await Employee.findById(employid);
+    const currentEmployee = await userModel.findById(employid);
     if (!currentEmployee) {
       return res.status(404).json({ message: 'Employee not found' });
     }
@@ -259,7 +259,7 @@ const uploadFile = async (req, res) => {
     }
 
     // Update employee document
-    const updatedEmployee = await Employee.findByIdAndUpdate(
+    const updatedEmployee = await userModel.findByIdAndUpdate(
       employid,
       { $set: updateField },
       { new: true, runValidators: true }
