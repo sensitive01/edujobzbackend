@@ -16,7 +16,6 @@ const profileImageStorage = new CloudinaryStorage({
   },
 });
 
-// Storage for resumes
 const resumeStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -26,7 +25,6 @@ const resumeStorage = new CloudinaryStorage({
   },
 });
 
-// Storage for cover letters
 const coverLetterStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {

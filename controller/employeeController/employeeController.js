@@ -186,29 +186,18 @@ const uploadFile = async (req, res) => {
 
     // Validate inputs
     if (!employid || !mongoose.isValidObjectId(employid)) {
-      return res.status(400).json({ success: false, message: 'Valid employee ID is required' });
+      return res.status(400).json({ message: 'Valid employee ID is required' });
     }
 
     if (!fileType) {
-      return res.status(400).json({ success: false, message: 'File type is required' });
+      return res.status(400).json({ message: 'File type (fileType) is required' });
     }
 
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const result = req.file;
-
-    // Log Cloudinary result for debugging
-    console.log('Cloudinary result:', result);
-
-    // Validate Cloudinary result
-    if (!result.path) {
-      return res.status(500).json({
-        success: false,
-        message: 'Cloudinary upload failed: No file URL returned',
-      });
-    }
+    const result = req.file; // Multer-storage-cloudinary stores the file info here
 
     // Prepare field update
     let updateField;
@@ -219,7 +208,7 @@ const uploadFile = async (req, res) => {
       case 'resume':
         updateField = {
           resume: {
-            name: result.originalname || 'Unnamed',
+            name: result.originalname || result.filename || 'Unnamed',
             url: result.path,
           },
         };
@@ -227,42 +216,37 @@ const uploadFile = async (req, res) => {
       case 'coverLetter':
         updateField = {
           coverLetterFile: {
-            name: result.originalname || 'Unnamed',
+            name: result.originalname || result.filename || 'Unnamed',
             url: result.path,
           },
         };
         break;
       default:
-        return res.status(400).json({ success: false, message: 'Invalid file type provided' });
+        return res.status(400).json({ message: 'Invalid file type provided' });
     }
 
     // Update employee document
-    const updatedEmployee = await userModel.findByIdAndUpdate(
+    const updatedEmployee = await Employee.findByIdAndUpdate(
       employid,
       { $set: updateField },
       { new: true, runValidators: true }
     );
 
     if (!updatedEmployee) {
-      return res.status(404).json({ success: false, message: 'Employee not found' });
+      return res.status(404).json({ message: 'Employee not found' });
     }
 
     res.status(200).json({
       success: true,
       fileType,
       file: {
-        name: result.originalname || 'Unnamed',
+        name: result.originalname || result.filename || 'Unnamed',
         url: result.path,
       },
       message: 'File uploaded and saved successfully',
     });
   } catch (error) {
-    console.error('Error uploading file:', {
-      message: error.message,
-      stack: error.stack,
-      fileType: req.query.fileType || req.body.fileType,
-      employid: req.params.employid,
-    });
+    console.error('Error uploading file:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error during file upload',
@@ -270,6 +254,7 @@ const uploadFile = async (req, res) => {
     });
   }
 };
+
 const updateProfile = async (req, res) => {
   try {
     const { employid } = req.params;
