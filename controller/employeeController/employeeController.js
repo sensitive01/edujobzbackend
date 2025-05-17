@@ -261,7 +261,7 @@ const updateProfile = async (req, res) => {
     const profileData = req.body;
 
     // Update employee profile
-    const updatedEmployee = await Employee.findByIdAndUpdate(
+    const updatedEmployee = await userModel.findByIdAndUpdate(
       employid,
       { $set: profileData },
       { new: true }
