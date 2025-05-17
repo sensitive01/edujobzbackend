@@ -46,8 +46,15 @@ const employeeschema = new mongoose.Schema({
   skills: { type: [String] }, // Array of skills
   education: [educationSchema],
   workExperience: [workExperienceSchema],
-resume: { name: String, url: String },
-  coverLetterFile: { name: String, url: String },
+resume: {
+    name: { type: String },
+    url: { type: String },
+  },
+  coverLetterFile: {
+    name: { type: String },
+    url: { type: String },
+  },
+
   profileImage: { type: String }, // URL to profile image
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

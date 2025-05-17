@@ -225,7 +225,7 @@ const uploadFile = async (req, res) => {
     }
 
     // Update employee document
-    const updatedEmployee = await Employee.findByIdAndUpdate(
+    const updatedEmployee = await userModel.findByIdAndUpdate(
       employid,
       { $set: updateField },
       { new: true }
