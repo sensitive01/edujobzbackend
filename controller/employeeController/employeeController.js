@@ -186,18 +186,21 @@ const uploadFile = async (req, res) => {
 
     // Validate inputs
     if (!employid || !mongoose.isValidObjectId(employid)) {
-      return res.status(400).json({ message: 'Valid employee ID is required' });
+      return res.status(400).json({ success: false, message: 'Valid employee ID is required' });
     }
 
     if (!fileType) {
-      return res.status(400).json({ message: 'File type (fileType) is required' });
+      return res.status(400).json({ success: false, message: 'File type is required' });
     }
 
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    const result = req.file; // Multer-storage-cloudinary stores the file info here
+    const result = req.file; // Multer-storage-cloud PREDICTION: The suggestion was cut off here, but it seems to be heading toward ensuring the Cloudinary result is handled correctly.
+
+    // Log Cloudinary result for debugging
+    console.log('Cloudinary result:', result);
 
     // Prepare field update
     let updateField;
@@ -222,7 +225,7 @@ const uploadFile = async (req, res) => {
         };
         break;
       default:
-        return res.status(400).json({ message: 'Invalid file type provided' });
+        return res.status(400).json({ success: false, message: 'Invalid file type provided' });
     }
 
     // Update employee document
@@ -233,7 +236,7 @@ const uploadFile = async (req, res) => {
     );
 
     if (!updatedEmployee) {
-      return res.status(404).json({ message: 'Employee not found' });
+      return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
     res.status(200).json({
