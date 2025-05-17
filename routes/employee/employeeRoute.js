@@ -20,24 +20,25 @@ const dynamicUploadMiddleware = (req, res, next) => {
   const fileType = req.query.fileType || req.body.fileType;
   const storage = getStorage(fileType);
 
-  if (!storage) return res.status(400).json({ message: "Invalid or missing fileType" });
+  if (!storage) {
+    return res.status(400).json({ message: 'Invalid or missing fileType' });
+  }
 
-  const upload = multer({ 
+  const upload = multer({
     storage,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   }).single('file');
-  
-  upload(req, res, function (err) {
+
+  upload(req, res, (err) => {
     if (err) {
       if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ message: "File size exceeds 10MB limit" });
+        return res.status(400).json({ message: 'File size exceeds 10MB limit' });
       }
-      return res.status(500).json({ message: "Upload error", error: err.message });
+      return res.status(500).json({ message: 'Upload error', error: err.message });
     }
     next();
   });
 };
-
 // Existing routes
 employeeRoute.post('/signup', employeeController.signUp);
 employeeRoute.post('/login', employeeController.login);

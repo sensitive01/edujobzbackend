@@ -190,16 +190,14 @@ const uploadFile = async (req, res) => {
     }
 
     if (!fileType) {
-      return res.status(400).json({ message: 'File type (fileType) is required' });
+      return res.status(400).json({ message: 'File type is required' });
     }
 
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    const result = req.file; // Multer-storage-cloudinary stores the file info here
-
-    // First, get the current employee to check for existing files
+    // Find the employee
     const currentEmployee = await userModel.findById(employid);
     if (!currentEmployee) {
       return res.status(404).json({ message: 'Employee not found' });
@@ -207,51 +205,50 @@ const uploadFile = async (req, res) => {
 
     // Delete old file from Cloudinary if it exists
     try {
+      let publicId;
       switch (fileType) {
         case 'profileImage':
           if (currentEmployee.userProfilePic) {
-            const publicId = currentEmployee.userProfilePic.split('/').pop().split('.')[0];
+            publicId = currentEmployee.userProfilePic.split('/').pop().split('.')[0];
             await cloudinary.uploader.destroy(`employee_profile_images/${publicId}`);
           }
           break;
         case 'resume':
           if (currentEmployee.resume?.url) {
-            const publicId = currentEmployee.resume.url.split('/').pop().split('.')[0];
-            await cloudinary.uploader.destroy(`employee_resumes/${publicId}`);
+            publicId = currentEmployee.resume.url.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`employee_resumes/${publicId}`, { resource_type: 'raw' });
           }
           break;
         case 'coverLetter':
           if (currentEmployee.coverLetterFile?.url) {
-            const publicId = currentEmployee.coverLetterFile.url.split('/').pop().split('.')[0];
-            await cloudinary.uploader.destroy(`employee_cover_letters/${publicId}`);
+            publicId = currentEmployee.coverLetterFile.url.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`employee_cover_letters/${publicId}`, { resource_type: 'raw' });
           }
           break;
+        default:
+          return res.status(400).json({ message: 'Invalid file type provided' });
       }
     } catch (deleteError) {
       console.error('Error deleting old file:', deleteError);
-      // Continue even if deletion fails - we don't want to block the update
+      // Continue with the upload even if deletion fails
     }
 
-    // Prepare field update
-    let updateField;
+    // Prepare update field
+    const updateField = {};
     switch (fileType) {
       case 'profileImage':
-        updateField = { userProfilePic: result.secure_url || result.path };
+        updateField.userProfilePic = req.file.secure_url;
         break;
       case 'resume':
-        updateField = {
-          resume: {
-            name: result.originalname || result.filename || 'Unnamed',
-            url: result.secure_url || result.path,
-          },
+        updateField.resume = {
+          name: req.file.originalname || 'Unnamed',
+          url: req.file.secure_url,
         };
         break;
       case 'coverLetter':
-        updateField = {
-          coverLetterFile: {
-            name: result.originalname || result.filename || 'Unnamed',
-            url: result.secure_url || result.path,
-          },
+        updateField.coverLetterFile = {
+          name: req.file.originalname || 'Unnamed',
+          url: req.file.secure_url,
         };
         break;
       default:
@@ -265,12 +262,16 @@ const uploadFile = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: 'Failed to update employee' });
+    }
+
     res.status(200).json({
       success: true,
       fileType,
       file: {
-        name: result.originalname || result.filename || 'Unnamed',
-        url: result.secure_url || result.path,
+        name: req.file.originalname || 'Unnamed',
+        url: req.file.secure_url,
       },
       message: 'File uploaded and saved successfully',
     });
