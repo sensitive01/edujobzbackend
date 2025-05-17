@@ -187,89 +187,87 @@ const uploadFile = async (req, res) => {
 
     // Validate inputs
     if (!employid || !mongoose.isValidObjectId(employid)) {
-      return res.status(400).json({ success: false, message: 'Valid employee ID is required' });
+      return res.status(400).json({ message: 'Valid employee ID is required' });
     }
 
     if (!fileType) {
-      return res.status(400).json({ success: false, message: 'File type is required' });
+      return res.status(400).json({ message: 'File type (fileType) is required' });
     }
 
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(400).json({ message: 'No file uploaded' });
     }
 
-    // Validate Cloudinary response
-    if (!req.file.secure_url) {
-      console.error('Cloudinary upload failed: No secure_url returned', req.file);
-      return res.status(500).json({
-        success: false,
-        message: 'File upload failed: No URL returned from Cloudinary',
+    const result = req.file;
+
+    // Check if we have a valid URL in the result
+    if (!result.secure_url && !result.url && !result.path) {
+      return res.status(500).json({ 
+        message: 'Cloudinary upload failed: No URL returned',
+        details: result 
       });
     }
 
-    // Log Cloudinary response for debugging
-    console.log('Cloudinary upload response:', {
-      originalname: req.file.originalname,
-      secure_url: req.file.secure_url,
-      public_id: req.file.public_id,
-    });
+    // Use secure_url if available, otherwise fall back to url or path
+    const fileUrl = result.secure_url || result.url || result.path;
 
-    // Find the employee
+    // First, get the current employee to check for existing files
     const currentEmployee = await userModel.findById(employid);
     if (!currentEmployee) {
-      return res.status(404).json({ success: false, message: 'Employee not found' });
+      return res.status(404).json({ message: 'Employee not found' });
     }
 
     // Delete old file from Cloudinary if it exists
     try {
-      let publicId;
       switch (fileType) {
         case 'profileImage':
           if (currentEmployee.userProfilePic) {
-            publicId = currentEmployee.userProfilePic.split('/').pop().split('.')[0];
-            await cloudinary.uploader.destroy(`employee_profile_images/${publicId}`);
+            const publicId = currentEmployee.userProfilePic.split('/').slice(-2).join('/').split('.')[0];
+            await cloudinary.uploader.destroy(publicId);
           }
           break;
         case 'resume':
           if (currentEmployee.resume?.url) {
-            publicId = currentEmployee.resume.url.split('/').pop().split('.')[0];
-            await cloudinary.uploader.destroy(`employee_resumes/${publicId}`, { resource_type: 'raw' });
+            const publicId = currentEmployee.resume.url.split('/').slice(-2).join('/').split('.')[0];
+            await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
           }
           break;
         case 'coverLetter':
           if (currentEmployee.coverLetterFile?.url) {
-            publicId = currentEmployee.coverLetterFile.url.split('/').pop().split('.')[0];
-            await cloudinary.uploader.destroy(`employee_cover_letters/${publicId}`, { resource_type: 'raw' });
+            const publicId = currentEmployee.coverLetterFile.url.split('/').slice(-2).join('/').split('.')[0];
+            await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
           }
           break;
-        default:
-          return res.status(400).json({ success: false, message: 'Invalid file type provided' });
       }
     } catch (deleteError) {
       console.error('Error deleting old file:', deleteError);
-      // Continue with the upload even if deletion fails
+      // Continue with the update even if deletion fails
     }
 
-    // Prepare update field
-    const updateField = {};
+    // Prepare field update
+    let updateField;
     switch (fileType) {
       case 'profileImage':
-        updateField.userProfilePic = req.file.secure_url;
+        updateField = { userProfilePic: fileUrl };
         break;
       case 'resume':
-        updateField.resume = {
-          name: req.file.originalname || 'Unnamed',
-          url: req.file.secure_url,
+        updateField = {
+          resume: {
+            name: result.originalname || result.filename || 'Unnamed',
+            url: fileUrl,
+          },
         };
         break;
       case 'coverLetter':
-        updateField.coverLetterFile = {
-          name: req.file.originalname || 'Unnamed',
-          url: req.file.secure_url,
+        updateField = {
+          coverLetterFile: {
+            name: result.originalname || result.filename || 'Unnamed',
+            url: fileUrl,
+          },
         };
         break;
       default:
-        return res.status(400).json({ success: false, message: 'Invalid file type provided' });
+        return res.status(400).json({ message: 'Invalid file type provided' });
     }
 
     // Update employee document
@@ -279,17 +277,12 @@ const uploadFile = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!updatedEmployee) {
-      return res.status(404).json({ success: false, message: 'Failed to update employee' });
-    }
-
-    // Send response
     res.status(200).json({
       success: true,
       fileType,
       file: {
-        name: req.file.originalname || 'Unnamed',
-        url: req.file.secure_url,
+        name: result.originalname || result.filename || 'Unnamed',
+        url: fileUrl,
       },
       message: 'File uploaded and saved successfully',
     });
