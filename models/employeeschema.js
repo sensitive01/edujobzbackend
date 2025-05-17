@@ -17,11 +17,7 @@ const workExperienceSchema = new mongoose.Schema({
   description: { type: String },
 });
 
-const fileSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  url: { type: String, required: true },
-  key: { type: String }, // For S3 or similar storage
-});
+
 const employeeschema = new mongoose.Schema({
   uuid: String,
   googleId: String,

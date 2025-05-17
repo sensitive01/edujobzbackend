@@ -22,9 +22,18 @@ const dynamicUploadMiddleware = (req, res, next) => {
 
   if (!storage) return res.status(400).json({ message: "Invalid or missing fileType" });
 
-  const upload = multer({ storage }).single('file');
+  const upload = multer({ 
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+  }).single('file');
+  
   upload(req, res, function (err) {
-    if (err) return res.status(500).json({ message: "Upload error", error: err.message });
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: "File size exceeds 10MB limit" });
+      }
+      return res.status(500).json({ message: "Upload error", error: err.message });
+    }
     next();
   });
 };
@@ -37,7 +46,7 @@ employeeRoute.post('/apple', employeeController.appleAuth);
 employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
 
 // Upload file to Cloudinary
-employeeRoute.post(
+employeeRoute.put(
   '/uploadfile/:employid',
   dynamicUploadMiddleware,
   employeeController.uploadFile

@@ -7,33 +7,41 @@ cloudinary.config({
   api_secret: '1bdQpon4QnDnkKOFCtORmyjU2c0',
 });
 
+// Helper function to generate unique public_id
+const generatePublicId = (req, file, prefix) => {
+  const timestamp = Date.now();
+  const originalName = file.originalname.split('.')[0];
+  return `${req.params.employid}_${prefix}_${originalName}_${timestamp}`;
+};
+
 const profileImageStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
+  params: (req, file) => ({
     folder: 'employee_profile_images',
     allowed_formats: ['jpg', 'jpeg', 'png'],
-    public_id: (req, file) => `${req.params.employid}_profile_${Date.now()}`,
-  },
+    public_id: generatePublicId(req, file, 'profile'),
+    transformation: [{ width: 500, height: 500, crop: 'limit' }]
+  }),
 });
 
-// Storage for resumes
 const resumeStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
+  params: (req, file) => ({
     folder: 'employee_resumes',
     allowed_formats: ['pdf', 'doc', 'docx'],
-    public_id: (req, file) => `${req.params.employid}_resume_${Date.now()}`,
-  },
+    public_id: generatePublicId(req, file, 'resume'),
+    resource_type: 'raw'
+  }),
 });
 
-// Storage for cover letters
 const coverLetterStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
+  params: (req, file) => ({
     folder: 'employee_cover_letters',
     allowed_formats: ['pdf', 'doc', 'docx'],
-    public_id: (req, file) => `${req.params.employid}_cover_letter_${Date.now()}`,
-  },
+    public_id: generatePublicId(req, file, 'coverletter'),
+    resource_type: 'raw'
+  }),
 });
 
 module.exports = { cloudinary, profileImageStorage, resumeStorage, coverLetterStorage };

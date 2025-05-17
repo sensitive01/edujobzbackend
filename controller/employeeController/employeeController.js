@@ -199,17 +199,50 @@ const uploadFile = async (req, res) => {
 
     const result = req.file; // Multer-storage-cloudinary stores the file info here
 
+    // First, get the current employee to check for existing files
+    const currentEmployee = await Employee.findById(employid);
+    if (!currentEmployee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    // Delete old file from Cloudinary if it exists
+    try {
+      switch (fileType) {
+        case 'profileImage':
+          if (currentEmployee.userProfilePic) {
+            const publicId = currentEmployee.userProfilePic.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`employee_profile_images/${publicId}`);
+          }
+          break;
+        case 'resume':
+          if (currentEmployee.resume?.url) {
+            const publicId = currentEmployee.resume.url.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`employee_resumes/${publicId}`);
+          }
+          break;
+        case 'coverLetter':
+          if (currentEmployee.coverLetterFile?.url) {
+            const publicId = currentEmployee.coverLetterFile.url.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`employee_cover_letters/${publicId}`);
+          }
+          break;
+      }
+    } catch (deleteError) {
+      console.error('Error deleting old file:', deleteError);
+      // Continue even if deletion fails - we don't want to block the update
+    }
+
     // Prepare field update
     let updateField;
     switch (fileType) {
       case 'profileImage':
-        updateField = { userProfilePic: result.path };
+        updateField = { userProfilePic: result.secure_url || result.path };
         break;
       case 'resume':
         updateField = {
           resume: {
             name: result.originalname || result.filename || 'Unnamed',
-            url: result.path,
+            url: result.secure_url || result.path,
           },
         };
         break;
@@ -217,7 +250,7 @@ const uploadFile = async (req, res) => {
         updateField = {
           coverLetterFile: {
             name: result.originalname || result.filename || 'Unnamed',
-            url: result.path,
+            url: result.secure_url || result.path,
           },
         };
         break;
@@ -232,16 +265,12 @@ const uploadFile = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    if (!updatedEmployee) {
-      return res.status(404).json({ message: 'Employee not found' });
-    }
-
     res.status(200).json({
       success: true,
       fileType,
       file: {
         name: result.originalname || result.filename || 'Unnamed',
-        url: result.path,
+        url: result.secure_url || result.path,
       },
       message: 'File uploaded and saved successfully',
     });
@@ -254,6 +283,7 @@ const uploadFile = async (req, res) => {
     });
   }
 };
+
 
 const updateProfile = async (req, res) => {
   try {
