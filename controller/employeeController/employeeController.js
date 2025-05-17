@@ -10,6 +10,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const appleKeysClient = jwksClient({ 
   jwksUri: 'https://appleid.apple.com/auth/keys' 
 });
+const mongoose = require('mongoose');
 
 // Email/Mobile Signup
 const signUp = async (req, res) => {
