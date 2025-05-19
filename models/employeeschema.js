@@ -50,7 +50,7 @@ resume: {
     name: { type: String },
     url: { type: String },
   },
-
+  profilesummary: { type: String },
   profileImage: { type: String }, // URL to profile image
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
