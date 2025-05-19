@@ -198,9 +198,8 @@ const updateEmployerDetails = async (req, res) => {
         website: req.body.website,
         board: req.body.board,
         institutionType: req.body.institutionType,
-        // add other fields if needed
       },
-      { new: true }  // return the updated document
+      { new: true }
     );
 
     if (!updatedEmployer) {
@@ -212,6 +211,7 @@ const updateEmployerDetails = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 module.exports = {
   signUp,
