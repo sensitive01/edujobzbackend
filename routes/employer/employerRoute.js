@@ -22,4 +22,7 @@ employerRoute.get('/fetchemployer/:id', employerController.getEmployerDetails);
 
 employerRoute.post('/postjob', jobController.createJob);
 employerRoute.get('/fetchjobs', jobController.getAllJobs);
+employerRoute.get("/jobs/:id", jobController.getJobById);
+employerRoute.get("/jobs/:employid", jobController.getJobsByEmployee);
+
 module.exports = employerRoute;
