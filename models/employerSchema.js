@@ -5,6 +5,16 @@ const employerschema = new mongoose.Schema({
   googleId: String,
   appleId: String,
   schoolName: String,
+    firstName: String,
+  lastName: String,
+  address:  String, 
+  city:  String, 
+  state: String, 
+  pincode:  String, 
+  institutionName:   String, 
+  board:  String,
+  institutionType:  String, 
+  website:  String, 
   userEmail: String,
   userMobile: String,               // <-- Add this
   userPassword: String,            // <-- Add this

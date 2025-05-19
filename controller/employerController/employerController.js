@@ -179,10 +179,45 @@ const getEmployerDetails = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+const updateEmployerDetails = async (req, res) => {
+  try {
+    const updatedEmployer = await Employer.findByIdAndUpdate(
+      req.params.id,
+      {
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        userEmail: req.body.userEmail,
+        userMobile: req.body.userMobile,
+        address: req.body.address,
+        state: req.body.state,
+        pincode: req.body.pincode,
+        city: req.body.city,
+        schoolName: req.body.schoolName,
+        website: req.body.website,
+        board: req.body.board,
+        institutionType: req.body.institutionType,
+        // add other fields if needed
+      },
+      { new: true }  // return the updated document
+    );
+
+    if (!updatedEmployer) {
+      return res.status(404).json({ message: 'Employer not found' });
+    }
+    res.json(updatedEmployer);
+  } catch (err) {
+    console.error("Error updating employer details:", err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   signUp,
   login,
   googleAuth,
   appleAuth,
   getEmployerDetails,
+  updateEmployerDetails,
 };
