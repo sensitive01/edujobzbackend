@@ -4,6 +4,11 @@ const employerRoute = express();
 
 const employerController = require("../../controller/employerController/employerController");
 const jobController = require ("../../controller/employerController/postjobcontroller");
+const { profileImageStorage, resumeStorage, coverLetterStorage } = require("../../config/cloudinary");
+
+
+
+// Determine storage based on fileType
 const getStorage = (fileType) => {
   switch (fileType) {
     case 'profileImage': return profileImageStorage;
@@ -12,16 +17,6 @@ const getStorage = (fileType) => {
     default: return null;
   }
 };
-const profileImageStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, '../../uploads/profileImages'));
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
-
 
 // Dynamic middleware for fileType-based upload
 const dynamicUploadMiddleware = (req, res, next) => {
