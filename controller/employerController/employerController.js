@@ -183,6 +183,7 @@ const getEmployerDetails = async (req, res) => {
 
 const updateEmployerDetails = async (req, res) => {
   try {
+    console.log('Update request body:', req.body);  // ✅ Log incoming data
     const updatedEmployer = await Employer.findByIdAndUpdate(
       req.params.id,
       {
@@ -205,9 +206,10 @@ const updateEmployerDetails = async (req, res) => {
     if (!updatedEmployer) {
       return res.status(404).json({ message: 'Employer not found' });
     }
+
     res.json(updatedEmployer);
   } catch (err) {
-    console.error("Error updating employer details:", err);
+    console.error("Error updating employer details:", err);  // 👈 this error should reveal the issue
     res.status(500).json({ message: 'Server error' });
   }
 };
