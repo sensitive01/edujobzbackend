@@ -4,7 +4,38 @@ const employerRoute = express();
 
 const employerController = require("../../controller/employerController/employerController");
 const jobController = require ("../../controller/employerController/postjobcontroller");
+const getStorage = (fileType) => {
+  switch (fileType) {
+    case 'profileImage': return profileImageStorage;
 
+    default: return null;
+  }
+};
+
+// Dynamic middleware for fileType-based upload
+const dynamicUploadMiddleware = (req, res, next) => {
+  const fileType = req.query.fileType || req.body.fileType;
+  const storage = getStorage(fileType);
+
+  if (!storage) {
+    return res.status(400).json({ message: 'Invalid or missing fileType' });
+  }
+
+  const upload = multer({
+    storage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  }).single('file');
+
+  upload(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ message: 'File size exceeds 10MB limit' });
+      }
+      return res.status(500).json({ message: 'Upload error', error: err.message });
+    }
+    next();
+  });
+};
 
 
 employerRoute.post('/signup', employerController.signUp);
@@ -19,6 +50,7 @@ employerRoute.post('/google', employerController.googleAuth);
 employerRoute.post('/apple', employerController.appleAuth);
 employerRoute.get('/fetchemployer/:id', employerController.getEmployerDetails);
 employerRoute.put("/updateemployer/:id", employerController.updateEmployerDetails);
+employerRoute.put('/uploadprofilepic/:employid', dynamicUploadMiddleware, employerController.updateProfilePicture);
 
 
 employerRoute.post('/postjob', jobController.createJob);

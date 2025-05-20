@@ -213,6 +213,65 @@ const updateEmployerDetails = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+const updateProfilePicture = async (req, res) => {
+  try {
+    const { employid } = req.params;
+
+    // Validate employee ID
+    if (!employid || !mongoose.isValidObjectId(employid)) {
+      return res.status(400).json({ message: 'Valid employee ID is required' });
+    }
+
+    // Check if file is uploaded
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const result = req.file;
+
+    // Get file URL
+    const fileUrl = result.secure_url || result.url || result.path;
+    if (!fileUrl) {
+      return res.status(500).json({ message: 'Cloudinary upload failed: No URL returned', details: result });
+    }
+
+    // Find current employee
+    const currentEmployee = await userModel.findById(employid);
+    if (!currentEmployee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+
+    // Delete old profile picture if exists
+    if (currentEmployee.userProfilePic) {
+      try {
+        const publicId = currentEmployee.userProfilePic.split('/').slice(-2).join('/').split('.')[0];
+        await cloudinary.uploader.destroy(publicId);
+      } catch (err) {
+        console.error('Failed to delete old profile picture:', err);
+      }
+    }
+
+    // Update with new profile picture
+    currentEmployee.userProfilePic = fileUrl;
+    await currentEmployee.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile picture updated successfully',
+      file: {
+        name: result.originalname || result.filename || 'Unnamed',
+        url: fileUrl,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating profile picture:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while updating profile picture',
+      error: error.message,
+    });
+  }
+};
 
 
 module.exports = {
@@ -222,4 +281,5 @@ module.exports = {
   appleAuth,
   getEmployerDetails,
   updateEmployerDetails,
+  updateProfilePicture,
 };
