@@ -184,7 +184,7 @@ const getEmployerDetails = async (req, res) => {
 const updateEmployerDetails = async (req, res) => {
   try {
     console.log('Update request body:', req.body);  // ✅ Log incoming data
-    const updatedEmployer = await Employer.findByIdAndUpdate(
+    const updatedEmployer = await userModel.findByIdAndUpdate(
       req.params.id,
       {
         firstName: req.body.firstName,
