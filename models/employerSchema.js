@@ -20,7 +20,7 @@ const employerschema = new mongoose.Schema({
   userPassword: String,            // <-- Add this
   userProfilePic: String,
     maritalStatus:  String,
-  languages: string,
+ languages: [String],
   github: String ,
   linkedin:   String ,
   portfolio:  String ,
