@@ -55,6 +55,7 @@ resume: {
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
    languages: [String],
+    maritalStatus:  String,
   github: String ,
   linkedin:   String ,
   portfolio:  String ,

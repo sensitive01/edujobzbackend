@@ -19,7 +19,7 @@ const employerschema = new mongoose.Schema({
   userMobile: String,               // <-- Add this
   userPassword: String,            // <-- Add this
   userProfilePic: String,
-    maritalStatus:  String,
+   
 
   isVerified: { type: Boolean, default: false }
 });
