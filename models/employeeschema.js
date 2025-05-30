@@ -54,6 +54,13 @@ resume: {
   profileImage: { type: String }, // URL to profile image
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
+   languages: [String],
+  github: String ,
+  linkedin:   String ,
+  portfolio:  String ,
+  expectedSalary: Number ,
+  currentCity:  String ,
+  totalExperience:Number ,
 });
 
 module.exports = mongoose.model('employee', employeeschema);

@@ -20,13 +20,7 @@ const employerschema = new mongoose.Schema({
   userPassword: String,            // <-- Add this
   userProfilePic: String,
     maritalStatus:  String,
- languages: [String],
-  github: String ,
-  linkedin:   String ,
-  portfolio:  String ,
-  expectedSalary: Number ,
-  currentCity:  String ,
-  totalExperience:Number ,
+
   isVerified: { type: Boolean, default: false }
 });
 
