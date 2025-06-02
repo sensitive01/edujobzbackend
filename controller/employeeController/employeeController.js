@@ -189,12 +189,19 @@ const applyForJob = async (req, res) => {
     } = req.body;
 
     // Validate required fields
-    if (!applicantId ||firstName ) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields'
-      });
-    }
+//  // Validate required fields
+// if (!applicantId || !firstName) {
+//   console.log('Missing fields:', {
+//     applicantIdMissing: !applicantId,
+//     firstNameMissing: !firstName,
+//   });
+
+//   return res.status(400).json({
+//     success: false,
+//     message: 'Missing required fields'
+//   });
+// }
+
 
     const application = {
       applicantId,
