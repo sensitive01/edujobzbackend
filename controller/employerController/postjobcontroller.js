@@ -41,9 +41,32 @@ const getJobsByEmployee = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const getAppliedCandidates = async (req, res) => {
+  const jobId = req.params.id;
 
+  try {
+    const job = await Job.findById(jobId).select('applications');
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // Return the embedded application objects
+    res.status(200).json({
+      success: true,
+      applications: job.applications
+    });
+  } catch (error) {
+    console.error('Error fetching applied candidates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
 module.exports = {
   createJob,
+  getAppliedCandidates,
   getAllJobs,
   getJobsByEmployee,
   getJobById,

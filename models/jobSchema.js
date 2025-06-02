@@ -9,6 +9,8 @@ const applicationSchema = new mongoose.Schema({
     url: { type: String }
   },
   status: { type: String },
+   profileurl: { type: String },
+    employapplicantstatus: { type: String, default: 'Pending' },
   appliedDate: { type: Date, default: Date.now },
   notes: { type: String }
 });
