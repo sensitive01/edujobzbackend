@@ -1,5 +1,17 @@
 const mongoose = require('mongoose');
-
+const applicationSchema = new mongoose.Schema({
+  applicantId: { type: String },
+  firstName: { type: String },
+  email: { type: String },
+  phone: { type: String },
+  resume: {
+    name: { type: String },
+    url: { type: String }
+  },
+  status: { type: String },
+  appliedDate: { type: Date, default: Date.now },
+  notes: { type: String }
+});
 const jobSchema = new mongoose.Schema({
   // Basic Information
   companyName: { type: String, },
@@ -12,7 +24,7 @@ const jobSchema = new mongoose.Schema({
   salaryFrom: { type: String, },
   salaryTo: { type: String,  },
   salaryType: { type: String, },
-  
+  applications: [applicationSchema],
   // Job Details
   jobType: { 
     type: String, 

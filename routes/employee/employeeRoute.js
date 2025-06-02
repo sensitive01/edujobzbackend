@@ -55,5 +55,6 @@ employeeRoute.put(
 
 // Update profile
 employeeRoute.put('/updateprofile/:employid', employeeController.updateProfile);
+employeeRoute.post('/:jobId/apply',employeeController.applyForJob);
 
 module.exports = employeeRoute;

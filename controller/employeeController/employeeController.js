@@ -1,6 +1,7 @@
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const Job = require('../../models/jobSchema');
 const userModel = require('../../models/employeeschema');
 const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
@@ -176,6 +177,65 @@ const getEmployeeDetails = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+const applyForJob = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { 
+      applicantId,
+      firstName,
+      email,
+      phone,
+      resume
+    } = req.body;
+
+    // Validate required fields
+    if (!applicantId ||firstName ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    const application = {
+      applicantId,
+      firstName,
+      email,
+      phone,
+      resume: {
+        name: resume.name || 'resume.pdf',
+        url: resume.url
+      },
+      status: 'Applied'
+    };
+
+    const updatedJob = await Job.findByIdAndUpdate(
+      jobId,
+      { $push: { applications: application } },
+      { new: true }
+    );
+
+    if (!updatedJob) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Application submitted successfully',
+      data: updatedJob.applications.slice(-1)[0]
+    });
+
+  } catch (error) {
+    console.error('Error submitting application:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
 
 
 // employeeController.js
@@ -338,5 +398,6 @@ module.exports = {
   getEmployeeDetails,
   appleAuth,
   uploadFile,
+  applyForJob,
   updateProfile
 };
