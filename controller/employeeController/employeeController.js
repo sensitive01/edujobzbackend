@@ -185,23 +185,17 @@ const applyForJob = async (req, res) => {
       firstName,
       email,
       phone,
-      resume
+      resume,
+      profileurl // <-- Extract profileurl from body
     } = req.body;
 
-    // Validate required fields
-//  // Validate required fields
-// if (!applicantId || !firstName) {
-//   console.log('Missing fields:', {
-//     applicantIdMissing: !applicantId,
-//     firstNameMissing: !firstName,
-//   });
-
-//   return res.status(400).json({
-//     success: false,
-//     message: 'Missing required fields'
-//   });
-// }
-
+    // Optionally validate required fields
+    // if (!applicantId || !firstName) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: 'Missing required fields'
+    //   });
+    // }
 
     const application = {
       applicantId,
@@ -209,9 +203,10 @@ const applyForJob = async (req, res) => {
       email,
       phone,
       resume: {
-        name: resume.name || 'resume.pdf',
-        url: resume.url
+        name: resume?.name || 'resume.pdf',
+        url: resume?.url || ''
       },
+      profileurl, // <-- Add profileurl to application
       status: 'Applied'
     };
 
@@ -243,6 +238,7 @@ const applyForJob = async (req, res) => {
     });
   }
 };
+
 const getApplicationStatus = async (req, res) => {
   try {
     const { jobId, applicantId } = req.params;
