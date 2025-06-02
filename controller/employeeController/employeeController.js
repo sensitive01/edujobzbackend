@@ -243,6 +243,44 @@ const applyForJob = async (req, res) => {
     });
   }
 };
+const getApplicationStatus = async (req, res) => {
+  try {
+    const { jobId, applicantId } = req.params;
+
+    const job = await Job.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    const application = job.applications.find(app => app.applicantId === applicantId);
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: 'Application not found for this applicant'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Application status fetched successfully',
+      status: application.status,
+      application
+    });
+
+  } catch (error) {
+    console.error('Error fetching application status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};
 
 
 // employeeController.js
@@ -406,5 +444,6 @@ module.exports = {
   appleAuth,
   uploadFile,
   applyForJob,
+  getApplicationStatus,
   updateProfile
 };
