@@ -6,6 +6,7 @@ const applicationSchema = new mongoose.Schema({
   phone: { type: String },
     experience: { type: String },
   currentcity: { type: String },
+  jobrole:{ type: String },
   resume: {
     name: { type: String },
     url: { type: String }
