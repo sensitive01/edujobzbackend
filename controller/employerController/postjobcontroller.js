@@ -88,6 +88,32 @@ const updateFavoriteStatus = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+const updateApplicantStatus = async (req, res) => {
+  try {
+    const { jobId, applicantId } = req.params;
+    const { status } = req.body;
+
+    const job = await Job.findOne({ _id: jobId });
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    const application = job.applications.find(app => app.applicantId === applicantId);
+    if (!application) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    application.employapplicantstatus = status;
+    await job.save();
+
+    res.status(200).json({ success: true, message: 'Status updated successfully' });
+  } catch (error) {
+    console.error('Error updating applicant status:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 module.exports = {
   createJob,
   getAppliedCandidates,
@@ -95,5 +121,6 @@ module.exports = {
   getJobsByEmployee,
   getJobById,
   updateFavoriteStatus,
+  updateApplicantStatus,
 
 };
