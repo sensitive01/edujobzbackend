@@ -64,5 +64,6 @@ employerRoute.get('/fetchjobs', jobController.getAllJobs);
 employerRoute.get("/viewjobs/:id", jobController.getJobById);
 employerRoute.get("/fetchjob/:employid", jobController.getJobsByEmployee);
 employerRoute.get("/fetchappliedcand/:id", jobController.getAppliedCandidates);
+employerRoute.put('/updatefavorite/:jobId/:applicantId', jobController.updateFavoriteStatus);
 
 module.exports = employerRoute;

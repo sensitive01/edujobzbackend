@@ -8,6 +8,7 @@ const applicationSchema = new mongoose.Schema({
     name: { type: String },
     url: { type: String }
   },
+  favourite: { type: Boolean, default: false },
   status: { type: String },
    profileurl: { type: String },
     employapplicantstatus: { type: String, default: 'Pending' },
