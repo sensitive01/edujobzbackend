@@ -187,6 +187,7 @@ const applyForJob = async (req, res) => {
       phone,
       resume,
      experience,
+     jobrole,
   currentcity,
       profileurl // <-- Extract profileurl from body
     } = req.body;
@@ -204,6 +205,7 @@ const applyForJob = async (req, res) => {
       firstName,
       email,
       phone,
+      jobrole,
           experience,
   currentcity,
       resume: {
