@@ -91,17 +91,30 @@ const shortlistcand = async (req, res) => {
   }
 };
 
+
 const getFavouriteCandidates = async (req, res) => {
   const { employid } = req.params;
 
   try {
-    // Step 1: Find all jobs posted by the specific employer
-    const jobs = await Job.find({ employid }).select('applications');
+    // Find all jobs posted by the employer
+    const jobs = await Job.find({ employid }).select('jobTitle applications');
 
-    // Step 2: Flatten all applications and filter favourite candidates
-    const favouriteCandidates = jobs
-      .flatMap(job => job.applications)
-      .filter(app => app.favourite === true);
+    if (jobs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No jobs found for this employer ID'
+      });
+    }
+
+    // Extract all favourite candidates from these jobs
+    const favouriteCandidates = jobs.flatMap(job =>
+      job.applications
+        .filter(app => app.favourite === true)
+        .map(app => ({
+          ...app.toObject(),
+          jobTitle: job.jobTitle // attach job title for context
+        }))
+    );
 
     res.status(200).json({
       success: true,
@@ -115,7 +128,6 @@ const getFavouriteCandidates = async (req, res) => {
     });
   }
 };
-
 const updateFavoriteStatus = async (req, res) => {
   try {
     const { jobId, applicantId } = req.params;
