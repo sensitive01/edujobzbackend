@@ -70,5 +70,6 @@ employerRoute.put('/updatefavoritesave/:employid/:applicantId', jobController.up
 employerRoute.get("/fetchshortlistcand/:id", jobController.shortlistcand);
 employerRoute.put('/updatefavorite/:jobId/:applicantId', jobController.updateFavoriteStatus);
 employerRoute.put('/update-status/:jobId/:applicantId', jobController.updateApplicantStatus);
+employerRoute.put('/update-status/:employid/:applicantId', jobController.updateApplicantStatus);
 
 module.exports = employerRoute;
