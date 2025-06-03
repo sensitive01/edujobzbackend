@@ -90,7 +90,28 @@ const shortlistcand = async (req, res) => {
     });
   }
 };
+const getFavouriteCandidates = async (req, res) => {
+  try {
+    // Fetch only the applications field from all job documents
+    const jobs = await Job.find().select('applications');
 
+    // Flatten all applications across jobs and filter favourites
+    const favouriteCandidates = jobs
+      .flatMap(job => job.applications)
+      .filter(app => app.favourite === true);
+
+    res.status(200).json({
+      success: true,
+      favouriteCandidates
+    });
+  } catch (error) {
+    console.error('Error fetching favourite candidates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
 
 const updateFavoriteStatus = async (req, res) => {
   try {
@@ -148,6 +169,7 @@ module.exports = {
   getAllJobs,
   getJobsByEmployee,
   getJobById,
+  getFavouriteCandidates,
   updateFavoriteStatus,
   updateApplicantStatus,
   shortlistcand,

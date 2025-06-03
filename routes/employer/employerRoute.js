@@ -64,6 +64,8 @@ employerRoute.get('/fetchjobs', jobController.getAllJobs);
 employerRoute.get("/viewjobs/:id", jobController.getJobById);
 employerRoute.get("/fetchjob/:employid", jobController.getJobsByEmployee);
 employerRoute.get("/fetchappliedcand/:id", jobController.getAppliedCandidates);
+employerRoute.get("/fetchfavcand/:id", jobController.getFavouriteCandidates);
+
 employerRoute.get("/fetchshortlistcand/:id", jobController.shortlistcand);
 employerRoute.put('/updatefavorite/:jobId/:applicantId', jobController.updateFavoriteStatus);
 employerRoute.put('/update-status/:jobId/:applicantId', jobController.updateApplicantStatus);
