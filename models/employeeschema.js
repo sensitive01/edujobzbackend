@@ -63,5 +63,10 @@ resume: {
   currentCity:  String ,
 totalExperience: mongoose.Schema.Types.Mixed,
 });
-
+employeeschema.pre('save', function (next) {
+  if (this.totalExperience === 'Fresher') {
+    this.workExperience = [];
+  }
+  next();
+});
 module.exports = mongoose.model('employee', employeeschema);
