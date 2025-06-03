@@ -90,12 +90,15 @@ const shortlistcand = async (req, res) => {
     });
   }
 };
-const getFavouriteCandidates = async (req, res) => {
-  try {
-    // Fetch only the applications field from all job documents
-    const jobs = await Job.find().select('applications');
 
-    // Flatten all applications across jobs and filter favourites
+const getFavouriteCandidates = async (req, res) => {
+  const { employid } = req.params;
+
+  try {
+    // Step 1: Find all jobs posted by the specific employer
+    const jobs = await Job.find({ employid }).select('applications');
+
+    // Step 2: Flatten all applications and filter favourite candidates
     const favouriteCandidates = jobs
       .flatMap(job => job.applications)
       .filter(app => app.favourite === true);
