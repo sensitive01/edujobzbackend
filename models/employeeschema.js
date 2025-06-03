@@ -61,7 +61,7 @@ resume: {
   portfolio:  String ,
   expectedSalary: Number ,
   currentCity:  String ,
-  totalExperience:Number ,
+totalExperience: mongoose.Schema.Types.Mixed,
 });
 
 module.exports = mongoose.model('employee', employeeschema);
