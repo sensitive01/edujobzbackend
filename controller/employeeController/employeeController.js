@@ -186,6 +186,8 @@ const applyForJob = async (req, res) => {
       email,
       phone,
       resume,
+     experience,
+  currentcity,
       profileurl // <-- Extract profileurl from body
     } = req.body;
 
@@ -202,6 +204,8 @@ const applyForJob = async (req, res) => {
       firstName,
       email,
       phone,
+          experience,
+  currentcity,
       resume: {
         name: resume?.name || 'resume.pdf',
         url: resume?.url || ''
