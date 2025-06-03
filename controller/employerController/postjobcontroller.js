@@ -176,6 +176,37 @@ const updateApplicantStatus = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+const updateFavStatusforsavecand = async (req, res) => {
+  try {
+    const { employid, applicantId } = req.params;
+    const { favourite } = req.body;
+
+    // Find job by employer and where the applicant exists
+    const job = await Job.findOne({ 
+      employid: employid, 
+      "applications.applicantId": applicantId 
+    });
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job or application not found' });
+    }
+
+    // Find index of the application
+    const appIndex = job.applications.findIndex(app => app.applicantId === applicantId);
+    if (appIndex === -1) {
+      return res.status(404).json({ success: false, message: 'Application not found' });
+    }
+
+    // Update the favourite status
+    job.applications[appIndex].favourite = favourite;
+    await job.save();
+
+    return res.json({ success: true, message: 'Favourite status updated' });
+  } catch (error) {
+    console.error('Error updating favourite status:', error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 
 module.exports = {
@@ -188,5 +219,6 @@ module.exports = {
   updateFavoriteStatus,
   updateApplicantStatus,
   shortlistcand,
+  updateFavStatusforsavecand,
 
 };
