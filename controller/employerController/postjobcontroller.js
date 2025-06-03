@@ -64,6 +64,34 @@ const getAppliedCandidates = async (req, res) => {
     });
   }
 };
+
+const shortlistcand = async (req, res) => {
+  const jobId = req.params.id;
+
+  try {
+    const job = await Job.findById(jobId).select('applications');
+
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+
+    // Filter out applications with employapplicantstatus === 'Pending'
+    const nonPendingApplications = job.applications.filter(app => app.employapplicantstatus !== 'Pending');
+
+    res.status(200).json({
+      success: true,
+      applications: nonPendingApplications
+    });
+  } catch (error) {
+    console.error('Error fetching applied candidates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
+
+
 const updateFavoriteStatus = async (req, res) => {
   try {
     const { jobId, applicantId } = req.params;
@@ -122,5 +150,6 @@ module.exports = {
   getJobById,
   updateFavoriteStatus,
   updateApplicantStatus,
+  shortlistcand,
 
 };
