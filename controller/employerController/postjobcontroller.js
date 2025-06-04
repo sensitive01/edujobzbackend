@@ -182,30 +182,26 @@ const updateApplicantStatus = async (req, res) => {
 
 const updateFavStatusforsavecand = async (req, res) => {
   try {
-    const { employid, applicantId } = req.params;
+    const { applicationId, employid } = req.params;
     const { favourite } = req.body;
 
-    // Find job by employer and where the applicant exists
-    const job = await Job.findOne({ 
-      employid: employid, 
-      "applications.applicantId": applicantId 
-    });
+    const result = await Job.updateOne(
+      {
+        employid: employid,
+        "applications._id": applicationId
+      },
+      {
+        $set: {
+          "applications.$.favourite": favourite
+        }
+      }
+    );
 
-    if (!job) {
-      return res.status(404).json({ success: false, message: 'Job or application not found' });
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Application not found or favourite not updated' });
     }
 
-    // Find index of the application
-    const appIndex = job.applications.findIndex(app => app.applicantId === applicantId);
-    if (appIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Application not found' });
-    }
-
-    // Update the favourite status
-    job.applications[appIndex].favourite = favourite;
-    await job.save();
-
-    return res.json({ success: true, message: 'Favourite status updated' });
+    return res.json({ success: true, message: 'Favourite status updated successfully' });
   } catch (error) {
     console.error('Error updating favourite status:', error);
     return res.status(500).json({ success: false, message: error.message });
@@ -271,33 +267,7 @@ const getAllApplicantsByEmployId = async (req, res) => {
   }
 };
 
-const updateFavStatusforsavecan = async (req, res) => {
-  try {
-    const { applicationId, employid } = req.params;
-    const { favourite } = req.body;
 
-    const result = await Job.updateOne(
-      {
-        employid: employid,
-        "applications._id": applicationId
-      },
-      {
-        $set: {
-          "applications.$.favourite": favourite
-        }
-      }
-    );
-
-    if (result.modifiedCount === 0) {
-      return res.status(404).json({ success: false, message: 'Application not found or favourite not updated' });
-    }
-
-    return res.json({ success: true, message: 'Favourite status updated successfully' });
-  } catch (error) {
-    console.error('Error updating favourite status:', error);
-    return res.status(500).json({ success: false, message: error.message });
-  }
-};
 
 module.exports = {
   createJob,
@@ -312,5 +282,5 @@ module.exports = {
   shortlistcand,
   getNonPendingApplicantsByEmployId,
   updateFavStatusforsavecand,
-updateFavStatusforsavecan,
+
 };
