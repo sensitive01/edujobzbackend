@@ -154,32 +154,24 @@ const updateFavoriteStatus = async (req, res) => {
 };
 const updateApplicantStatus = async (req, res) => {
   try {
-    const { jobId, employid, applicantId } = req.params;
+    const { applicationId, applicantId } = req.params;
     const { status } = req.body;
 
-    let job;
+    const result = await Job.updateOne(
+      {
+        "applications._id": applicationId,
+        "applications.applicantId": applicantId
+      },
+      {
+        $set: {
+          "applications.$.employapplicantstatus": status
+        }
+      }
+    );
 
-    // Case 1: Find by jobId
-    if (jobId) {
-      job = await Job.findOne({ _id: jobId });
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Application not found or status not updated' });
     }
-
-    // Case 2: Find by employid and check inside applications
-    if (!job && employid) {
-      job = await Job.findOne({ employid, "applications.applicantId": applicantId });
-    }
-
-    if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
-    }
-
-    const application = job.applications.find(app => app.applicantId === applicantId);
-    if (!application) {
-      return res.status(404).json({ success: false, message: 'Application not found' });
-    }
-
-    application.employapplicantstatus = status;
-    await job.save();
 
     return res.status(200).json({ success: true, message: 'Status updated successfully' });
   } catch (error) {
@@ -278,6 +270,7 @@ const getAllApplicantsByEmployId = async (req, res) => {
     });
   }
 };
+
 
 
 module.exports = {
