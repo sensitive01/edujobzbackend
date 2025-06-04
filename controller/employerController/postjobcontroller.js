@@ -219,6 +219,37 @@ const updateFavStatusforsavecand = async (req, res) => {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+const getNonPendingApplicantsByEmployId = async (req, res) => {
+  try {
+    const { employid } = req.params;
+
+    // Find jobs by employid and select jobTitle and applications
+    const jobs = await Job.find({ employid }).select('jobTitle applications');
+
+    // Flatten all applications from multiple jobs and filter non-pending,
+    // attaching jobTitle and jobId for context
+    const nonPendingApplications = jobs.flatMap(job =>
+      job.applications
+        .filter(app => app.employapplicantstatus !== 'Pending')
+        .map(app => ({
+          ...app.toObject(),
+          jobTitle: job.jobTitle,
+          jobId: job._id
+        }))
+    );
+
+    res.status(200).json({
+      success: true,
+      data: nonPendingApplications
+    });
+  } catch (error) {
+    console.error('Error fetching applicants:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error'
+    });
+  }
+};
 
 
 module.exports = {
@@ -231,6 +262,7 @@ module.exports = {
   updateFavoriteStatus,
   updateApplicantStatus,
   shortlistcand,
+  getNonPendingApplicantsByEmployId,
   updateFavStatusforsavecand,
 
 };
