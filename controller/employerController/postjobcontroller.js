@@ -250,6 +250,34 @@ const getNonPendingApplicantsByEmployId = async (req, res) => {
     });
   }
 };
+const getAllApplicantsByEmployId = async (req, res) => {
+  try {
+    const { employid } = req.params;
+
+    // Find jobs by employid and select jobTitle and applications
+    const jobs = await Job.find({ employid }).select('jobTitle applications');
+
+    // Flatten all applications from multiple jobs, attaching jobTitle and jobId
+    const allApplications = jobs.flatMap(job =>
+      job.applications.map(app => ({
+        ...app.toObject(),
+        jobTitle: job.jobTitle,
+        jobId: job._id
+      }))
+    );
+
+    res.status(200).json({
+      success: true,
+      data: allApplications
+    });
+  } catch (error) {
+    console.error('Error fetching applicants:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error'
+    });
+  }
+};
 
 
 module.exports = {
@@ -258,6 +286,7 @@ module.exports = {
   getAllJobs,
   getJobsByEmployee,
   getJobById,
+  getAllApplicantsByEmployId,
   getFavouriteCandidates,
   updateFavoriteStatus,
   updateApplicantStatus,
