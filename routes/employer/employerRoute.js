@@ -75,6 +75,7 @@ employerRoute.put('/update-status/:applicationId/:applicantId', jobController.up
 employerRoute.get("/fetchallnonpending/:employid", jobController.getNonPendingApplicantsByEmployId);
 
 employerRoute.get("/viewallappliedcandi/:employid", jobController.getAllApplicantsByEmployId);
-// employerRoute.put('/upda/:applicationId/:applicantId', jobController.updateApplicantStatus);
+employerRoute.put('/updaee/:applicationId/:employid', jobController.updateFavStatusforsavecan);
+
 
 module.exports = employerRoute;
