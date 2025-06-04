@@ -66,15 +66,15 @@ employerRoute.get("/fetchjob/:employid", jobController.getJobsByEmployee);
 employerRoute.get("/fetchappliedcand/:id", jobController.getAppliedCandidates);
 employerRoute.get("/fetchfavcand/:employid", jobController.getFavouriteCandidates);
 
-employerRoute.put('/updatefavoritesave/:applicationId/:applicantId', jobController.updateFavStatusforsavecand);
+employerRoute.put('/updatefavoritesave/:employid/:applicantId', jobController.updateFavStatusforsavecand);
 employerRoute.get("/fetchshortlistcand/:id", jobController.shortlistcand);
 employerRoute.put('/updatefavorite/:jobId/:applicantId', jobController.updateFavoriteStatus);
 // employerRoute.put('/update-status/:jobId/:applicantId', jobController.updateApplicantStatus);
-employerRoute.put('/update-status/:employid/:applicantId', jobController.updateApplicantStatus);
+employerRoute.put('/update-status/:applicationId/:applicantId', jobController.updateApplicantStatus);
 
 employerRoute.get("/fetchallnonpending/:employid", jobController.getNonPendingApplicantsByEmployId);
 
 employerRoute.get("/viewallappliedcandi/:employid", jobController.getAllApplicantsByEmployId);
-// employerRoute.put('/upda/:applicationId/:applicantId', jobController.sts);
+// employerRoute.put('/upda/:applicationId/:applicantId', jobController.updateApplicantStatus);
 
 module.exports = employerRoute;
