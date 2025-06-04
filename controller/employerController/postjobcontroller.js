@@ -130,28 +130,32 @@ const getFavouriteCandidates = async (req, res) => {
 };
 const updateFavoriteStatus = async (req, res) => {
   try {
-    const { jobId, applicantId } = req.params;
+    const { applicationId, applicantId } = req.params;
     const { favourite } = req.body;
 
-    const job = await Job.findOne({ _id: jobId });
-    if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
+    const result = await Job.updateOne(
+      {
+        "applications._id": applicationId,
+        "applications.applicantId": applicantId
+      },
+      {
+        $set: {
+          "applications.$.favourite": favourite
+        }
+      }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Application not found or favorite not updated' });
     }
 
-    const application = job.applications.find(app => app.applicantId === applicantId);
-    if (!application) {
-      return res.status(404).json({ success: false, message: 'Application not found' });
-    }
-
-    application.favourite = favourite;
-    await job.save();
-
-    res.json({ success: true, message: 'Favorite status updated' });
+    res.json({ success: true, message: 'Favorite status updated successfully' });
   } catch (error) {
     console.error('Error updating favorite status:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 const updateApplicantStatus = async (req, res) => {
   try {
     const { applicationId, applicantId } = req.params;
@@ -182,35 +186,33 @@ const updateApplicantStatus = async (req, res) => {
 
 const updateFavStatusforsavecand = async (req, res) => {
   try {
-    const { employid, applicantId } = req.params;
+    const { applicationId, applicantId } = req.params;
     const { favourite } = req.body;
 
-    // Find job by employer and where the applicant exists
-    const job = await Job.findOne({ 
-      employid: employid, 
-      "applications.applicantId": applicantId 
-    });
+    // Use MongoDB's positional operator ($) to update nested application directly
+    const result = await Job.updateOne(
+      {
+        "applications._id": applicationId,
+        "applications.applicantId": applicantId
+      },
+      {
+        $set: {
+          "applications.$.favourite": favourite
+        }
+      }
+    );
 
-    if (!job) {
-      return res.status(404).json({ success: false, message: 'Job or application not found' });
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ success: false, message: 'Application not found or favourite not updated' });
     }
 
-    // Find index of the application
-    const appIndex = job.applications.findIndex(app => app.applicantId === applicantId);
-    if (appIndex === -1) {
-      return res.status(404).json({ success: false, message: 'Application not found' });
-    }
-
-    // Update the favourite status
-    job.applications[appIndex].favourite = favourite;
-    await job.save();
-
-    return res.json({ success: true, message: 'Favourite status updated' });
+    return res.json({ success: true, message: 'Favourite status updated successfully' });
   } catch (error) {
     console.error('Error updating favourite status:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 const getNonPendingApplicantsByEmployId = async (req, res) => {
   try {
     const { employid } = req.params;
