@@ -18,6 +18,12 @@ const applicationSchema = new mongoose.Schema({
   appliedDate: { type: Date, default: Date.now },
   notes: { type: String }
 });
+const savedjobs = new mongoose.Schema({
+  applicantId: { type: String },
+  
+  saved: { type: Boolean, default: false },
+ 
+});
 const jobSchema = new mongoose.Schema({
   // Basic Information
   companyName: { type: String, },
@@ -31,6 +37,7 @@ const jobSchema = new mongoose.Schema({
   salaryTo: { type: String,  },
   salaryType: { type: String, },
   applications: [applicationSchema],
+  saved: [savedjobs],
   // Job Details
   jobType: { 
     type: String, 

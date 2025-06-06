@@ -76,6 +76,38 @@ employerRoute.get("/fetchallnonpending/:employid", jobController.getNonPendingAp
 
 employerRoute.get("/viewallappliedcandi/:employid", jobController.getAllApplicantsByEmployId);
 employerRoute.put('/updaee/:applicationId/:employid', jobController.updateFavStatusforsavecand);
+// Example Express route for saving jobs
+employerRoute.post('/savejob', async (req, res) => {
+  try {
+    const { applicantId, jobId } = req.body;
 
+    // Find the job
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    // Check if already saved
+    const alreadySaved = job.saved.some(savedJob => 
+      savedJob.applicantId === applicantId
+    );
+
+    if (alreadySaved) {
+      return res.status(400).json({ message: 'Job already saved' });
+    }
+
+    // Add to saved jobs
+    job.saved.push({
+      applicantId,
+      saved: true
+    });
+
+    await job.save();
+
+    res.status(201).json({ message: 'Job saved successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error saving job', error: error.message });
+  }
+});
 
 module.exports = employerRoute;

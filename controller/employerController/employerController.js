@@ -1,6 +1,8 @@
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+
+const Job = require('../../models/jobSchema');
 const userModel = require('../../models/employerSchema');
 const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
@@ -275,11 +277,13 @@ const updateProfilePicture = async (req, res) => {
 };
 
 
+
 module.exports = {
   signUp,
   login,
   googleAuth,
   appleAuth,
+  
   getEmployerDetails,
   updateEmployerDetails,
   updateProfilePicture,

@@ -437,6 +437,29 @@ const updateProfile = async (req, res) => {
     });
   }
 };
+
+
+const appliedjobsfetch = async (req, res) => {
+  const { applicantId } = req.params;
+
+  try {
+    const jobs = await Job.find({ 'applications.applicantId': applicantId });
+
+    if (!jobs || jobs.length === 0) {
+      // No jobs found for this applicantId
+      return res.status(404).json({ message: 'No jobs found for this applicant.' });
+    }
+
+    // Jobs found, return them
+    res.status(200).json(jobs);
+  } catch (error) {
+    console.error('Error fetching jobs by applicant:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
 //hbh
 module.exports = {
   signUp,
@@ -447,5 +470,6 @@ module.exports = {
   uploadFile,
   applyForJob,
   getApplicationStatus,
+  appliedjobsfetch,
   updateProfile
 };
