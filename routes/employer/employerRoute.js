@@ -79,12 +79,7 @@ employerRoute.put('/updaee/:applicationId/:employid', jobController.updateFavSta
 // Example Express route for saving jobs
 employerRoute.put('/updaee/:applicationId/:employid', jobController.updateFavStatusforsavecand);
 // employerRoute.post('/savejob', jobController.toggleSaveJob);
+employerRoute.get('/fetchAllJobs', jobController.fetchAllJobs);
 employerRoute.post('/toggleSaveJob', jobController.toggleSaveJob);
-
-// Route to fetch jobs for an employer
-employerRoute.get('/fetchlistjobs', jobController.listfetchJobsforemployee);
-
-// Route to fetch saved jobs for an employer/applicant
-employerRoute.get('/fetchsavejob/:employid', jobController.fetchSavedJobslist);
-
+employerRoute.get('/fetchSavedJobs/:employid', jobController.fetchSavedJobslist);
 module.exports = employerRoute;

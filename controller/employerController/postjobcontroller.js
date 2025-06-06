@@ -268,6 +268,8 @@ const getAllApplicantsByEmployId = async (req, res) => {
 };
 
 
+
+
 const toggleSaveJob = async (req, res) => {
   try {
     const { applicantId, jobId } = req.body;
@@ -309,31 +311,27 @@ const toggleSaveJob = async (req, res) => {
     res.status(500).json({ message: 'Error toggling job save state', error: error.message });
   }
 };
-const listfetchJobsforemployee = async (req, res) => {
+
+const fetchAllJobs = async (req, res) => {
   try {
-    const { employid } = req.query; // Get employid from query parameters
-    console.log('[FETCH-JOBS] incoming:', { employid });
+    console.log('[FETCH-ALL-JOBS] fetching all jobs');
 
-    if (!employid) {
-      console.log('[FETCH-JOBS] employid not provided');
-      return res.status(400).json({ message: 'employid is required' });
-    }
+    // Fetch all jobs
+    const jobs = await Job.find({}).lean();
 
-    // Fetch jobs where employid matches
-    const jobs = await Job.find({ employid }).lean();
-    
     if (!jobs || jobs.length === 0) {
-      console.log('[FETCH-JOBS] no jobs found for employid:', employid);
-      return res.status(404).json({ message: 'No jobs found for this employer' });
+      console.log('[FETCH-ALL-JOBS] no jobs found');
+      return res.status(404).json({ message: 'No jobs found' });
     }
 
-    console.log('[FETCH-JOBS] jobs fetched:', jobs.length);
+    console.log('[FETCH-ALL-JOBS] jobs fetched:', jobs.length);
     res.status(200).json(jobs);
   } catch (error) {
-    console.error('[FETCH-JOBS] error:', error);
+    console.error('[FETCH-ALL-JOBS] error:', error);
     res.status(500).json({ message: 'Error fetching jobs', error: error.message });
   }
 };
+
 const fetchSavedJobslist = async (req, res) => {
   try {
     const { employid } = req.params; // Get employid from URL parameters
@@ -362,17 +360,18 @@ const fetchSavedJobslist = async (req, res) => {
   }
 };
 
-
-
 module.exports = {
-  createJob,
+  toggleSaveJob,
+  fetchAllJobs,
   fetchSavedJobslist,
-  listfetchJobsforemployee,
+  createJob,
+
+ 
   getAppliedCandidates,
   getAllJobs,
   getJobsByEmployee,
   getJobById,
-  toggleSaveJob,
+ 
   getAllApplicantsByEmployId,
   getFavouriteCandidates,
   updateFavoriteStatus,
