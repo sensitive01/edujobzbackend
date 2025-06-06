@@ -267,46 +267,112 @@ const getAllApplicantsByEmployId = async (req, res) => {
   }
 };
 
-const saveJob = async (req, res) => {
+
+const toggleSaveJob = async (req, res) => {
   try {
     const { applicantId, jobId } = req.body;
-    console.log('[SAVE-JOB] incoming:', { applicantId, jobId });
+    console.log('[TOGGLE-SAVE-JOB] incoming:', { applicantId, jobId });
+
+    if (!applicantId || !jobId) {
+      console.log('[TOGGLE-SAVE-JOB] missing applicantId or jobId');
+      return res.status(400).json({ message: 'applicantId and jobId are required' });
+    }
 
     const job = await Job.findById(jobId);
     if (!job) {
-      console.log('[SAVE-JOB] job not found');
+      console.log('[TOGGLE-SAVE-JOB] job not found');
       return res.status(404).json({ message: 'Job not found' });
     }
 
     if (!Array.isArray(job.saved)) job.saved = [];
 
-    const alreadySaved = job.saved.some(
+    const savedIndex = job.saved.findIndex(
       (s) => String(s.applicantId) === String(applicantId)
     );
-    console.log('[SAVE-JOB] alreadySaved:', alreadySaved);
+    console.log('[TOGGLE-SAVE-JOB] savedIndex:', savedIndex);
 
-    if (alreadySaved) {
-      return res.status(400).json({ message: 'Job already saved' });
+    if (savedIndex === -1) {
+      // Job is not saved, so save it
+      job.saved.push({ applicantId, saved: true });
+      await job.save();
+      console.log('[TOGGLE-SAVE-JOB] job saved');
+      return res.status(201).json({ message: 'Job saved successfully', isSaved: true });
+    } else {
+      // Job is already saved, so unsave it
+      job.saved.splice(savedIndex, 1);
+      await job.save();
+      console.log('[TOGGLE-SAVE-JOB] job unsaved');
+      return res.status(200).json({ message: 'Job unsaved successfully', isSaved: false });
+    }
+  } catch (error) {
+    console.error('[TOGGLE-SAVE-JOB] error:', error);
+    res.status(500).json({ message: 'Error toggling job save state', error: error.message });
+  }
+};
+const listfetchJobsforemployee = async (req, res) => {
+  try {
+    const { employid } = req.query; // Get employid from query parameters
+    console.log('[FETCH-JOBS] incoming:', { employid });
+
+    if (!employid) {
+      console.log('[FETCH-JOBS] employid not provided');
+      return res.status(400).json({ message: 'employid is required' });
     }
 
-    job.saved.push({ applicantId, saved: true });
-    await job.save();
+    // Fetch jobs where employid matches
+    const jobs = await Job.find({ employid }).lean();
+    
+    if (!jobs || jobs.length === 0) {
+      console.log('[FETCH-JOBS] no jobs found for employid:', employid);
+      return res.status(404).json({ message: 'No jobs found for this employer' });
+    }
 
-    console.log('[SAVE-JOB] saved OK');
-    res.status(201).json({ message: 'Job saved successfully' });
+    console.log('[FETCH-JOBS] jobs fetched:', jobs.length);
+    res.status(200).json(jobs);
   } catch (error) {
-    console.error('[SAVE-JOB] error:', error);
-    res.status(500).json({ message: 'Error saving job', error: error.message });
+    console.error('[FETCH-JOBS] error:', error);
+    res.status(500).json({ message: 'Error fetching jobs', error: error.message });
+  }
+};
+const fetchSavedJobslist = async (req, res) => {
+  try {
+    const { employid } = req.params; // Get employid from URL parameters
+    console.log('[FETCH-SAVED-JOBS] incoming:', { employid });
+
+    if (!employid) {
+      console.log('[FETCH-SAVED-JOBS] employid not provided');
+      return res.status(400).json({ message: 'employid is required' });
+    }
+
+    // Fetch jobs where the employid is in the saved array
+    const jobs = await Job.find({
+      'saved.applicantId': employid,
+    }).lean();
+
+    if (!jobs || jobs.length === 0) {
+      console.log('[FETCH-SAVED-JOBS] no saved jobs found for employid:', employid);
+      return res.status(404).json({ message: 'No saved jobs found' });
+    }
+
+    console.log('[FETCH-SAVED-JOBS] saved jobs fetched:', jobs.length);
+    res.status(200).json({ jobs });
+  } catch (error) {
+    console.error('[FETCH-SAVED-JOBS] error:', error);
+    res.status(500).json({ message: 'Error fetching saved jobs', error: error.message });
   }
 };
 
+
+
 module.exports = {
   createJob,
+  fetchSavedJobslist,
+  listfetchJobsforemployee,
   getAppliedCandidates,
   getAllJobs,
   getJobsByEmployee,
   getJobById,
-  saveJob,
+  toggleSaveJob,
   getAllApplicantsByEmployId,
   getFavouriteCandidates,
   updateFavoriteStatus,
