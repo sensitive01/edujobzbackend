@@ -80,34 +80,35 @@ employerRoute.put('/updaee/:applicationId/:employid', jobController.updateFavSta
 employerRoute.post('/savejob', async (req, res) => {
   try {
     const { applicantId, jobId } = req.body;
+    console.log('[SAVE-JOB] incoming:', { applicantId, jobId });
 
-    // Find the job
     const job = await Job.findById(jobId);
     if (!job) {
+      console.log('[SAVE-JOB] job not found');
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    // Check if already saved
-    const alreadySaved = job.saved.some(savedJob => 
-      savedJob.applicantId === applicantId
+    // Ensure job.saved exists
+    if (!Array.isArray(job.saved)) job.saved = [];
+
+    const alreadySaved = job.saved.some(
+      (s) => String(s.applicantId) === String(applicantId)
     );
+    console.log('[SAVE-JOB] alreadySaved:', alreadySaved);
 
     if (alreadySaved) {
       return res.status(400).json({ message: 'Job already saved' });
     }
 
-    // Add to saved jobs
-    job.saved.push({
-      applicantId,
-      saved: true
-    });
-
+    job.saved.push({ applicantId, saved: true });
     await job.save();
-
+    console.log('[SAVE-JOB] saved OK');
     res.status(201).json({ message: 'Job saved successfully' });
   } catch (error) {
+    console.error('[SAVE-JOB] error:', error);
     res.status(500).json({ message: 'Error saving job', error: error.message });
   }
 });
+
 
 module.exports = employerRoute;
