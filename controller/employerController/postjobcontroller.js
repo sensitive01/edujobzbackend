@@ -1,5 +1,6 @@
+const mongoose = require("mongoose");
 const Job = require('../../models/jobSchema');
-
+const Employer = require('../../models/employerSchema');
 // Create a new job
 const createJob = async (req, res) => {
   try {
@@ -67,12 +68,56 @@ const getAllJobs = async (req, res) => {
 // GET /api/jobs/:id
 const getJobById = async (req, res) => {
   try {
-    const job = await Job.findById(req.params.id);
+    const jobId = req.params.id;
+
+    const jobs = await Job.aggregate([
+      {
+        $match: { _id: new mongoose.Types.ObjectId(jobId) }
+      },
+      {
+        $addFields: {
+          employidObject: { $toObjectId: "$employid" }
+        }
+      },
+      {
+        $lookup: {
+          from: "employers",
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"]
+          }
+        }
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0
+        }
+      }
+    ]);
+
+    const job = jobs[0];
+
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
     }
+
     res.status(200).json(job);
   } catch (error) {
+    console.error("Error in getJobById:", error);
     res.status(500).json({ message: error.message });
   }
 };
