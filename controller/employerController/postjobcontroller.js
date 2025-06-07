@@ -11,15 +11,59 @@ const createJob = async (req, res) => {
   }
 };
 
-// Get all jobs
+
 const getAllJobs = async (req, res) => {
   try {
-    const jobs = await Job.find().sort({ createdAt: -1 });
+    const jobs = await Job.aggregate([
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $addFields: {
+          employidObject: { $toObjectId: "$employid" }
+        }
+      },
+      {
+        $lookup: {
+          from: "employers", // match with collection name, which is auto pluralized
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: [
+              { $ifNull: ["$employerInfo.firstName", ""] },
+              " ",
+              { $ifNull: ["$employerInfo.lastName", ""] }
+            ]
+          }
+        }
+      },
+      {
+        $project: {
+          employidObject: 0,
+          employerInfo: 0
+        }
+      }
+    ]);
+
     res.status(200).json(jobs);
   } catch (error) {
+    console.error("Error in getAllJobs:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 // GET /api/jobs/:id
 const getJobById = async (req, res) => {
   try {
@@ -35,12 +79,57 @@ const getJobById = async (req, res) => {
 // GET /api/jobs/employee/:employid
 const getJobsByEmployee = async (req, res) => {
   try {
-    const jobs = await Job.find({ employid: req.params.employid }).sort({ createdAt: -1 });
+    const jobs = await Job.aggregate([
+      {
+        $match: { employid: req.params.employid }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $addFields: {
+          employidObject: {
+            $toObjectId: "$employid"
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "employers", // MongoDB auto-pluralizes 'Employer' model
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"]
+          }
+        }
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0
+        }
+      }
+    ]);
+
     res.status(200).json(jobs);
   } catch (error) {
+    console.error("Failed to fetch jobs with employer data:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 const getAppliedCandidates = async (req, res) => {
   const jobId = req.params.id;
 
