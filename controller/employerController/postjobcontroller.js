@@ -466,9 +466,10 @@ const fetchAllJobs = async (req, res) => {
   }
 };
 
+
 const fetchSavedJobslist = async (req, res) => {
   try {
-    const { employid } = req.params; // Get employid from URL parameters
+    const { employid } = req.params;
     console.log('[FETCH-SAVED-JOBS] incoming:', { employid });
 
     if (!employid) {
@@ -476,10 +477,46 @@ const fetchSavedJobslist = async (req, res) => {
       return res.status(400).json({ message: 'employid is required' });
     }
 
-    // Fetch jobs where the employid is in the saved array
-    const jobs = await Job.find({
-      'saved.applicantId': employid,
-    }).lean();
+    const jobs = await Job.aggregate([
+      {
+        $match: {
+          'saved.applicantId': employid
+        }
+      },
+      {
+        $addFields: {
+          employidObject: { $toObjectId: "$employid" }
+        }
+      },
+      {
+        $lookup: {
+          from: 'employers', // collection name
+          localField: 'employidObject',
+          foreignField: '_id',
+          as: 'employerInfo'
+        }
+      },
+      {
+        $unwind: {
+          path: '$employerInfo',
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          employerProfilePic: '$employerInfo.userProfilePic',
+          employerName: {
+            $concat: ['$employerInfo.firstName', ' ', '$employerInfo.lastName']
+          }
+        }
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0
+        }
+      }
+    ]);
 
     if (!jobs || jobs.length === 0) {
       console.log('[FETCH-SAVED-JOBS] no saved jobs found for employid:', employid);
