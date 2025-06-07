@@ -360,13 +360,57 @@ const fetchSavedJobslist = async (req, res) => {
   }
 };
 
+
+const getJobsWithNonPendingApplications = async (req, res) => {
+  const applicantId = req.params.applicantId;
+
+  try {
+    const result = await Job.aggregate([
+      // Only include jobs that have matching application entries
+      {
+        $match: {
+          "applications": {
+            $elemMatch: {
+              applicantId: applicantId,
+              employapplicantstatus: { $ne: "Pending" }
+            }
+          }
+        }
+      },
+      // Replace the applications array with only matched non-pending applications for this applicant
+      {
+        $addFields: {
+          applications: {
+            $filter: {
+              input: "$applications",
+              as: "app",
+              cond: {
+                $and: [
+                  { $eq: ["$$app.applicantId", applicantId] },
+                  { $ne: ["$$app.employapplicantstatus", "Pending"] }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching jobs with non-pending applications:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
 module.exports = {
   toggleSaveJob,
   fetchAllJobs,
   fetchSavedJobslist,
   createJob,
 
- 
+ getJobsWithNonPendingApplications,
   getAppliedCandidates,
   getAllJobs,
   getJobsByEmployee,

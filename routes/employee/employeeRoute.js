@@ -1,7 +1,7 @@
 const express = require("express");
 const employeeController = require("../../controller/employeeController/employeeController");
 const { profileImageStorage, resumeStorage, coverLetterStorage } = require("../../config/cloudinary");
-
+const jobController = require ("../../controller/employerController/postjobcontroller");
 const employeeRoute = express.Router();
 const multer = require("multer");
 
@@ -59,5 +59,6 @@ employeeRoute.post('/:jobId/apply',employeeController.applyForJob);
 employeeRoute.get('/job/:jobId/application/:applicantId/status', employeeController.getApplicationStatus);
 
 employeeRoute.get('/applicant/:applicantId', employeeController.appliedjobsfetch);
+employeeRoute.get('/fetchshorlitstedjobsemployee/:applicantId', jobController.getJobsWithNonPendingApplications);
 
 module.exports = employeeRoute;
