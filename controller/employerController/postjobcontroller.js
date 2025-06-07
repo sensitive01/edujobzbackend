@@ -537,7 +537,6 @@ const getJobsWithNonPendingApplications = async (req, res) => {
 
   try {
     const result = await Job.aggregate([
-      // Only include jobs that have matching application entries
       {
         $match: {
           "applications": {
@@ -548,7 +547,6 @@ const getJobsWithNonPendingApplications = async (req, res) => {
           }
         }
       },
-      // Replace the applications array with only matched non-pending applications for this applicant
       {
         $addFields: {
           applications: {
@@ -562,7 +560,36 @@ const getJobsWithNonPendingApplications = async (req, res) => {
                 ]
               }
             }
+          },
+          employidObject: { $toObjectId: "$employid" }
+        }
+      },
+      {
+        $lookup: {
+          from: "employers", // <- MongoDB uses lowercase/plural collection names
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"]
           }
+        }
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0
         }
       }
     ]);
