@@ -439,18 +439,56 @@ const updateProfile = async (req, res) => {
 };
 
 
+
 const appliedjobsfetch = async (req, res) => {
   const { applicantId } = req.params;
 
   try {
-    const jobs = await Job.find({ 'applications.applicantId': applicantId });
+    const jobs = await Job.aggregate([
+      {
+        $match: {
+          'applications.applicantId': applicantId
+        }
+      },
+      {
+        $addFields: {
+          employidObject: { $toObjectId: "$employid" }
+        }
+      },
+      {
+        $lookup: {
+          from: "employers",
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"]
+          }
+        }
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0
+        }
+      }
+    ]);
 
     if (!jobs || jobs.length === 0) {
-      // No jobs found for this applicantId
       return res.status(404).json({ message: 'No jobs found for this applicant.' });
     }
 
-    // Jobs found, return them
     res.status(200).json(jobs);
   } catch (error) {
     console.error('Error fetching jobs by applicant:', error);
