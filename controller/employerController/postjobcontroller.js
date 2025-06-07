@@ -450,8 +450,46 @@ const fetchAllJobs = async (req, res) => {
   try {
     console.log('[FETCH-ALL-JOBS] fetching all jobs');
 
-    // Fetch all jobs
-    const jobs = await Job.find({}).lean();
+    const jobs = await Job.aggregate([
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $addFields: {
+          employidObject: {
+            $toObjectId: "$employid"
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "employers",
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"]
+          }
+        }
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0
+        }
+      }
+    ]);
 
     if (!jobs || jobs.length === 0) {
       console.log('[FETCH-ALL-JOBS] no jobs found');
