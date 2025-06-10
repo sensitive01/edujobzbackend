@@ -19,7 +19,7 @@ const generateUserUUID = () => uuidv4(); // Define the function
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    const { schoolName, userMobile, userEmail, userPassword } = req.body;
+    const {employerType, schoolName, userMobile, userEmail, userPassword } = req.body;
     const mobile = parseInt(userMobile);
 
     const existUser = await userModel.findOne({
@@ -34,6 +34,7 @@ const signUp = async (req, res) => {
     const newUser = new userModel({
       uuid: uuidv4(),
       schoolName,
+      employerType,
       userMobile: mobile,
       userEmail,
       userPassword: hashedPassword,
@@ -183,7 +184,23 @@ const getEmployerDetails = async (req, res) => {
   }
 };
 
+const listAllEmployees = async (req, res) => {
+  try {
+    // Fetch all employees, excluding the password field
+    const employees = await userModel.find().select('-userPassword');
 
+    // Check if any employees exist
+    if (!employees || employees.length === 0) {
+      return res.status(404).json({ message: "No employees found" });
+    }
+
+    // Return the list of employees
+    res.json(employees);
+  } catch (err) {
+    console.error("Error fetching employees:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 const updateEmployerDetails = async (req, res) => {
   try {
     console.log('Update request body:', req.body);  // ✅ Log incoming data
@@ -283,7 +300,7 @@ module.exports = {
   login,
   googleAuth,
   appleAuth,
-  
+  listAllEmployees,
   getEmployerDetails,
   updateEmployerDetails,
   updateProfilePicture,
