@@ -17,7 +17,7 @@ const mongoose = require('mongoose');
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    const { userName, userMobile, userEmail, userPassword } = req.body;
+    const { firstName,lastName,userName, userMobile, userEmail, userPassword } = req.body;
     const mobile = parseInt(userMobile);
 
     const existUser = await userModel.findOne({
@@ -32,6 +32,8 @@ const signUp = async (req, res) => {
     const newUser = new userModel({
       uuid: uuidv4(),
       userName,
+      lastName,
+      firstName,
       userMobile: mobile,
       userEmail,
       userPassword: hashedPassword,
