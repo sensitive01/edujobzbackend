@@ -169,14 +169,7 @@ const getEmployeeDetails = async (req, res) => {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // Calculate profile completion percentage
-    const percentageReport = calculateProfileCompletion(employee);
-
-    // Include employee details and profile completion in the response
-    res.json({
-      employee,
-      profileCompletion: percentageReport.total
-    });
+    res.json(employee);
   } catch (err) {
     console.error("Error fetching employee details:", err);
     if (err.kind === 'ObjectId') {
@@ -185,8 +178,6 @@ const getEmployeeDetails = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-// Keep the calculateProfileCompletion function as is
 const calculateProfileCompletion = (employee) => {
   let score = 0;
   const report = {
@@ -236,8 +227,10 @@ const calculateProfileCompletion = (employee) => {
   if (employee.portfolio) report.socialLinks += 1.66;
 
   // Job Preferences (10%)
+  // if (employee.preferredLocation) report.jobPreferences += 2;
   if (employee.expectedSalary) report.jobPreferences += 2;
   if (employee.currentCity) report.jobPreferences += 4;
+ 
   if (employee.gradeLevels) report.jobPreferences += 4;
 
   // Calculate Total
