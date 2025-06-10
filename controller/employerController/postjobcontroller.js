@@ -651,7 +651,7 @@ module.exports = {
   getAllJobs,
   getJobsByEmployee,
   getJobById,
- 
+
   getAllApplicantsByEmployId,
   getFavouriteCandidates,
   updateFavoriteStatus,

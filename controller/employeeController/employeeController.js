@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const Job = require('../../models/jobSchema');
 const userModel = require('../../models/employeeschema');
+
 const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
 const { v4: uuidv4 } = require('uuid');
@@ -496,7 +497,81 @@ const appliedjobsfetch = async (req, res) => {
   }
 };
 
+const calculateProfileCompletion = (employee) => {
+  let score = 0;
+  const report = {
+    basicInfo: 0,
+    address: 0,
+    education: 0,
+    workExperience: 0,
+    profileDetails: 0,
+    documents: 0,
+    socialLinks: 0,
+    jobPreferences: 0,
+    total: 0,
+  };
 
+  // Basic Info (20%)
+  if (employee.userName) report.basicInfo += 3.33;
+  if (employee.userEmail) report.basicInfo += 3.33;
+  if (employee.userMobile) report.basicInfo += 3.33;
+  if (employee.dob) report.basicInfo += 3.33;
+  if (employee.gender) report.basicInfo += 3.33;
+  if (employee.maritalStatus) report.basicInfo += 3.33;
+
+  // Address (10%)
+  if (employee.addressLine1) report.address += 2.5;
+  if (employee.city) report.address += 2.5;
+  if (employee.state) report.address += 2.5;
+  if (employee.pincode) report.address += 2.5;
+
+  // Education (15%)
+  if (employee.education && employee.education.length > 0) report.education += 15;
+
+  // Work Experience (15%)
+  if (employee.totalExperience === 'Fresher' || (employee.workExperience && employee.workExperience.length > 0)) report.workExperience += 15;
+
+  // Profile Details (15%)
+  if (employee.userProfilePic) report.profileDetails += 3.75;
+  if (employee.profilesummary) report.profileDetails += 3.75;
+  if (employee.skills) report.profileDetails += 3.75;
+  if (employee.languages) report.profileDetails += 3.75;
+
+  // Documents (10%)
+  if (employee.resume?.url) report.documents += 10;
+
+  // Social/Online Links (5%)
+  if (employee.github) report.socialLinks += 1.66;
+  if (employee.linkedin) report.socialLinks += 1.66;
+  if (employee.portfolio) report.socialLinks += 1.66;
+
+  // Job Preferences (10%)
+  // if (employee.preferredLocation) report.jobPreferences += 2;
+  if (employee.expectedSalary) report.jobPreferences += 2;
+  if (employee.currentCity) report.jobPreferences += 4;
+ 
+  if (employee.gradeLevels) report.jobPreferences += 4;
+
+  // Calculate Total
+  report.total = Math.round(
+    report.basicInfo + report.address + report.education + report.workExperience +
+    report.profileDetails + report.documents + report.socialLinks + report.jobPreferences
+  );
+
+  return report;
+};
+
+const getProfileCompletion = async (req, res) => {
+  try {
+    const employee = await userModel.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    const percentageReport = calculateProfileCompletion(employee);
+    res.json({ total: percentageReport.total }); // Return only the total
+  } catch (err) {
+    res.status(500).json({ message: 'Server Error', error: err.message });
+  }
+};
 
 //hbh
 module.exports = {
@@ -507,6 +582,8 @@ module.exports = {
   appleAuth,
   uploadFile,
   applyForJob,
+    getProfileCompletion,
+ calculateProfileCompletion,
   getApplicationStatus,
   appliedjobsfetch,
   updateProfile
