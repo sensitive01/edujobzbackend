@@ -61,7 +61,7 @@ employeeRoute.get('/job/:jobId/application/:applicantId/status', employeeControl
 employeeRoute.get('/applicant/:applicantId', employeeController.appliedjobsfetch);
 employeeRoute.get('/fetchshorlitstedjobsemployee/:applicantId', jobController.getJobsWithNonPendingApplications);
 employeeRoute.get('/percentage/:id', employeeController.getProfileCompletion);
-employeeRoute.get('/percentage/:id', employeeController.getSchoolEmployerJobs);
+employeeRoute.get('/fetchschooljob', employeeController.getSchoolEmployerJobs);
 
 
 
