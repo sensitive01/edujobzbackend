@@ -83,6 +83,8 @@ employerRoute.put('/updaee/:applicationId/:employid', jobController.updateFavSta
 employerRoute.get('/fetchAllJobs', jobController.fetchAllJobs);
 employerRoute.post('/toggleSaveJob', jobController.toggleSaveJob);
 employerRoute.get('/fetchSavedJobs/:employid', jobController.fetchSavedJobslist);
+employerRoute.get('/fetchschooljobs', jobController.getSchoolEmployerJobs);
+employerRoute.get('/fetchcompanyjobs', jobController.getcompnanyEmployerJobs);
 
 
 

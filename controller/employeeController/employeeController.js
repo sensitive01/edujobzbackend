@@ -575,27 +575,7 @@ const getProfileCompletion = async (req, res) => {
 };
 
 
-const getSchoolEmployerJobs = async (req, res) => {
-  try {
-    // Step 1: Get all school-type employers
-    const schoolEmployers = await Employer.find({ employerType: 'school' });
 
-    if (!schoolEmployers.length) {
-      return res.status(404).json({ message: 'No school employers found' });
-    }
-
-    // Step 2: Extract their _id values
-    const employerIds = schoolEmployers.map(emp => emp._id.toString());
-
-    // Step 3: Get all jobs where employid matches any of the employerIds
-    const jobs = await Job.find({ employid: { $in: employerIds } });
-
-    return res.status(200).json(jobs);
-  } catch (error) {
-    console.error('Error fetching jobs for school employers:', error);
-    return res.status(500).json({ message: 'Internal Server Error' });
-  }
-};
 //hbh
 module.exports = {
   signUp,
@@ -605,7 +585,7 @@ module.exports = {
   appleAuth,
   uploadFile,
   applyForJob,
-  getSchoolEmployerJobs,
+ 
     getProfileCompletion,
  calculateProfileCompletion,
   getApplicationStatus,

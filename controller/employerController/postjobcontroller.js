@@ -638,20 +638,146 @@ const getJobsWithNonPendingApplications = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+// GET /jobs/school-employers
+const getSchoolEmployerJobs = async (req, res) => {
+  try {
+    const jobs = await Job.aggregate([
+      // Make sure we can join on an ObjectId even if employid is stored as a string
+      {
+        $addFields: {
+          employidObject: { $toObjectId: '$employid' },
+        },
+      },
+      // Pull in the employer document
+      {
+        $lookup: {
+          from: 'employers',
+          localField: 'employidObject',
+          foreignField: '_id',
+          as: 'employerInfo',
+        },
+      },
+      { $unwind: '$employerInfo' }, // we need exactly one employer per job
+      // Keep only “School” employers
+      {
+        $match: {
+          'employerInfo.employerType': 'School',
+        },
+      },
+      // Surface the UX-friendly fields you need
+      {
+        $addFields: {
+          employerProfilePic: '$employerInfo.userProfilePic',
+          employerName: {
+            $concat: [
+              '$employerInfo.firstName',
+              ' ',
+              '$employerInfo.lastName',
+            ],
+          },
+        },
+      },
+      // Hide helper fields
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0,
+        },
+      },
+      // Latest jobs first (optional—remove if sorting elsewhere)
+      { $sort: { createdAt: -1 } },
+    ]);
 
+    if (!jobs.length) {
+      return res
+        .status(404)
+        .json({ message: 'No jobs found for school employers' });
+    }
+
+    res.status(200).json(jobs);
+  } catch (error) {
+    console.error('[GET-SCHOOL-EMPLOYER-JOBS] error:', error);
+    res
+      .status(500)
+      .json({ message: 'Error fetching school employer jobs', error: error.message });
+  }
+};
+const getcompnanyEmployerJobs = async (req, res) => {
+  try {
+    const jobs = await Job.aggregate([
+      // Make sure we can join on an ObjectId even if employid is stored as a string
+      {
+        $addFields: {
+          employidObject: { $toObjectId: '$employid' },
+        },
+      },
+      // Pull in the employer document
+      {
+        $lookup: {
+          from: 'employers',
+          localField: 'employidObject',
+          foreignField: '_id',
+          as: 'employerInfo',
+        },
+      },
+      { $unwind: '$employerInfo' }, // we need exactly one employer per job
+      // Keep only “School” employers
+      {
+        $match: {
+          'employerInfo.employerType': 'Company',
+        },
+      },
+      // Surface the UX-friendly fields you need
+      {
+        $addFields: {
+          employerProfilePic: '$employerInfo.userProfilePic',
+          employerName: {
+            $concat: [
+              '$employerInfo.firstName',
+              ' ',
+              '$employerInfo.lastName',
+            ],
+          },
+        },
+      },
+      // Hide helper fields
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0,
+        },
+      },
+      // Latest jobs first (optional—remove if sorting elsewhere)
+      { $sort: { createdAt: -1 } },
+    ]);
+
+    if (!jobs.length) {
+      return res
+        .status(404)
+        .json({ message: 'No jobs found for Company employers' });
+    }
+
+    res.status(200).json(jobs);
+  } catch (error) {
+    console.error('[GET-Company-EMPLOYER-JOBS] error:', error);
+    res
+      .status(500)
+      .json({ message: 'Error fetching Company employer jobs', error: error.message });
+  }
+};
 
 module.exports = {
   toggleSaveJob,
   fetchAllJobs,
   fetchSavedJobslist,
   createJob,
-
+getSchoolEmployerJobs,
  getJobsWithNonPendingApplications,
   getAppliedCandidates,
   getAllJobs,
   getJobsByEmployee,
   getJobById,
-
+getcompnanyEmployerJobs,
   getAllApplicantsByEmployId,
   getFavouriteCandidates,
   updateFavoriteStatus,
