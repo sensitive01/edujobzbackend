@@ -582,9 +582,9 @@ const getProfileCompletion = async (req, res) => {
 
 const userForgotPassword = async (req, res) => {
   try {
-    const { contactNo } = req.body;
+    const { userMobile } = req.body;
 
-    const existUser = await userModel.findOne({userMobile:contactNo})
+    const existUser = await userModel.findOne({userMobile:userMobile})
 
     if (!existUser) {
       return res.status(404).json({
@@ -592,7 +592,7 @@ const userForgotPassword = async (req, res) => {
       });
     }
 
-    if (!contactNo) {
+    if (!userMobile) {
       return res.status(400).json({ message: "Mobile number is required" });
     }
 
@@ -649,10 +649,10 @@ const userChangePassword = async (req, res) => {
   try {
     console.log("Welcome to user change password");
 
-    const { contactNo, password, confirmPassword } = req.body;
+    const { userMobile, password, confirmPassword } = req.body;
 
     // Validate inputs
-    if (!contactNo || !password || !confirmPassword) {
+    if (!userMobile || !password || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -665,7 +665,7 @@ const userChangePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Find the user by contact number
-    const user = await userModel.findOne({ userMobile: contactNo });
+    const user = await userModel.findOne({ userMobile: userMobile });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
