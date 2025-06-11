@@ -575,6 +575,111 @@ const getProfileCompletion = async (req, res) => {
 };
 
 
+const userForgotPassword = async (req, res) => {
+  try {
+    const { contactNo } = req.body;
+
+    const existUser = await userModel.findOne({userMobile:contactNo})
+
+    if (!existUser) {
+      return res.status(404).json({
+        message: "User not found with the provided contact number"
+      });
+    }
+
+    if (!contactNo) {
+      return res.status(400).json({ message: "Mobile number is required" });
+    }
+
+    const otp = generateOTP();
+    console.log("Generated OTP:", otp);
+
+    req.app.locals.otp = otp;
+
+
+    return res.status(200).json({
+      message: "OTP sent successfully",
+      otp: otp,
+    });
+  } catch (err) {
+    console.log("Error in sending OTP in forgot password:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const verifyOTP = async (req, res) => {
+  try {
+    const { otp } = req.body;
+
+    if (!otp) {
+      return res
+        .status(400)
+        .json({ message: "OTP is required" });
+    }
+
+    if (req.app.locals.otp) {
+      if (otp == req.app.locals.otp) {
+        return res.status(200).json({
+          message: "OTP verified successfully",
+          success: true,
+        });
+      } else {
+        return res.status(400).json({
+          message: "Invalid OTP",
+          success: false,
+        });
+      }
+    } else {
+      return res.status(400).json({
+        message: "OTP has expired or is invalid",
+        success: false,
+      });
+    }
+  } catch (err) {
+    console.log("Error in OTP verification:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+const userChangePassword = async (req, res) => {
+  try {
+    console.log("Welcome to user change password");
+
+    const { contactNo, password, confirmPassword } = req.body;
+
+    // Validate inputs
+    if (!contactNo || !password || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Check if passwords match
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Find the user by contact number
+    const user = await userModel.findOne({ userMobile: contactNo });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update the user's password field
+    user.userPassword = hashedPassword;
+
+    // Save the updated user to trigger schema validation and middleware
+    await user.save();
+
+    // Send success response
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("Error in user change password:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 
 //hbh
 module.exports = {
@@ -585,7 +690,9 @@ module.exports = {
   appleAuth,
   uploadFile,
   applyForJob,
- 
+  userChangePassword,
+ userForgotPassword,
+ verifyOTP,
     getProfileCompletion,
  calculateProfileCompletion,
   getApplicationStatus,

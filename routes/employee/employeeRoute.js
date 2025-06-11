@@ -67,6 +67,9 @@ employeeRoute.post("/createfeedback", feedbackController.addFeedback);
 employeeRoute.get("/feedbackbyid/:userId", feedbackController.fetchFeedbackByUserId);
 employeeRoute.put("/updatefeedback/:userId", feedbackController.updateFeedback);
 
-
+employeeRoute.post("/forgotpassword",employeeController.userForgotPassword)
+employeeRoute.post("/verify-otp",employeeController.verifyOTP)
+employeeRoute.post("/resend-otp",employeeController.userForgotPassword)
+employeeRoute.post("/change-password",employeeController.userChangePassword)
 
 module.exports = employeeRoute;
