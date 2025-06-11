@@ -1,7 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const employerRoute = express();
-
+const meetingController = require("../../controller/employerController/meetingController")
 const employerController = require("../../controller/employerController/employerController");
 const jobController = require ("../../controller/employerController/postjobcontroller");
 const { profileImageStorage, resumeStorage, coverLetterStorage } = require("../../config/cloudinary");
@@ -86,7 +86,8 @@ employerRoute.get('/fetchSavedJobs/:employid', jobController.fetchSavedJobslist)
 employerRoute.get('/fetchschooljobs', jobController.getSchoolEmployerJobs);
 employerRoute.get('/fetchcompanyjobs', jobController.getcompnanyEmployerJobs);
 
-
+employerRoute.post("/createmeeting", meetingController.create);
+employerRoute.get("/fetchmeeting/:id", meetingController.getMeetingsByVendor);
 
 
 module.exports = employerRoute;
