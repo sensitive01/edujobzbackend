@@ -1,7 +1,7 @@
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-
+const generateOTP = require("../../utils/generateOTP")
 const Job = require('../../models/jobSchema');
 const userModel = require('../../models/employerSchema');
 const jwtDecode = require('jwt-decode');
