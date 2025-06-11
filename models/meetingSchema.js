@@ -19,7 +19,7 @@ const meetingSchema = new mongoose.Schema({
     callbackTime: {
         type: String
     },
-    vendorId:{
+    employerid:{
         type: String
     }
 });

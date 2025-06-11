@@ -9,10 +9,10 @@ const create = async (req, res) => {
           mobile,
           businessURL,
           callbackTime,
-          vendorId,
+          employerid,
       } = req.body;
 
-      if (!name || !department || !email || !mobile  || !callbackTime || !vendorId) {
+      if (!name || !department || !email || !mobile  || !callbackTime || !employerid) {
           return res.status(400).json({ message: "All fields are required" });
       }
 
@@ -23,7 +23,7 @@ const create = async (req, res) => {
           mobile,
           businessURL,
           callbackTime,
-          vendorId,
+          employerid,
       });
 
       await newMeeting.save();
@@ -42,10 +42,10 @@ const getMeetingsByVendor = async (req, res) => {
     const { id } = req.params; 
 
     if (!id) {
-      return res.status(400).json({ message: "Vendor ID is required" });
+      return res.status(400).json({ message: "employerid  is required" });
     }
 
-    const meetings = await meetingModel.find({ vendorId: id });
+    const meetings = await meetingModel.find({ employerid: id });
 
     if (!meetings || meetings.length === 0) {
       return res.status(404).json({ message: "No meetings found for this vendor" });
