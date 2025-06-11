@@ -89,5 +89,9 @@ employerRoute.get('/fetchcompanyjobs', jobController.getcompnanyEmployerJobs);
 employerRoute.post("/createmeeting", meetingController.create);
 employerRoute.get("/fetchmeeting/:id", meetingController.getMeetingsByVendor);
 
+employerRoute.post("/employerforgotpassword",employerController.employerForgotPassword)
+employerRoute.post("/employerverify-otp",employerController.employerverifyOTP)
+employerRoute.post("/employerresend-otp",employerController.employerForgotPassword)
+employerRoute.post("/employerchange-password",employerController.employerChangePassword)
 
 module.exports = employerRoute;

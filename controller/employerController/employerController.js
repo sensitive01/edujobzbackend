@@ -72,12 +72,12 @@ const login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials." });
+      return res.status(400).json({ message: "Please check your email and password." });
     }
 
     const match = await bcrypt.compare(userPassword, user.userPassword);
     if (!match) {
-      return res.status(400).json({ message: "Invalid credentials." });
+      return res.status(400).json({ message: "Please check your email and password" });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -296,10 +296,116 @@ const updateProfilePicture = async (req, res) => {
   }
 };
 
+const employerForgotPassword = async (req, res) => {
+  try {
+    const { userMobile } = req.body;
 
+    const existUser = await userModel.findOne({userMobile:userMobile})
+
+    if (!existUser) {
+      return res.status(404).json({
+        message: "User not found with the provided contact number"
+      });
+    }
+
+    if (!userMobile) {
+      return res.status(400).json({ message: "Mobile number is required" });
+    }
+
+    const otp = generateOTP();
+    console.log("Generated OTP:", otp);
+
+    req.app.locals.otp = otp;
+
+
+    return res.status(200).json({
+      message: "OTP sent successfully",
+      otp: otp,
+    });
+  } catch (err) {
+    console.log("Error in sending OTP in forgot password:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const employerverifyOTP = async (req, res) => {
+  try {
+    const { otp } = req.body;
+
+    if (!otp) {
+      return res
+        .status(400)
+        .json({ message: "OTP is required" });
+    }
+
+    if (req.app.locals.otp) {
+      if (otp == req.app.locals.otp) {
+        return res.status(200).json({
+          message: "OTP verified successfully",
+          success: true,
+        });
+      } else {
+        return res.status(400).json({
+          message: "Invalid OTP",
+          success: false,
+        });
+      }
+    } else {
+      return res.status(400).json({
+        message: "OTP has expired or is invalid",
+        success: false,
+      });
+    }
+  } catch (err) {
+    console.log("Error in OTP verification:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+const employerChangePassword = async (req, res) => {
+  try {
+    console.log("Welcome to user change password");
+
+    const { userMobile, password, confirmPassword } = req.body;
+
+    // Validate inputs
+    if (!userMobile || !password || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Check if passwords match
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Find the user by contact number
+    const user = await userModel.findOne({ userMobile: userMobile });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update the user's password field
+    user.userPassword = hashedPassword;
+
+    // Save the updated user to trigger schema validation and middleware
+    await user.save();
+
+    // Send success response
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("Error in user change password:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
 
 module.exports = {
   signUp,
+ employerForgotPassword,
+  employerverifyOTP,
+  employerChangePassword,
   login,
   googleAuth,
   appleAuth,

@@ -72,12 +72,12 @@ const login = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Invalid credentials." });
+      return res.status(400).json({ message: "Please check your email and password." });
     }
 
     const match = await bcrypt.compare(userPassword, user.userPassword);
     if (!match) {
-      return res.status(400).json({ message: "Invalid credentials." });
+      return res.status(400).json({ message: "Please check your email and password" });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
