@@ -2,6 +2,7 @@ const express = require("express");
 const employeeController = require("../../controller/employeeController/employeeController");
 const { profileImageStorage, resumeStorage, coverLetterStorage } = require("../../config/cloudinary");
 const jobController = require ("../../controller/employerController/postjobcontroller");
+const feedbackController = require ("../../controller/employeeController/feedbackreview");
 const employeeRoute = express.Router();
 const multer = require("multer");
 
@@ -61,7 +62,10 @@ employeeRoute.get('/job/:jobId/application/:applicantId/status', employeeControl
 employeeRoute.get('/applicant/:applicantId', employeeController.appliedjobsfetch);
 employeeRoute.get('/fetchshorlitstedjobsemployee/:applicantId', jobController.getJobsWithNonPendingApplications);
 employeeRoute.get('/percentage/:id', employeeController.getProfileCompletion);
-
+employeeRoute.get("/getfeedback", feedbackController.fetchFeedback);
+employeeRoute.post("/createfeedback", feedbackController.addFeedback);
+employeeRoute.get("/feedbackbyid/:userId", feedbackController.fetchFeedbackByUserId);
+employeeRoute.put("/updatefeedback/:userId", feedbackController.updateFeedback);
 
 
 
