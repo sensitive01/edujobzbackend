@@ -466,6 +466,11 @@ const fetchAllJobs = async (req, res) => {
 
     const jobs = await Job.aggregate([
       {
+        $match: {
+          isActive: true  // Only fetch jobs that are active
+        }
+      },
+      {
         $sort: { createdAt: -1 }
       },
       {
