@@ -661,13 +661,13 @@ const getJobsWithNonPendingApplications = async (req, res) => {
 const getSchoolEmployerJobs = async (req, res) => {
   try {
     const jobs = await Job.aggregate([
-      // Make sure we can join on an ObjectId even if employid is stored as a string
+      // Convert string employid to ObjectId
       {
         $addFields: {
           employidObject: { $toObjectId: '$employid' },
         },
       },
-      // Pull in the employer document
+      // Lookup employer info
       {
         $lookup: {
           from: 'employers',
@@ -676,14 +676,17 @@ const getSchoolEmployerJobs = async (req, res) => {
           as: 'employerInfo',
         },
       },
-      { $unwind: '$employerInfo' }, // we need exactly one employer per job
-      // Keep only “School” employers
+      {
+        $unwind: '$employerInfo',
+      },
+      // Match only School employers and active jobs
       {
         $match: {
           'employerInfo.employerType': 'School',
+          isActive: true, // ✅ Filter active jobs
         },
       },
-      // Surface the UX-friendly fields you need
+      // Add user-friendly fields
       {
         $addFields: {
           employerProfilePic: '$employerInfo.userProfilePic',
@@ -696,14 +699,14 @@ const getSchoolEmployerJobs = async (req, res) => {
           },
         },
       },
-      // Hide helper fields
+      // Remove unnecessary fields
       {
         $project: {
           employerInfo: 0,
           employidObject: 0,
         },
       },
-      // Latest jobs first (optional—remove if sorting elsewhere)
+      // Sort by latest
       { $sort: { createdAt: -1 } },
     ]);
 
@@ -716,21 +719,23 @@ const getSchoolEmployerJobs = async (req, res) => {
     res.status(200).json(jobs);
   } catch (error) {
     console.error('[GET-SCHOOL-EMPLOYER-JOBS] error:', error);
-    res
-      .status(500)
-      .json({ message: 'Error fetching school employer jobs', error: error.message });
+    res.status(500).json({
+      message: 'Error fetching school employer jobs',
+      error: error.message,
+    });
   }
 };
+
 const getcompnanyEmployerJobs = async (req, res) => {
   try {
     const jobs = await Job.aggregate([
-      // Make sure we can join on an ObjectId even if employid is stored as a string
+      // Convert string employid to ObjectId
       {
         $addFields: {
           employidObject: { $toObjectId: '$employid' },
         },
       },
-      // Pull in the employer document
+      // Lookup employer info
       {
         $lookup: {
           from: 'employers',
@@ -739,14 +744,17 @@ const getcompnanyEmployerJobs = async (req, res) => {
           as: 'employerInfo',
         },
       },
-      { $unwind: '$employerInfo' }, // we need exactly one employer per job
-      // Keep only “School” employers
+      {
+        $unwind: '$employerInfo',
+      },
+      // Match only Company employers and active jobs
       {
         $match: {
           'employerInfo.employerType': 'Company',
+          isActive: true, // ✅ Filter only active jobs
         },
       },
-      // Surface the UX-friendly fields you need
+      // Add user-friendly fields
       {
         $addFields: {
           employerProfilePic: '$employerInfo.userProfilePic',
@@ -759,14 +767,14 @@ const getcompnanyEmployerJobs = async (req, res) => {
           },
         },
       },
-      // Hide helper fields
+      // Remove unnecessary fields
       {
         $project: {
           employerInfo: 0,
           employidObject: 0,
         },
       },
-      // Latest jobs first (optional—remove if sorting elsewhere)
+      // Sort by latest
       { $sort: { createdAt: -1 } },
     ]);
 
@@ -779,11 +787,13 @@ const getcompnanyEmployerJobs = async (req, res) => {
     res.status(200).json(jobs);
   } catch (error) {
     console.error('[GET-Company-EMPLOYER-JOBS] error:', error);
-    res
-      .status(500)
-      .json({ message: 'Error fetching Company employer jobs', error: error.message });
+    res.status(500).json({
+      message: 'Error fetching Company employer jobs',
+      error: error.message,
+    });
   }
 };
+
 
 
 
