@@ -94,4 +94,5 @@ employerRoute.post("/employerverify-otp",employerController.employerverifyOTP)
 employerRoute.post("/employerresend-otp",employerController.employerForgotPassword)
 employerRoute.post("/employerchange-password",employerController.employerChangePassword)
 
+employerRoute.put('/updatejobstatus/:jobId', jobController.updateJobActiveStatus);
 module.exports = employerRoute;

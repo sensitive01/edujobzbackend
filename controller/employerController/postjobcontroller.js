@@ -780,7 +780,39 @@ const getcompnanyEmployerJobs = async (req, res) => {
   }
 };
 
+
+
+const updateJobActiveStatus = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const { isActive } = req.body;
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ message: 'isActive must be a boolean.' });
+    }
+
+    const job = await Job.findByIdAndUpdate(
+      jobId,
+      { isActive, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    res.status(200).json({
+      message: `Job has been ${isActive ? 'activated' : 'deactivated'} successfully.`,
+      job,
+    });
+  } catch (error) {
+    console.error('Error updating job status:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 module.exports = {
+  updateJobActiveStatus,
   toggleSaveJob,
   fetchAllJobs,
   fetchSavedJobslist,
