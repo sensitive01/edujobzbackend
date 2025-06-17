@@ -5,6 +5,14 @@ const applicationSchema = new mongoose.Schema({
   email: { type: String },
   phone: { type: String },
     experience: { type: String },
+      notes: { type: String },
+        statusHistory: [
+    {
+      status: { type: String },
+      notes: { type: String },
+      updatedAt: { type: Date, default: Date.now }
+    }
+  ],
   currentcity: { type: String },
   jobrole:{ type: String },
   resume: {

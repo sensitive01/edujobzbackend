@@ -289,7 +289,11 @@ const updateFavoriteStatus = async (req, res) => {
 const updateApplicantStatus = async (req, res) => {
   try {
     const { applicationId, applicantId } = req.params;
-    const { status } = req.body;
+    const { status, notes } = req.body;
+
+    if (!status || !notes) {
+      return res.status(400).json({ success: false, message: "Status and notes are required" });
+    }
 
     const result = await Job.updateOne(
       {
@@ -298,21 +302,31 @@ const updateApplicantStatus = async (req, res) => {
       },
       {
         $set: {
-          "applications.$.employapplicantstatus": status
+          "applications.$.employapplicantstatus": status,
+          "applications.$.notes": notes
+        },
+        $push: {
+          "applications.$.statusHistory": {
+            status,
+            notes,
+            updatedAt: new Date()
+          }
         }
       }
     );
 
     if (result.modifiedCount === 0) {
-      return res.status(404).json({ success: false, message: 'Application not found or status not updated' });
+      return res.status(404).json({ success: false, message: 'Application not found or not updated' });
     }
 
-    return res.status(200).json({ success: true, message: 'Status updated successfully' });
+    return res.status(200).json({ success: true, message: 'Status and notes updated and history saved' });
   } catch (error) {
     console.error('Error updating applicant status:', error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
+
 
 const updateFavStatusforsavecand = async (req, res) => {
   try {
