@@ -5,7 +5,7 @@ const meetingController = require("../../controller/employerController/meetingCo
 const employerController = require("../../controller/employerController/employerController");
 const jobController = require ("../../controller/employerController/postjobcontroller");
 const { profileImageStorage, resumeStorage, coverLetterStorage } = require("../../config/cloudinary");
-
+const eventController = require("../../controller/employerController/calendarControllers");
 
 
 // Determine storage based on fileType
@@ -93,6 +93,11 @@ employerRoute.post("/employerforgotpassword",employerController.employerForgotPa
 employerRoute.post("/employerverify-otp",employerController.employerverifyOTP)
 employerRoute.post("/employerresend-otp",employerController.employerForgotPassword)
 employerRoute.post("/employerchange-password",employerController.employerChangePassword)
-
 employerRoute.put('/updatejobstatus/:jobId', jobController.updateJobActiveStatus);
+employerRoute.post('/createcalender', eventController.createEvent);
+employerRoute.get('/geteveent', eventController.getEvents);
+employerRoute.put('/updatecalenderevent/:id', eventController.updateEvent);
+employerRoute.delete('/deletecalendarevent/:id', eventController.deleteEvent);
+
+
 module.exports = employerRoute;
