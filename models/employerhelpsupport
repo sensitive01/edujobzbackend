@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const helpRequestSchema = new mongoose.Schema({
+  issue: { type: String, required: true },
   description: { type: String, required: true },
   employerid: { type: String, required: true },
   employeractive: { type: Boolean, default: true },

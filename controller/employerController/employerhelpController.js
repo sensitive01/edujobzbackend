@@ -3,8 +3,8 @@ const HelpRequest = require('../../models/employerhelpsupport');
 // Create Help Request
 exports.createHelpRequest = async (req, res) => {
   try {
-    const { description, employerid, employeractive } = req.body;
-    const helpRequest = new HelpRequest({ description, employerid, employeractive });
+    const {issue, description, employerid, employeractive } = req.body;
+    const helpRequest = new HelpRequest({issue, description, employerid, employeractive });
     await helpRequest.save();
     res.status(201).json({ message: 'Help request created successfully', helpRequest });
   } catch (error) {
