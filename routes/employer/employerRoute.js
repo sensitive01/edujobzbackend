@@ -4,8 +4,10 @@ const employerRoute = express();
 const meetingController = require("../../controller/employerController/meetingController")
 const employerController = require("../../controller/employerController/employerController");
 const jobController = require ("../../controller/employerController/postjobcontroller");
-const { profileImageStorage, resumeStorage, coverLetterStorage } = require("../../config/cloudinary");
+const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage  } = require("../../config/cloudinary");
 const eventController = require("../../controller/employerController/calendarControllers");
+
+const helpcontroller = require("../../controller/employerController/employerhelpController");
 
 
 // Determine storage based on fileType
@@ -14,6 +16,7 @@ const getStorage = (fileType) => {
     case 'profileImage': return profileImageStorage;
     case 'resume': return resumeStorage;
     case 'coverLetter': return coverLetterStorage;
+     case 'chatImage': return chatImageStorage;
     default: return null;
   }
 };
@@ -99,5 +102,15 @@ employerRoute.get('/geteveent', eventController.getEvents);
 employerRoute.put('/updatecalenderevent/:id', eventController.updateEvent);
 employerRoute.delete('/deletecalendarevent/:id', eventController.deleteEvent);
 
+employerRoute.post('/createhelpemployer', helpcontroller.createHelpRequest);
+
+// Get Help Requests by Employer ID
+employerRoute.get('/gethelpemployer/:employerid', helpcontroller.getHelpRequests);
+
+// Fetch Chat Messages
+employerRoute.get('/fetchchat/:docId', helpcontroller.fetchChat);
+
+// Send Chat Message (with optional image)
+employerRoute.post('/sendchat/:docId', dynamicUploadMiddleware, helpcontroller.sendChat);
 
 module.exports = employerRoute;
