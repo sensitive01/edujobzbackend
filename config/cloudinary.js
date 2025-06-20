@@ -59,4 +59,4 @@ const coverLetterStorage = new CloudinaryStorage({
   }),
 });
 
-module.exports = { cloudinary, profileImageStorage, resumeStorage, coverLetterStorage };
+module.exports = { cloudinary, profileImageStorage, resumeStorage,chatImageStorage, coverLetterStorage };

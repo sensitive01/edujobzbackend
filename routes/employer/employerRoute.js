@@ -25,6 +25,13 @@ const getStorage = (fileType) => {
 // Dynamic middleware for fileType-based upload
 const dynamicUploadMiddleware = (req, res, next) => {
   const fileType = req.query.fileType || req.body.fileType;
+
+  // If no fileType provided, assume text-only message and skip multer
+  if (!fileType) {
+    console.log('No fileType provided, skipping file upload');
+    return next();
+  }
+
   const storage = getStorage(fileType);
 
   if (!storage) {
@@ -33,7 +40,7 @@ const dynamicUploadMiddleware = (req, res, next) => {
 
   const upload = multer({
     storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    limits: { fileSize: 10 * 1024 * 1024 },
   }).single('file');
 
   upload(req, res, (err) => {
@@ -46,7 +53,6 @@ const dynamicUploadMiddleware = (req, res, next) => {
     next();
   });
 };
-
 
 employerRoute.post('/signup', employerController.signUp);
 

@@ -18,7 +18,8 @@ const getStorage = (fileType) => {
 
 // Dynamic middleware for fileType-based upload
 const dynamicUploadMiddleware = (req, res, next) => {
-  const fileType = req.query.fileType || req.body.fileType;
+    const fileType = req.query.fileType || req.headers['filetype'] || req.body.fileType;
+
   const storage = getStorage(fileType);
 
   if (!storage) {
