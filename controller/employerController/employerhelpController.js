@@ -42,9 +42,15 @@ exports.fetchChat = async (req, res) => {
 // For sending chat messages
 exports.sendChat = async (req, res) => {
   try {
+    console.log('--- sendChat called ---');
+
     const { docId } = req.params;
     const { employerid, message } = req.body;
-    
+
+    console.log('Params:', req.params);
+    console.log('Body:', req.body);
+    console.log('File:', req.file);
+
     const updateData = {
       $push: {
         chatbox: {
@@ -56,6 +62,8 @@ exports.sendChat = async (req, res) => {
       }
     };
 
+    console.log('Update Data:', updateData);
+
     const updatedRequest = await HelpRequest.findByIdAndUpdate(
       docId,
       updateData,
@@ -63,11 +71,15 @@ exports.sendChat = async (req, res) => {
     );
 
     if (!updatedRequest) {
+      console.log('Help request not found for ID:', docId);
       return res.status(404).json({ message: 'Help request not found' });
     }
 
+    console.log('Update successful:', updatedRequest);
     res.status(200).json(updatedRequest);
+
   } catch (error) {
-    res.status(500).json({ message: 'Failed to send message', error });
+    console.error('Error in sendChat:', error);
+    res.status(500).json({ message: 'Failed to send message', error: error.message });
   }
 };

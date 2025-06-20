@@ -25,6 +25,18 @@ const profileImageStorage = new CloudinaryStorage({
   }),
 });
 
+
+
+const chatImageStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: (req, file) => ({
+    folder: 'chatimage',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif'],
+    public_id: generatePublicId(req, file, 'profile'),
+    transformation: [{ width: 500, height: 500, crop: 'limit' }],
+    resource_type: 'image'
+  }),
+});
 const resumeStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: (req, file) => ({
