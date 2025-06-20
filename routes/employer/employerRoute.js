@@ -6,6 +6,7 @@ const employerController = require("../../controller/employerController/employer
 const jobController = require ("../../controller/employerController/postjobcontroller");
 const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage  } = require("../../config/cloudinary");
 const eventController = require("../../controller/employerController/calendarControllers");
+const eventsController = require("../../controller/employerController/upcomeevent");
 
 const helpcontroller = require("../../controller/employerController/employerhelpController");
 
@@ -113,4 +114,17 @@ employerRoute.get('/fetchchat/:docId', helpcontroller.fetchChat);
 // Send Chat Message (with optional image)
 employerRoute.post('/sendchat/:docId', dynamicUploadMiddleware, helpcontroller.sendChat);
 
+
+employerRoute.post('/:employerId/events', eventsController.createEvent);
+employerRoute.get('/employer/:employerId/events', eventsController.getEmployerEvents);
+
+// Event management routes
+employerRoute.get('/events/:eventId', eventsController.getEventDetails);
+employerRoute.put('/events/:eventId', eventsController.updateEvent);
+employerRoute.delete('/events/:eventId', eventsController.deleteEvent);
+
+// Enrollment routes
+employerRoute.post('/events/:eventId/enroll', eventsController.enrollInEvent);
+employerRoute.get('/events/:eventId/enrollments', eventsController.getEventEnrollments);
+employerRoute.put('/events/:eventId/enrollments/:enrollmentId', eventsController.updateEnrollmentStatus);
 module.exports = employerRoute;
