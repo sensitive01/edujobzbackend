@@ -26,39 +26,48 @@ exports.getHelpRequests = async (req, res) => {
 };
 
 // Fetch Chat Messages
+// For fetching chat messages
 exports.fetchChat = async (req, res) => {
   try {
-    const { docId } = req.params;
-    const helpRequest = await HelpRequest.findById(docId).select('chatbox');
+    const helpRequest = await HelpRequest.findById(req.params.docId);
     if (!helpRequest) {
-      return res.status(404).json({ error: 'Help request not found' });
+      return res.status(404).json({ message: 'Help request not found' });
     }
     res.status(200).json({ chatbox: helpRequest.chatbox });
   } catch (error) {
-    console.error('Error fetching chat:', error);
-    res.status(500).json({ error: 'Failed to fetch chat' });
+    res.status(500).json({ message: 'Error fetching chat', error });
   }
 };
 
-// Send Chat Message
+// For sending chat messages
 exports.sendChat = async (req, res) => {
   try {
     const { docId } = req.params;
     const { employerid, message } = req.body;
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    
+    const updateData = {
+      $push: {
+        chatbox: {
+          employerid,
+          message: message || '',
+          image: req.file ? req.file.path : null,
+          timestamp: new Date()
+        }
+      }
+    };
 
-    const helpRequest = await HelpRequest.findById(docId);
-    if (!helpRequest) {
-      return res.status(404).json({ error: 'Help request not found' });
+    const updatedRequest = await HelpRequest.findByIdAndUpdate(
+      docId,
+      updateData,
+      { new: true }
+    );
+
+    if (!updatedRequest) {
+      return res.status(404).json({ message: 'Help request not found' });
     }
 
-    const chatMessage = { employerid, message, image, timestamp: new Date() };
-    helpRequest.chatbox.push(chatMessage);
-    await helpRequest.save();
-
-    res.status(200).json({ message: 'Chat message sent successfully', chatMessage });
+    res.status(200).json(updatedRequest);
   } catch (error) {
-    console.error('Error sending chat message:', error);
-    res.status(500).json({ error: 'Failed to send chat message' });
+    res.status(500).json({ message: 'Failed to send message', error });
   }
 };
