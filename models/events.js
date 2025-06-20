@@ -9,6 +9,10 @@ const enrollmentSchema = new mongoose.Schema({
     type: String,
 
   },
+    imageurl: {
+    type: String,
+   
+  },
   email: {
     type: String,
  

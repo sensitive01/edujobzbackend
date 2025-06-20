@@ -12,6 +12,7 @@ exports.createEvent = async (req, res) => {
       date,
       startTime,
       endTime,
+      imageurl,
       location,
       organizer
     } = req.body;
@@ -23,6 +24,7 @@ exports.createEvent = async (req, res) => {
       type,
       date,
       startTime,
+      imageurl,
       endTime,
       location,
       organizer
