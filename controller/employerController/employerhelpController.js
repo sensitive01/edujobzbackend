@@ -45,21 +45,22 @@ exports.sendChat = async (req, res) => {
     console.log('--- sendChat called ---');
 
     const { docId } = req.params;
-    const { employerid, message } = req.body;
+    const employerid = req.body.employerid;
+    const message = req.body.message;
 
     console.log('Params:', req.params);
     console.log('Body:', req.body);
     console.log('File:', req.file);
 
+    const chatEntry = {
+      employerid,
+      message: message || '',
+      image: req.file ? req.file.path : null,
+      timestamp: new Date(),
+    };
+
     const updateData = {
-      $push: {
-        chatbox: {
-          employerid,
-          message: message || '',
-          image: req.file ? req.file.path : null,
-          timestamp: new Date()
-        }
-      }
+      $push: { chatbox: chatEntry },
     };
 
     console.log('Update Data:', updateData);
