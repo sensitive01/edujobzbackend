@@ -1,57 +1,74 @@
-const Event = require('../../models/events');
-// const userModel = require('../../models/employerModel');
+const OrganizedEvent = require('../../models/events');
 
 // Create a new event
-exports.createEvent = async (req, res) => {
+exports.createsEvent = async (req, res) => {
   try {
-    const { employerId } = req.params;
+    console.log('---- Create Event Hit ----');
+    console.log('Params:', req.params);
+    console.log('Body:', req.body);
+    console.log('File:', req.file); // Will include `path` and `secure_url`
+
+    const { organizerId } = req.params;
     const {
       title,
       description,
-      type,
-      date,
+      category,
+      eventDate,
       startTime,
       endTime,
-      imageurl,
-      location,
-      organizer
+      venue,
+      coordinator
     } = req.body;
 
-    const event = new Event({
-      employerId,
+    const bannerImage = req.file?.path || null; // Cloudinary returns URL in `path`
+
+    const event = new OrganizedEvent({
+      organizerId,
       title,
       description,
-      type,
-      date,
+      category,
+      eventDate,
       startTime,
-      imageurl,
       endTime,
-      location,
-      organizer
+      venue,
+      coordinator,
+      bannerImage
     });
 
     await event.save();
+    console.log('✅ Event saved successfully');
     res.status(201).json(event);
   } catch (error) {
+    console.error('❌ Error in createEvent:', error);
     res.status(400).json({ message: error.message });
   }
 };
 
-// Get all events for an employer
-exports.getEmployerEvents = async (req, res) => {
+
+// Get all events for an organizer
+exports.getOrganizerEvents = async (req, res) => {
   try {
-    const { employerId } = req.params;
-    const events = await Event.find({ employerId }).sort({ date: 1 });
+    const { organizerId } = req.params;
+    const events = await OrganizedEvent.find({ organizerId }).sort({ eventDate: 1 });
     res.json(events);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+// Get all events (no organizerId required)
+exports.getAllEvents = async (req, res) => {
+  try {
+    const event = await OrganizedEvent.find().sort({ eventDate: 1 });
+    res.json(event);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
-// Get event details
+// Get single event details
 exports.getEventDetails = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.eventId);
+    const event = await OrganizedEvent.findById(req.params.eventId);
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
@@ -64,15 +81,15 @@ exports.getEventDetails = async (req, res) => {
 // Update an event
 exports.updateEvent = async (req, res) => {
   try {
-    const event = await Event.findByIdAndUpdate(
+    const updated = await OrganizedEvent.findByIdAndUpdate(
       req.params.eventId,
       req.body,
       { new: true, runValidators: true }
     );
-    if (!event) {
+    if (!updated) {
       return res.status(404).json({ message: 'Event not found' });
     }
-    res.json(event);
+    res.json(updated);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -81,7 +98,7 @@ exports.updateEvent = async (req, res) => {
 // Delete an event
 exports.deleteEvent = async (req, res) => {
   try {
-    const event = await Event.findByIdAndDelete(req.params.eventId);
+    const event = await OrganizedEvent.findByIdAndDelete(req.params.eventId);
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
@@ -91,49 +108,56 @@ exports.deleteEvent = async (req, res) => {
   }
 };
 
-// Enroll in an event (for employees)
-exports.enrollInEvent = async (req, res) => {
+// Register in an event
+exports.registerInEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { employeeId, name, email, phone, resume } = req.body;
+    const {
+      participantId,
+      participantName,
+      contactEmail,
+      contactPhone,
+      resumeLink,
+      profileImage
+    } = req.body;
 
-    const event = await Event.findById(eventId);
+    const event = await OrganizedEvent.findById(eventId);
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    // Check if already enrolled
-    const existingEnrollment = event.enrollments.find(
-      e => e.employeeId.toString() === employeeId
+    // Check if already registered
+    const already = event.registrations.find(
+      (r) => r.participantId.toString() === participantId
     );
-    if (existingEnrollment) {
-      return res.status(400).json({ message: 'Already enrolled in this event' });
+    if (already) {
+      return res.status(400).json({ message: 'Already registered for this event' });
     }
 
-    event.enrollments.push({
-      employeeId,
-      name,
-      email,
-      phone,
-      resume,
-      status: 'Pending'
+    event.registrations.push({
+      participantId,
+      participantName,
+      contactEmail,
+      contactPhone,
+      resumeLink,
+      profileImage
     });
 
-    event.attendees = event.enrollments.length;
+    event.totalRegistrations = event.registrations.length;
     await event.save();
 
-    res.status(201).json(event);
+    res.status(201).json({ message: 'Registered successfully', event });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
-// Get event enrollments
-exports.getEventEnrollments = async (req, res) => {
+// Get event registrations
+exports.getEventRegistrations = async (req, res) => {
   try {
-    const event = await Event.findById(req.params.eventId)
-      .select('title date location enrollments');
-    
+    const event = await OrganizedEvent.findById(req.params.eventId)
+      .select('title eventDate venue registrations');
+
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
@@ -141,40 +165,40 @@ exports.getEventEnrollments = async (req, res) => {
     res.json({
       event: {
         title: event.title,
-        date: event.date,
-        location: event.location
+        eventDate: event.eventDate,
+        venue: event.venue
       },
-      enrollments: event.enrollments
+      registrations: event.registrations
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// Update enrollment status
-exports.updateEnrollmentStatus = async (req, res) => {
+// Update registration status
+exports.updateRegistrationStatus = async (req, res) => {
   try {
-    const { eventId, enrollmentId } = req.params;
-    const { status } = req.body;
+    const { eventId, registrationId } = req.params;
+    const { registrationStatus } = req.body;
 
-    if (!['Pending', 'Approved', 'Rejected'].includes(status)) {
+    if (!['Pending', 'Approved', 'Rejected'].includes(registrationStatus)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
-    const event = await Event.findById(eventId);
+    const event = await OrganizedEvent.findById(eventId);
     if (!event) {
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    const enrollment = event.enrollments.id(enrollmentId);
-    if (!enrollment) {
-      return res.status(404).json({ message: 'Enrollment not found' });
+    const registration = event.registrations.id(registrationId);
+    if (!registration) {
+      return res.status(404).json({ message: 'Registration not found' });
     }
 
-    enrollment.status = status;
+    registration.registrationStatus = registrationStatus;
     await event.save();
 
-    res.json(enrollment);
+    res.json(registration);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

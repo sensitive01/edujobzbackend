@@ -37,6 +37,16 @@ const chatImageStorage = new CloudinaryStorage({
     resource_type: 'image'
   }),
 });
+const eventImageStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'event_images', // Save inside this folder
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif'],
+    transformation: [{ width: 1000, height: 500, crop: 'limit' }],
+    resource_type: 'image'
+  },
+});
+
 const resumeStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: (req, file) => ({
@@ -59,4 +69,4 @@ const coverLetterStorage = new CloudinaryStorage({
   }),
 });
 
-module.exports = { cloudinary, profileImageStorage, resumeStorage,chatImageStorage, coverLetterStorage };
+module.exports = { cloudinary, profileImageStorage,eventImageStorage, resumeStorage,chatImageStorage, coverLetterStorage };

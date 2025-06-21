@@ -4,7 +4,7 @@ const employerRoute = express();
 const meetingController = require("../../controller/employerController/meetingController")
 const employerController = require("../../controller/employerController/employerController");
 const jobController = require ("../../controller/employerController/postjobcontroller");
-const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage  } = require("../../config/cloudinary");
+const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage,eventImageStorage  } = require("../../config/cloudinary");
 const eventController = require("../../controller/employerController/calendarControllers");
 const eventsController = require("../../controller/employerController/upcomeevent");
 
@@ -18,6 +18,8 @@ const getStorage = (fileType) => {
     case 'resume': return resumeStorage;
     case 'coverLetter': return coverLetterStorage;
      case 'chatImage': return chatImageStorage;
+      case 'eventimage': return eventImageStorage;
+     
     default: return null;
   }
 };
@@ -121,16 +123,15 @@ employerRoute.get('/fetchchat/:docId', helpcontroller.fetchChat);
 employerRoute.post('/sendchat/:docId', dynamicUploadMiddleware, helpcontroller.sendChat);
 
 
-employerRoute.post('/:employerId/events', eventsController.createEvent);
-employerRoute.get('/employer/:employerId/events', eventsController.getEmployerEvents);
-
-// Event management routes
-employerRoute.get('/events/:eventId', eventsController.getEventDetails);
-employerRoute.put('/events/:eventId', eventsController.updateEvent);
+employerRoute.post('/:organizerId/events', dynamicUploadMiddleware, eventsController.createsEvent);
+employerRoute.get('/organizer/:organizerId/events', eventsController.getOrganizerEvents);
+employerRoute.get('/details/:eventId', eventsController.getEventDetails);
+employerRoute.get('/getallevents', eventsController.getEventDetails);
+employerRoute.put('/updateevent/:eventId', eventsController.updateEvent);
 employerRoute.delete('/events/:eventId', eventsController.deleteEvent);
 
-// Enrollment routes
-employerRoute.post('/events/:eventId/enroll', eventsController.enrollInEvent);
-employerRoute.get('/events/:eventId/enrollments', eventsController.getEventEnrollments);
-employerRoute.put('/events/:eventId/enrollments/:enrollmentId', eventsController.updateEnrollmentStatus);
+employerRoute.post('/events/:eventId/register', eventsController.registerInEvent);
+employerRoute.get('/events/:eventId/registrations', eventsController.getEventRegistrations);
+employerRoute.put('/events/:eventId/registrations/:registrationId', eventsController.updateRegistrationStatus);
+
 module.exports = employerRoute;

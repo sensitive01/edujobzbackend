@@ -1,87 +1,83 @@
 const mongoose = require('mongoose');
 
-const enrollmentSchema = new mongoose.Schema({
-  employeeId: {
-    type:String,
-
+// Subdocument schema for registrations
+const registrationSchema = new mongoose.Schema({
+  participantId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee',
+    required: true
   },
-  name: {
+  participantName: {
     type: String,
-
+    required: true
   },
-    imageurl: {
+  contactEmail: {
     type: String,
-   
+    required: true
   },
-  email: {
+  contactPhone: {
     type: String,
- 
+    required: true
   },
-  phone: {
+  resumeLink: {
+    type: String
+  },
+  profileImage: {
+    type: String
+  },
+  registrationStatus: {
     type: String,
- 
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending'
   },
-  resume: {
-    type: String,
-
-  },
-  status: {
-    type: String,
-   
-  },
-  appliedAt: {
+  registeredAt: {
     type: Date,
     default: Date.now
   }
 });
 
-const eventsSchema = new mongoose.Schema({
-  employerId: {
-    type: String,
+// Main event schema
+const organizedEventSchema = new mongoose.Schema({
+  organizerId: {
 
   },
   title: {
     type: String,
   
+
   },
-  description: {
+  description: String,
+  category: {
     type: String,
-
+   
   },
-  type: {
+  eventDate: {
     type: String,
-
-
-  },
-  date: {
-    type: Date,
 
   },
   startTime: {
     type: String,
-   
+ 
   },
   endTime: {
     type: String,
-
+ 
   },
-  location: {
+  venue: {
     type: String,
 
   },
-  organizer: {
-    type: String,
-  
-  },
-  image: {
-    type: String,
+  coordinator: {
    
   },
-  attendees: {
+  bannerImage: {
+    type: String
+  },
+  totalRegistrations: {
     type: Number,
     default: 0
   },
-  enrollments: [enrollmentSchema],
+  registrations: [registrationSchema],
   createdAt: {
     type: Date,
     default: Date.now
@@ -92,6 +88,4 @@ const eventsSchema = new mongoose.Schema({
   }
 });
 
-
-
-module.exports = mongoose.models.Event || mongoose.model('Event', eventSchema);
+module.exports = mongoose.models.OrganizedEvent || mongoose.model('OrganizedEvent', organizedEventSchema);
