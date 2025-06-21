@@ -126,7 +126,7 @@ employerRoute.post('/sendchat/:docId', dynamicUploadMiddleware, helpcontroller.s
 employerRoute.post('/:organizerId/events', dynamicUploadMiddleware, eventsController.createsEvent);
 employerRoute.get('/organizer/:organizerId/events', eventsController.getOrganizerEvents);
 employerRoute.get('/details/:eventId', eventsController.getEventDetails);
-employerRoute.get('/getallevents', eventsController.getEventDetails);
+employerRoute.get('/getallevents', eventsController.getAllEvents);
 employerRoute.put('/updateevent/:eventId', eventsController.updateEvent);
 employerRoute.delete('/events/:eventId', eventsController.deleteEvent);
 

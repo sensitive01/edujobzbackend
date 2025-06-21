@@ -65,6 +65,7 @@ exports.getAllEvents = async (req, res) => {
   }
 };
 
+
 // Get single event details
 exports.getEventDetails = async (req, res) => {
   try {
