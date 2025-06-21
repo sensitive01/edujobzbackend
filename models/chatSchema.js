@@ -3,11 +3,11 @@ const mongoose = require('mongoose');
 const messageSchema = new mongoose.Schema({
   message: {
     type: String,
-    required: true,
+   
   },
   sender: {
     type: String, // "employee" or "employer"
-    required: true,
+ 
   },
   isRead: {
     type: Boolean,
@@ -25,7 +25,7 @@ const messageSchema = new mongoose.Schema({
 const chatSchema = new mongoose.Schema({
   employeeId: {
     type: String,
-    required: true
+
   },
   employeeImage: {
     type: String

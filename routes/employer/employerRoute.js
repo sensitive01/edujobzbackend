@@ -4,7 +4,7 @@ const employerRoute = express();
 const meetingController = require("../../controller/employerController/meetingController")
 const employerController = require("../../controller/employerController/employerController");
 const jobController = require ("../../controller/employerController/postjobcontroller");
-const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage,eventImageStorage  } = require("../../config/cloudinary");
+const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage,eventImageStorage ,sendimage } = require("../../config/cloudinary");
 const eventController = require("../../controller/employerController/calendarControllers");
 const eventsController = require("../../controller/employerController/upcomeevent");
 
@@ -19,6 +19,7 @@ const getStorage = (fileType) => {
     case 'resume': return resumeStorage;
     case 'coverLetter': return coverLetterStorage;
      case 'chatImage': return chatImageStorage;
+     case 'send': return sendimage;
       case 'eventimage': return eventImageStorage;
      
     default: return null;
@@ -139,15 +140,14 @@ employerRoute.put('/events/:eventId/registrations/:participantId/updatestatus', 
 
 
 // BEFORE (broken image handling):
-employerRoute.post('/sendchat', chatController.sendMessage);
+employerRoute.post('/sendchat', dynamicUploadMiddleware, chatController.sendMessage);
+employerRoute.post('/sendchat/:docId', dynamicUploadMiddleware, helpcontroller.sendChat);
 
-// AFTER (with image upload handling):
-employerRoute.post('/sendchats', dynamicUploadMiddleware, chatController.sendMessage);
+employerRoute.get('/chats/:jobId', chatController.getChatMessagesByJobId);
 
-employerRoute.get('/getchat', chatController.getChatByJobId);
-employerRoute.get('/chats/getchat/:employerId', chatController.getChatByJobId);
-// Get unread message count
-employerRoute.get('/chats/by-employee/:employeeId', chatController.getChatsByEmployeeId);
+employerRoute.get('/employer/:employerId', chatController.getChatsByEmployerId);
+employerRoute.get('/employee/:employeeId', chatController.getChatsByEmployeeId);
+employerRoute.get('/view', chatController.getChatMessages);
 
 employerRoute.get('/unread', chatController.getUnreadCount);
 

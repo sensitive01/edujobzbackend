@@ -1,6 +1,6 @@
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-
+const path = require('path');
 cloudinary.config({
   cloud_name: 'dsyqzw9ft',
   api_key: '639592464425626',
@@ -25,6 +25,20 @@ const profileImageStorage = new CloudinaryStorage({
   }),
 });
 
+const sendimage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'sendimage',
+    public_id: (req, file) => {
+      // Try to get a unique ID from the request, fallback to uuid
+      const userId = req.body.employeeId || req.body.employerId || req.body.userId || uuidv4();
+      // Remove special characters from filename
+      const baseName = path.parse(file.originalname).name.replace(/[^a-zA-Z0-9-_]/g, '_');
+      return `${userId}_profile_${baseName}_${Date.now()}`;
+    },
+    // ...other params
+  }
+});
 
 
 const chatImageStorage = new CloudinaryStorage({
@@ -69,4 +83,4 @@ const coverLetterStorage = new CloudinaryStorage({
   }),
 });
 
-module.exports = { cloudinary, profileImageStorage,eventImageStorage, resumeStorage,chatImageStorage, coverLetterStorage };
+module.exports = { cloudinary,sendimage, profileImageStorage,eventImageStorage, resumeStorage,chatImageStorage, coverLetterStorage };

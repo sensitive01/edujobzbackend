@@ -2,6 +2,7 @@
 const Chat = require('../../models/chatSchema');
 
 
+
 exports.sendMessage = async (req, res) => {
   try {
     const {
@@ -9,26 +10,42 @@ exports.sendMessage = async (req, res) => {
       employerId,
       jobId,
       message,
-      sender, // "employee" or "employer"
+      sender,
       employerName,
-      employerImage
+      employerImage,
+      employeeName,
+      employeeImage,
     } = req.body;
 
-    // Cloudinary file upload (if image sent)
-    const uploadedImageUrl = req.file?.path || ''; // Cloudinary returns .path as secure_url
+    // Validate required fields
+    if (!employeeId || !employerId || !jobId || !message || !sender) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
 
+    // Prepare message object
     const newMessage = {
-      message,
+      message: message,
       sender,
-      employeeImage: uploadedImageUrl, // only filled if file was uploaded
-      createdAt: new Date()
+      createdAt: new Date(),
+      isRead: false,
+      employeeImage: sender === 'employee' ? employeeImage : undefined,
+      employerImage: sender === 'employer' ? employerImage : undefined, // Add this
     };
 
+    // Find existing chat
     let chat = await Chat.findOne({ employeeId, employerId, jobId });
 
     if (chat) {
       // Append message to existing chat
       chat.messages.push(newMessage);
+      chat.updatedAt = new Date();
+      await chat.save();
+      return res.status(200).json({
+        success: true,
+        message: 'Message sent (existing chat)',
+        chatId: chat._id,
+        data: newMessage,
+      });
     } else {
       // Create new chat
       chat = new Chat({
@@ -36,22 +53,76 @@ exports.sendMessage = async (req, res) => {
         employerId,
         jobId,
         employerName,
-        employerImage,
-        employeeImage: uploadedImageUrl, // root level field if needed
-        messages: [newMessage]
+        employerImage, // Ensure this is saved at chat level
+        employeeName,
+        employeeImage, // Ensure this is saved at chat level
+        messages: [newMessage],
+      });
+      await chat.save();
+      return res.status(201).json({
+        success: true,
+        message: 'Message sent (new chat created)',
+        chatId: chat._id,
+        data: newMessage,
       });
     }
-
-    await chat.save();
-    res.status(200).json(chat);
   } catch (error) {
-    console.error('Error sending message:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+exports.getChatMessagesByJobId = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    if (!jobId) {
+      return res.status(400).json({ message: 'Job ID is required' });
+    }
+
+    const chat = await Chat.findOne({ jobId });
+
+    if (!chat) {
+      return res.status(404).json({ message: 'No chat found for this job ID' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      chatId: chat._id,
+      messages: chat.messages,
+    });
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
 // List messages between an employee and employer for a specific job
-exports.getChatByJobId = async (req, res) => {
+exports.getChatsByEmployerId = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    const chats = await Chat.find({ employerId })
+      .select('-messages') // Exclude messages for this list view
+      .sort({ updatedAt: -1 });
+
+    return res.status(200).json(chats);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+exports.getChatsByEmployeeId = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const chats = await Chat.find({ employeeId })
+      .select('-messages') // Exclude messages here too
+      .sort({ updatedAt: -1 });
+
+    return res.status(200).json(chats);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+exports.getChatMessages = async (req, res) => {
   try {
     const { employeeId, employerId, jobId } = req.query;
 
@@ -61,12 +132,11 @@ exports.getChatByJobId = async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    res.status(200).json(chat);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(200).json(chat);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
-
 
 // Unread message count
 exports.getUnreadCount = async (req, res) => {
