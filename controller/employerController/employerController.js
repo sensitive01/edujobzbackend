@@ -19,36 +19,72 @@ const generateUserUUID = () => uuidv4(); // Define the function
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    const {employerType, schoolName, userMobile,  lastName,
-      firstName, userEmail, userPassword } = req.body;
-    const mobile = parseInt(userMobile);
+    const {
+      employerType,
+      schoolName,
+      userMobile,
+      lastName,
+      firstName,
+      userEmail,
+      userPassword,
+      referralCode // Added referral code from request
+    } = req.body;
 
-    const existUser = await userModel.findOne({
-      $or: [{ userMobile: mobile }, { userEmail }]
+    // Validation
+    if (!userEmail && !userMobile) {
+      return res.status(400).json({ message: "Email or mobile is required." });
+    }
+
+    const existUser = await Employer.findOne({
+      $or: [{ userMobile }, { userEmail }]
     });
+    
     if (existUser) {
       return res.status(400).json({ message: "Employer already registered." });
     }
 
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    const newUser = new userModel({
+    // Check referral code if provided
+    let referredBy = null;
+    if (referralCode) {
+      const referringEmployer = await Employer.findOne({ referralCode });
+      if (!referringEmployer) {
+        return res.status(400).json({ message: "Invalid referral code." });
+      }
+      referredBy = referringEmployer._id;
+    }
+
+    const newEmployer = new Employer({
       uuid: uuidv4(),
       schoolName,
       employerType,
-        lastName,
+      lastName,
       firstName,
-      userMobile: mobile,
+      userMobile,
       userEmail,
       userPassword: hashedPassword,
+      referredBy
     });
 
-    await newUser.save();
+    await newEmployer.save();
+
+    // Update referring employer's stats if applicable
+    if (referredBy) {
+      await Employer.findByIdAndUpdate(referredBy, {
+        $inc: { referralCount: 1, referralRewards: 100 } // Example: 100 points per referral
+      });
+    }
 
     // Generate JWT token
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: newEmployer._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.status(201).json({ message: "Employer registered successfully.", user: newUser, token });
+    res.status(201).json({ 
+      message: "Employer registered successfully.",
+      user: newEmployer, 
+      token,
+      referralCode: newEmployer.referralCode // Send back their own referral code
+    });
   } catch (err) {
     console.error("Error in registration:", err);
     res.status(500).json({ message: "Server error" });

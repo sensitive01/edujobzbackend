@@ -9,6 +9,7 @@ const eventController = require("../../controller/employerController/calendarCon
 const eventsController = require("../../controller/employerController/upcomeevent");
 
 const helpcontroller = require("../../controller/employerController/employerhelpController");
+const chatController = require("../../controller/employerController/chatController");
 
 
 // Determine storage based on fileType
@@ -135,4 +136,21 @@ employerRoute.get('/events/:eventId/geteventspariticapant', eventsController.get
 employerRoute.put('/events/:eventId/registrations/:registrationId', eventsController.updateRegistrationStatus);
 employerRoute.put('/events/:eventId/registrations/:participantId/updatestatus', eventsController.updateRegistrationStatus);
 
+
+
+// BEFORE (broken image handling):
+employerRoute.post('/sendchat', chatController.sendMessage);
+
+// AFTER (with image upload handling):
+employerRoute.post('/sendchats', dynamicUploadMiddleware, chatController.sendMessage);
+
+employerRoute.get('/getchat', chatController.getChatByJobId);
+employerRoute.get('/chats/getchat/:employerId', chatController.getChatByJobId);
+// Get unread message count
+employerRoute.get('/chats/by-employee/:employeeId', chatController.getChatsByEmployeeId);
+
+employerRoute.get('/unread', chatController.getUnreadCount);
+
+// Mark messages as read
+employerRoute.post('/mark-read', chatController.markAsRead);
 module.exports = employerRoute;
