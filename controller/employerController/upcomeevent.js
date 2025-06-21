@@ -119,6 +119,7 @@ exports.registerInEvent = async (req, res) => {
       contactEmail,
       contactPhone,
       resumeLink,
+      status,
       profileImage
     } = req.body;
 
@@ -140,6 +141,7 @@ exports.registerInEvent = async (req, res) => {
       participantName,
       contactEmail,
       contactPhone,
+      status,
       resumeLink,
       profileImage
     });
@@ -200,6 +202,32 @@ exports.updateRegistrationStatus = async (req, res) => {
     await event.save();
 
     res.json(registration);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+exports.updateRegistrationStatus = async (req, res) => {
+  try {
+    const { eventId, participantId } = req.params;
+    const { status } = req.body;
+
+    const event = await OrganizedEvent.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    const registration = event.registrations.find(
+      (r) => r.participantId.toString() === participantId
+    );
+
+    if (!registration) {
+      return res.status(404).json({ message: 'Participant not registered for this event' });
+    }
+
+    registration.status = status;
+
+    await event.save();
+    res.status(200).json({ message: 'Status updated successfully', registration });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }

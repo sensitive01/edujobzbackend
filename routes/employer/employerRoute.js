@@ -130,8 +130,9 @@ employerRoute.get('/getallevents', eventsController.getAllEvents);
 employerRoute.put('/updateevent/:eventId', eventsController.updateEvent);
 employerRoute.delete('/events/:eventId', eventsController.deleteEvent);
 
-employerRoute.post('/events/:eventId/register', eventsController.registerInEvent);
-employerRoute.get('/events/:eventId/registrations', eventsController.getEventRegistrations);
+employerRoute.post('/events/:eventId/registerevents', eventsController.registerInEvent);
+employerRoute.get('/events/:eventId/geteventspariticapant', eventsController.getEventRegistrations);
 employerRoute.put('/events/:eventId/registrations/:registrationId', eventsController.updateRegistrationStatus);
+employerRoute.put('/events/:eventId/registrations/:participantId/updatestatus', eventsController.updateRegistrationStatus);
 
 module.exports = employerRoute;

@@ -3,36 +3,37 @@ const mongoose = require('mongoose');
 // Subdocument schema for registrations
 const registrationSchema = new mongoose.Schema({
   participantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Employee',
-    required: true
+    type:String,
+ 
   },
   participantName: {
     type: String,
-    required: true
+ 
   },
   contactEmail: {
     type: String,
-    required: true
+ 
   },
   contactPhone: {
     type: String,
-    required: true
+ 
   },
   resumeLink: {
-    type: String
+    type: String,
   },
   profileImage: {
     type: String
   },
   registrationStatus: {
     type: String,
-    enum: ['Pending', 'Approved', 'Rejected'],
-    default: 'Pending'
+   
+  },
+  status: {
+    type: String,
+   
   },
   registeredAt: {
-    type: Date,
-    default: Date.now
+    type: String,
   }
 });
 
