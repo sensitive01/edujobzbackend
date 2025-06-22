@@ -10,8 +10,7 @@ const eventsController = require("../../controller/employerController/upcomeeven
 
 const helpcontroller = require("../../controller/employerController/employerhelpController");
 const chatController = require("../../controller/employerController/chatController");
-
-
+const certificatecontroller = require('../../controller/employerController/certificationControleler');
 // Determine storage based on fileType
 const getStorage = (fileType) => {
   switch (fileType) {
@@ -153,4 +152,16 @@ employerRoute.get('/unread', chatController.getUnreadCount);
 
 // Mark messages as read
 employerRoute.post('/mark-read', chatController.markAsRead);
+
+
+
+
+employerRoute.post('/createtraining', certificatecontroller.createTraining);
+employerRoute.get('/fetchtraining', certificatecontroller.getAllTrainings);
+employerRoute.get('/trainings/:id/subcategories', certificatecontroller.getTrainingSubCategories);
+
+
+employerRoute.get('/trainings/:id/enroll', certificatecontroller.enrollEmployer);
+employerRoute.post('/training/:categoryId/:subCategoryId/:certificationId/enroll', certificatecontroller.enrollInCertification);
+
 module.exports = employerRoute;
