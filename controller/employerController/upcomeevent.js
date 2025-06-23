@@ -17,6 +17,8 @@ exports.createsEvent = async (req, res) => {
       startTime,
       endTime,
       venue,
+      totalattendes,
+      eventendDate,
       coordinator
     } = req.body;
 
@@ -32,7 +34,9 @@ exports.createsEvent = async (req, res) => {
       endTime,
       venue,
       coordinator,
-      bannerImage
+      bannerImage,
+      totalattendes,
+      eventendDate
     });
 
     await event.save();
