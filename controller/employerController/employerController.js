@@ -27,7 +27,7 @@ const signUp = async (req, res) => {
       firstName,
       userEmail,
       userPassword,
-      referralCode // Added referral code from request
+      referralCode
     } = req.body;
 
     // Validation
@@ -38,14 +38,14 @@ const signUp = async (req, res) => {
     const existUser = await Employer.findOne({
       $or: [{ userMobile }, { userEmail }]
     });
-    
+
     if (existUser) {
       return res.status(400).json({ message: "Employer already registered." });
     }
 
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    // Check referral code if provided
+    // Handle referral
     let referredBy = null;
     if (referralCode) {
       const referringEmployer = await Employer.findOne({ referralCode });
@@ -55,39 +55,57 @@ const signUp = async (req, res) => {
       referredBy = referringEmployer._id;
     }
 
+    // Create new employer
     const newEmployer = new Employer({
       uuid: uuidv4(),
-      schoolName,
       employerType,
+      schoolName,
+      userMobile,
       lastName,
       firstName,
-      userMobile,
       userEmail,
       userPassword: hashedPassword,
+      referralCode: generateReferralCode(),
       referredBy
     });
 
     await newEmployer.save();
 
-    // Update referring employer's stats if applicable
+    // Update referring employer's stats
     if (referredBy) {
       await Employer.findByIdAndUpdate(referredBy, {
-        $inc: { referralCount: 1, referralRewards: 100 } // Example: 100 points per referral
+        $inc: {
+          referralCount: 1,
+          referralRewards: 100 // example reward value
+        }
       });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ id: newEmployer._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    // Create token
+    const token = jwt.sign(
+      { id: newEmployer._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-    res.status(201).json({ 
+    res.status(201).json({
       message: "Employer registered successfully.",
-      user: newEmployer, 
-      token,
-      referralCode: newEmployer.referralCode // Send back their own referral code
+      user: {
+        id: newEmployer._id,
+        uuid: newEmployer.uuid,
+        firstName: newEmployer.firstName,
+        lastName: newEmployer.lastName,
+        userEmail: newEmployer.userEmail,
+        userMobile: newEmployer.userMobile,
+        referralCode: newEmployer.referralCode
+      },
+      token
     });
+
   } catch (err) {
-    console.error("Error in registration:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error in registration:", err.message);
+    console.error(err.stack);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
