@@ -88,33 +88,32 @@ exports.enrollEmployer = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-// Enroll
-exports.enrollInCertification = async (req, res) => {
-  const { categoryId, subCategoryId, certificationId } = req.params;
-  const { participantId, name, email, phone, paidAmount } = req.body;
-
+// Controller function
+exports.checkEmployerEnrollment = async (req, res) => {
   try {
-    const training = await Training.findById(categoryId);
-    const sub = training.subCategories.id(subCategoryId);
-    const cert = sub.certifications.id(certificationId);
+    const trainingId = req.params.trainingId;
+    const employerId = req.params.employerId;
 
-    if (cert.maxAttendees && cert.enrollments.length >= cert.maxAttendees) {
-      return res.status(400).json({ message: 'Maximum attendees limit reached' });
+    const training = await Training.findById(trainingId);
+    if (!training) {
+      return res.status(404).json({ message: 'Training not found' });
     }
 
-    cert.enrollments.push({
-      participantId,
-      name,
-      email,
-      phone,
-      paymentStatus: cert.isPaid ? 'paid' : 'free',
-      paidAmount: cert.isPaid ? paidAmount : 0
-    });
+    const isEnrolled = training.enrollerList.some(
+      (e) => e.employerId === employerId
+    );
 
-    await training.save();
-    res.status(200).json({ message: 'Enrolled successfully' });
+    if (isEnrolled) {
+      return res.status(200).json({ status: 'enrolled' });
+    } else {
+      return res.status(200).json({ status: 'not enrolled' });
+    }
   } catch (error) {
-    res.status(500).json({ message: 'Enrollment failed', error });
+    console.error('Check enrollment error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
+// Enroll
+

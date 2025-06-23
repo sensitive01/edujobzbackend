@@ -162,7 +162,7 @@ employerRoute.get('/trainings/:id/subcategories', certificatecontroller.getTrain
 
 
 employerRoute.post('/trainings/:id/enroll', certificatecontroller.enrollEmployer);
-employerRoute.post('/training/:categoryId/:subCategoryId/:certificationId/enroll', certificatecontroller.enrollInCertification);
+employerRoute.post('/training/:trainingId/employer/:employerId/status', certificatecontroller.checkEmployerEnrollment);
 
 employerRoute.get('/sendlink/:userId', employerController.getReferralLink);
 
