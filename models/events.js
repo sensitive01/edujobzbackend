@@ -56,6 +56,14 @@ const organizedEventSchema = new mongoose.Schema({
     type: String,
 
   },
+    eventendDate: {
+    type: String,
+
+  },
+      totalattendes: {
+    type: String,
+
+  },
   startTime: {
     type: String,
  
