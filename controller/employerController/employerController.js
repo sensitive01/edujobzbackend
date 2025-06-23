@@ -16,10 +16,9 @@ const appleKeysClient = jwksClient({
 
 const generateUserUUID = () => uuidv4(); // Define the function
 
-// Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    const {
+    let {
       employerType,
       schoolName,
       userMobile,
@@ -27,15 +26,24 @@ const signUp = async (req, res) => {
       firstName,
       userEmail,
       userPassword,
-      referralCode
+      referralCode = ""
     } = req.body;
+
+    // Trim all inputs
+    employerType = employerType?.trim();
+    schoolName = schoolName?.trim();
+    userMobile = userMobile?.trim();
+    lastName = lastName?.trim();
+    firstName = firstName?.trim();
+    userEmail = userEmail?.trim();
+    referralCode = referralCode.trim();
 
     // Validation
     if (!userEmail && !userMobile) {
       return res.status(400).json({ message: "Email or mobile is required." });
     }
 
-    const existUser = await Employer.findOne({
+    const existUser = await userModel.findOne({
       $or: [{ userMobile }, { userEmail }]
     });
 
@@ -47,16 +55,16 @@ const signUp = async (req, res) => {
 
     // Handle referral
     let referredBy = null;
-    if (referralCode) {
-      const referringEmployer = await Employer.findOne({ referralCode });
+    if (referralCode !== "") {
+      const referringEmployer = await userModel.findOne({ referralCode });
       if (!referringEmployer) {
         return res.status(400).json({ message: "Invalid referral code." });
       }
       referredBy = referringEmployer._id;
     }
 
-    // Create new employer
-    const newEmployer = new Employer({
+    // Create new employer without referralCode (auto-generated)
+    const newEmployer = new userModel({
       uuid: uuidv4(),
       employerType,
       schoolName,
@@ -65,15 +73,17 @@ const signUp = async (req, res) => {
       firstName,
       userEmail,
       userPassword: hashedPassword,
-      referralCode: generateReferralCode(),
       referredBy
     });
+
+    // Generate referral code using schema method
+    newEmployer.referralCode = newEmployer.generateReferralCode();
 
     await newEmployer.save();
 
     // Update referring employer's stats
     if (referredBy) {
-      await Employer.findByIdAndUpdate(referredBy, {
+      await userModel.findByIdAndUpdate(referredBy, {
         $inc: {
           referralCount: 1,
           referralRewards: 100 // example reward value
@@ -81,7 +91,7 @@ const signUp = async (req, res) => {
       });
     }
 
-    // Create token
+    // Create JWT token
     const token = jwt.sign(
       { id: newEmployer._id },
       process.env.JWT_SECRET,
@@ -108,6 +118,8 @@ const signUp = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
 
 // Email/Mobile Login
 const login = async (req, res) => {
