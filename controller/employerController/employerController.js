@@ -119,8 +119,6 @@ const signUp = async (req, res) => {
   }
 };
 
-
-
 // Email/Mobile Login
 const login = async (req, res) => {
   try {
@@ -466,6 +464,24 @@ const employerChangePassword = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+// GET /api/referral-link/:userId
+const getReferralLink = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await userModel.findById(userId);
+    if (!user || !user.referralCode) {
+      return res.status(404).json({ message: 'Referral code not found.' });
+    }
+
+    // This can be dynamic based on your frontend deployment
+    const referralUrl = `https://yourapp.com/signup?ref=${user.referralCode}`;
+
+    res.json({ referralUrl });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
 
 module.exports = {
   signUp,
@@ -474,6 +490,7 @@ module.exports = {
   employerChangePassword,
   login,
   googleAuth,
+  getReferralLink,
   appleAuth,
   listAllEmployees,
   getEmployerDetails,

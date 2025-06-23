@@ -63,14 +63,14 @@ exports.getTrainingSubCategories = async (req, res) => {
 exports.enrollEmployer = async (req, res) => {
   try {
     const trainingId = req.params.id;
-    const { employerId, employername, paidAmount, transactionId } = req.body;
+    const { employerId, employername, paidAmount, transactionId, email, phone } = req.body;
 
     const training = await Training.findById(trainingId);
     if (!training) {
       return res.status(404).json({ message: 'Training not found' });
     }
 
-    // Check if already enrolled (optional)
+    // Check if already enrolled
     const alreadyEnrolled = training.enrollerList.some(
       (e) => e.employerId === employerId
     );
@@ -78,8 +78,8 @@ exports.enrollEmployer = async (req, res) => {
       return res.status(400).json({ message: 'Employer already enrolled in this training.' });
     }
 
-    // Push new enrollment
-    training.enrollerList.push({ employerId, employername, paidAmount, transactionId });
+    // Add to enrollerList
+    training.enrollerList.push({ employerId, employername, paidAmount, transactionId, email, phone });
     await training.save();
 
     res.status(200).json({ message: 'Employer enrolled successfully', training });
@@ -88,6 +88,7 @@ exports.enrollEmployer = async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 // Enroll
 exports.enrollInCertification = async (req, res) => {
   const { categoryId, subCategoryId, certificationId } = req.params;

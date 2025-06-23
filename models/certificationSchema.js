@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 
 // Enroller Schema
 const enrollerSchema = new mongoose.Schema({
+    email: { type: String },
+      phone: { type: String },
   employerId: { type: String },
   employername: { type: String },
   paidAmount: { type: String },

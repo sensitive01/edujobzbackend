@@ -161,7 +161,9 @@ employerRoute.get('/fetchtraining', certificatecontroller.getAllTrainings);
 employerRoute.get('/trainings/:id/subcategories', certificatecontroller.getTrainingSubCategories);
 
 
-employerRoute.get('/trainings/:id/enroll', certificatecontroller.enrollEmployer);
+employerRoute.post('/trainings/:id/enroll', certificatecontroller.enrollEmployer);
 employerRoute.post('/training/:categoryId/:subCategoryId/:certificationId/enroll', certificatecontroller.enrollInCertification);
+
+employerRoute.get('/sendlink/:userId', employerController.getReferralLink);
 
 module.exports = employerRoute;
