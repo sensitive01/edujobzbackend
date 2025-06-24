@@ -3,8 +3,15 @@ const Chat = require('../../models/chatSchema');
 
 
 
+const { cloudinary } = require('../../config/cloudinary');
+
 exports.sendMessage = async (req, res) => {
   try {
+    console.log('📦 Incoming Request:', {
+      file: req.file,
+      body: req.body,
+    });
+
     const {
       employeeId,
       employerId,
@@ -15,69 +22,93 @@ exports.sendMessage = async (req, res) => {
       employerImage,
       employeeName,
       employeeImage,
-      fileType,
     } = req.body;
 
-    // if (!employeeId || !employerId || !jobId || !sender) {
-    //   return res.status(400).json({ success: false, message: 'Missing required fields' });
-    // }
+    // ✅ Validation
+    if (!employeeId || !employerId || !jobId || !sender) {
+      console.error('❌ Missing required fields:', employeeId, employerId, jobId, sender);
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
 
-    const newMessage = {
-      message: message || '',
-      sender,
-      createdAt: new Date(),
-      isRead: false,
-      employeeImage: sender === 'employee' ? employeeImage : undefined,
-      employerImage: sender === 'employer' ? employerImage : undefined,
-    };
+    let mediaUrl = null;
+    let mediaType = null;
 
+    // ✅ Upload to Cloudinary if file exists
     if (req.file) {
-      if (fileType === 'chatImage') {
-        newMessage.mediaUrl = req.file.path;
-        newMessage.mediaType = 'image';
-        newMessage.message = message || '[Image]';
-      } else if (fileType === 'chatAudio') {
-        newMessage.mediaUrl = req.file.path;
-        newMessage.mediaType = 'audio';
-        newMessage.message = message || '[Voice Message]';
+      try {
+        const mimetype = req.file.mimetype;
+        const resourceType = mimetype.startsWith('image') ? 'image'
+                          : mimetype.startsWith('audio') ? 'video'
+                          : 'auto';
+
+        const base64Data = `data:${mimetype};base64,${req.file.buffer.toString('base64')}`;
+
+        const result = await cloudinary.uploader.upload(base64Data, {
+          resource_type: resourceType,
+          folder: resourceType === 'image' ? 'chat_images' : 'chat_audio',
+        });
+
+        mediaUrl = result.secure_url;
+        mediaType = resourceType === 'image' ? 'image' : 'audio';
+
+        console.log('✅ Uploaded to Cloudinary:', mediaUrl);
+      } catch (uploadError) {
+        console.error('❌ Cloudinary upload error:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: 'File upload failed',
+          error: uploadError.message,
+        });
       }
     }
 
-    let chat = await Chat.findOne({ employeeId, employerId, jobId });
+    // ✅ Message Object
+    const newMessage = {
+      message: message || (mediaType ? `[${mediaType === 'image' ? 'Image' : 'Voice Message'}]` : ''),
+      sender,
+      createdAt: new Date(),
+      isRead: false,
+      ...(mediaUrl && { mediaUrl }),
+      ...(mediaType && { mediaType }),
+    };
 
-    if (chat) {
-      chat.messages.push(newMessage);
-      chat.updatedAt = new Date();
-      await chat.save();
-      return res.status(200).json({
-        success: true,
-        message: 'Message sent (existing chat)',
-        chatId: chat._id,
-        data: newMessage,
-      });
-    } else {
-      chat = new Chat({
-        employeeId,
-        employerId,
-        jobId,
-        employerName,
-        employerImage,
-        employeeName,
-        employeeImage,
-        messages: [newMessage],
-      });
-      await chat.save();
-      return res.status(201).json({
-        success: true,
-        message: 'Message sent (new chat created)',
-        chatId: chat._id,
-        data: newMessage,
-      });
-    }
+    // ✅ Find or Create Chat
+    const chat = await Chat.findOneAndUpdate(
+      { employeeId, employerId, jobId },
+      {
+        $setOnInsert: {
+          employerName,
+          employerImage,
+          employeeName,
+          employeeImage,
+          createdAt: new Date(),
+        },
+        $push: { messages: newMessage },
+        $set: { updatedAt: new Date() },
+      },
+      { upsert: true, new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Message sent successfully',
+      chatId: chat._id,
+      data: newMessage,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+    console.error('❌ Error in sendMessage:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
+    });
   }
 };
+
+// Add other chat controller functions as needed...
+// Multer middleware for handling file uploads
+
+
 exports.getChatMessagesByJobId = async (req, res) => {
   try {
     const { jobId } = req.params;
@@ -107,17 +138,13 @@ exports.getChatsByEmployerId = async (req, res) => {
   try {
     const { employerId } = req.params;
 
-    if (!employerId) {
-      return res.status(400).json({ success: false, message: 'employerId is required' });
-    }
-
     const chats = await Chat.find({ employerId })
+      .select('-messages') // Exclude messages for this list view
       .sort({ updatedAt: -1 });
 
-    res.status(200).json({ success: true, data: chats });
-  } catch (error) {
-    console.error('Error fetching chats:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    return res.status(200).json(chats);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 

@@ -12,14 +12,24 @@ const helpcontroller = require("../../controller/employerController/employerhelp
 const chatController = require("../../controller/employerController/chatController");
 const certificatecontroller = require('../../controller/employerController/certificationControleler');
 // Determine storage based on fileType
-const { profileImageStorage, resumeStorage, coverLetterStorage, chatImageStorage, chatAudioStorage, eventImageStorage, sendimage } = require("../../config/cloudinary");
+// const multer = require('multer');
+const memoryUpload = multer({ storage: multer.memoryStorage() }).single('file');
+const {
+  profileImageStorage,
+  resumeStorage,
+  coverLetterStorage,
+  chatImageStorage,
+  chatAudioStorage,
+  eventImageStorage,
+  sendimage,
+} = require('../../config/cloudinary');
 
 const getStorage = (fileType) => {
   switch (fileType) {
     case 'profileImage': return profileImageStorage;
     case 'resume': return resumeStorage;
     case 'coverLetter': return coverLetterStorage;
-    case 'chatImage': return chatImageStorage;
+    case '3': return chatImageStorage;
     case 'chatAudio': return chatAudioStorage;
     case 'eventimage': return eventImageStorage;
     case 'send': return sendimage;
@@ -27,37 +37,51 @@ const getStorage = (fileType) => {
   }
 };
 
-// Dynamic middleware for fileType-based upload
 const dynamicUploadMiddleware = (req, res, next) => {
-  const fileType = req.query.fileType || req.body.fileType;
-
-  // If no fileType provided, assume text-only message and skip multer
-  if (!fileType) {
-    console.log('No fileType provided, skipping file upload');
-    return next();
-  }
-
+  console.log("Iam in upload file",req.file)
+  const fileType = req.body.fileType || req.query.fileType;
   const storage = getStorage(fileType);
 
   if (!storage) {
-    return res.status(400).json({ message: 'Invalid or missing fileType' });
+    console.log(`❌ Unsupported or missing fileType: "${fileType}"`);
+    return next(); // Let it continue without upload if no fileType
   }
 
-  const upload = multer({
-    storage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-  }).single('file');
+  const upload = multer({ storage }).single('file');
 
-  upload(req, res, (err) => {
+  upload(req, res, function (err) {
     if (err) {
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ message: 'File size exceeds 10MB limit' });
-      }
-      return res.status(500).json({ message: 'Upload error', error: err.message });
+      console.error('❌ Multer Error:', err);
+      return res.status(400).json({ success: false, message: 'File upload failed', error: err.message });
     }
     next();
   });
 };
+
+const dynamicUploadMiddlewareNew = (req, res, next) => {
+  memoryUpload(req, res, async function (err) {
+    if (err) {
+      console.error('❌ Memory upload failed:', err);
+      return res.status(400).json({ success: false, message: 'Upload failed', error: err.message });
+    }
+
+    const fileType = req.body.fileType || req.query.fileType;
+
+    console.log('✅ fileType:', fileType);
+    console.log('✅ file:', req.file);
+    console.log('✅ body:', req.body);
+
+    if (!req.file) {
+      console.warn('⚠️ No file uploaded');
+    }
+
+    return next();
+  });
+};
+
+
+
+
 
 employerRoute.post('/signup', employerController.signUp);
 
@@ -141,8 +165,8 @@ employerRoute.put('/events/:eventId/registrations/:participantId/updatestatus', 
 
 
 // BEFORE (broken image handling):
-employerRoute.post('/sendchat', dynamicUploadMiddleware, chatController.sendMessage);
-employerRoute.post('/sendchat/:docId', dynamicUploadMiddleware, helpcontroller.sendChat);
+employerRoute.post('/sendchats', dynamicUploadMiddlewareNew, chatController.sendMessage);
+// employerRoute.post('/sendchat/:docId', dynamicUploadMiddlewareNew, helpcontroller.sendChat);
 
 employerRoute.get('/chats/:jobId', chatController.getChatMessagesByJobId);
 
