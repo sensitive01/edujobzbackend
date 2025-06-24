@@ -18,9 +18,9 @@ exports.sendMessage = async (req, res) => {
       fileType,
     } = req.body;
 
-    if (!employeeId || !employerId || !jobId || !sender) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
-    }
+    // if (!employeeId || !employerId || !jobId || !sender) {
+    //   return res.status(400).json({ success: false, message: 'Missing required fields' });
+    // }
 
     const newMessage = {
       message: message || '',
