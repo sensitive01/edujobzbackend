@@ -2,7 +2,7 @@
 const Chat = require('../../models/chatSchema');
 
 
-
+const userModel = require('../../models/employeeschema');
 const { cloudinary } = require('../../config/cloudinary');
 
 exports.sendMessage = async (req, res) => {
@@ -117,16 +117,34 @@ exports.getChatMessagesByJobId = async (req, res) => {
       return res.status(400).json({ message: 'Job ID is required' });
     }
 
-    const chat = await Chat.findOne({ jobId });
+    // Find all chats with the given jobId
+    const chats = await Chat.find({ jobId });
 
-    if (!chat) {
-      return res.status(404).json({ message: 'No chat found for this job ID' });
+    if (!chats || chats.length === 0) {
+      return res.status(404).json({ message: 'No chats found for this job ID' });
     }
+
+    // Map through chats to fetch employer details for each employeeId
+    const enrichedChats = await Promise.all(
+      chats.map(async (chat) => {
+        // Fetch employer details using employeeId
+        const employer = await userModel.findById(chat.employeeId).select('schoolName userProfilePic');
+
+        return {
+          _id: chat._id,
+          employeeId: chat.employeeId,
+          jobId: chat.jobId,
+          updatedAt: chat.updatedAt,
+          latestMessage: chat.latestMessage,
+          schoolName: employer ? employer.schoolName : null,
+          userProfilePic: employer ? employer.userProfilePic : null,
+        };
+      })
+    );
 
     return res.status(200).json({
       success: true,
-      chatId: chat._id,
-      messages: chat.messages,
+      data: enrichedChats,
     });
   } catch (err) {
     return res.status(500).json({ message: 'Server error', error: err.message });
