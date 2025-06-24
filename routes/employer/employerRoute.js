@@ -124,6 +124,7 @@ employerRoute.post('/toggleSaveJob', jobController.toggleSaveJob);
 employerRoute.get('/fetchSavedJobs/:employid', jobController.fetchSavedJobslist);
 employerRoute.get('/fetchschooljobs', jobController.getSchoolEmployerJobs);
 employerRoute.get('/fetchcompanyjobs', jobController.getcompnanyEmployerJobs);
+employerRoute.get('/fetchcompanyname/:jobId', jobController.getCompanyNameByJobId);
 
 employerRoute.post("/createmeeting", meetingController.create);
 employerRoute.get("/fetchmeeting/:id", meetingController.getMeetingsByVendor);
