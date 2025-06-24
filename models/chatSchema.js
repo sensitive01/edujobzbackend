@@ -16,6 +16,8 @@ const messageSchema = new mongoose.Schema({
     employeeImage: {
     type: String
   },
+    mediaUrl: { type: String },
+  mediaType: { type: String, enum: ['image', 'audio', null], default: null },
   createdAt: {
     type: Date,
     default: Date.now,

@@ -4,7 +4,7 @@ const employerRoute = express();
 const meetingController = require("../../controller/employerController/meetingController")
 const employerController = require("../../controller/employerController/employerController");
 const jobController = require ("../../controller/employerController/postjobcontroller");
-const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage,eventImageStorage ,sendimage } = require("../../config/cloudinary");
+// const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage,eventImageStorage ,sendimage } = require("../../config/cloudinary");
 const eventController = require("../../controller/employerController/calendarControllers");
 const eventsController = require("../../controller/employerController/upcomeevent");
 
@@ -12,15 +12,17 @@ const helpcontroller = require("../../controller/employerController/employerhelp
 const chatController = require("../../controller/employerController/chatController");
 const certificatecontroller = require('../../controller/employerController/certificationControleler');
 // Determine storage based on fileType
+const { profileImageStorage, resumeStorage, coverLetterStorage, chatImageStorage, chatAudioStorage, eventImageStorage, sendimage } = require("../../config/cloudinary");
+
 const getStorage = (fileType) => {
   switch (fileType) {
     case 'profileImage': return profileImageStorage;
     case 'resume': return resumeStorage;
     case 'coverLetter': return coverLetterStorage;
-     case 'chatImage': return chatImageStorage;
-     case 'send': return sendimage;
-      case 'eventimage': return eventImageStorage;
-     
+    case 'chatImage': return chatImageStorage;
+    case 'chatAudio': return chatAudioStorage;
+    case 'eventimage': return eventImageStorage;
+    case 'send': return sendimage;
     default: return null;
   }
 };
@@ -144,7 +146,9 @@ employerRoute.post('/sendchat/:docId', dynamicUploadMiddleware, helpcontroller.s
 
 employerRoute.get('/chats/:jobId', chatController.getChatMessagesByJobId);
 
+// Route: GET /employer/:employerId
 employerRoute.get('/employer/:employerId', chatController.getChatsByEmployerId);
+
 employerRoute.get('/employee/:employeeId', chatController.getChatsByEmployeeId);
 employerRoute.get('/view', chatController.getChatMessages);
 
