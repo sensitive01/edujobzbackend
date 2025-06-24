@@ -52,8 +52,6 @@ const chatSchema = new mongoose.Schema({
 });
 
 // Indexes to improve query performance
-chatSchema.index({ employeeId: 1, employerId: 1, jobId: 1 });
+// chatSchema.index({ employeeId: 1, employerId: 1, jobId: 1 });
 
-const Chat = mongoose.model('Chat', chatSchema);
-
-module.exports = Chat;
+module.exports = mongoose.model('Chat', chatSchema);
