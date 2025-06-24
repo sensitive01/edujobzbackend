@@ -76,6 +76,10 @@ const organizedEventSchema = new mongoose.Schema({
     type: String,
 
   },
+  entryfee: {
+    type: String,
+ 
+  },
   coordinator: {
    
   },

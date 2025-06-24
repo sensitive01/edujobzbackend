@@ -19,6 +19,7 @@ exports.createsEvent = async (req, res) => {
       venue,
       totalattendes,
       eventendDate,
+      entryfee,
       coordinator
     } = req.body;
 
@@ -36,6 +37,7 @@ exports.createsEvent = async (req, res) => {
       coordinator,
       bannerImage,
       totalattendes,
+      entryfee,
       eventendDate
     });
 
