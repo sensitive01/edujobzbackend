@@ -33,24 +33,38 @@ exports.sendMessage = async (req, res) => {
     let mediaUrl = null;
     let mediaType = null;
 
-    // ✅ Upload to Cloudinary if file exists
+    // ✅ Handle file upload to Cloudinary
     if (req.file) {
       try {
         const mimetype = req.file.mimetype;
-        const resourceType = mimetype.startsWith('image') ? 'image'
-                          : mimetype.startsWith('audio') ? 'video'
-                          : 'auto';
+        console.log('📁 File MIME type:', mimetype);
 
+        // Determine Cloudinary resource_type
+        const resourceType = mimetype.startsWith('image')
+          ? 'image'
+          : mimetype.startsWith('audio')
+          ? 'video' // Cloudinary treats audio as 'video' resource type
+          : 'auto';
+
+        // Determine mediaType to save in DB
+        if (mimetype.startsWith('image')) {
+          mediaType = 'image';
+        } else if (mimetype.startsWith('audio')) {
+          mediaType = 'audio';
+        } else {
+          mediaType = 'file'; // Fallback if unknown type
+        }
+
+        // Convert buffer to base64
         const base64Data = `data:${mimetype};base64,${req.file.buffer.toString('base64')}`;
 
+        // Upload to Cloudinary
         const result = await cloudinary.uploader.upload(base64Data, {
           resource_type: resourceType,
           folder: resourceType === 'image' ? 'chat_images' : 'chat_audio',
         });
 
         mediaUrl = result.secure_url;
-        mediaType = resourceType === 'image' ? 'image' : 'audio';
-
         console.log('✅ Uploaded to Cloudinary:', mediaUrl);
       } catch (uploadError) {
         console.error('❌ Cloudinary upload error:', uploadError);
@@ -62,44 +76,38 @@ exports.sendMessage = async (req, res) => {
       }
     }
 
-    // ✅ Message Object
+    // ✅ Construct message data to store
     const newMessage = {
-      message: message || (mediaType ? `[${mediaType === 'image' ? 'Image' : 'Voice Message'}]` : ''),
+      message: message || (mediaType === 'image' ? '[Image]' : '[Voice Message]'),
       sender,
+      employeeId,
+      employerId,
+      jobId,
       createdAt: new Date(),
       isRead: false,
-      ...(mediaUrl && { mediaUrl }),
-      ...(mediaType && { mediaType }),
+      mediaUrl,
+      mediaType,
+      employerName,
+      employerImage,
+      employeeName,
+      employeeImage,
     };
 
-    // ✅ Find or Create Chat
-    const chat = await Chat.findOneAndUpdate(
-      { employeeId, employerId, jobId },
-      {
-        $setOnInsert: {
-          employerName,
-          employerImage,
-          employeeName,
-          employeeImage,
-          createdAt: new Date(),
-        },
-        $push: { messages: newMessage },
-        $set: { updatedAt: new Date() },
-      },
-      { upsert: true, new: true }
-    );
+    // ✅ Save to DB (you can modify as needed)
+    const chat = await Chat.create(newMessage);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: 'Message sent successfully',
       chatId: chat._id,
       data: newMessage,
     });
+
   } catch (error) {
-    console.error('❌ Error in sendMessage:', error);
-    return res.status(500).json({
+    console.error('❌ sendMessage error:', error);
+    res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: 'Something went wrong while sending the message.',
       error: error.message,
     });
   }
