@@ -523,22 +523,23 @@ const fetchAllJobs = async (req, res) => {
   }
 };
 
-const getCompanyNameByJobId = async (jobId) => {
+const getJobTitleByJobId = async (jobId) => {
   try {
-    const job = await Job.findById(jobId).select('companyName');
+    const job = await Job.findById(jobId).select('jobTitle');
     
     if (!job) {
       console.log('Job not found');
       return null;
     }
 
-    console.log('Company Name:', job.companyName);
-    return job.companyName;
+    console.log('Job Title:', job.jobTitle);
+    return job.jobTitle;
   } catch (error) {
-    console.error('Error fetching company name:', error.message);
+    console.error('Error fetching job title:', error.message);
     return null;
   }
 };
+
 const fetchSavedJobslist = async (req, res) => {
   try {
     const { employid } = req.params;
@@ -858,7 +859,7 @@ getcompnanyEmployerJobs,
   getFavouriteCandidates,
   updateFavoriteStatus,
   updateApplicantStatus,
-  getCompanyNameByJobId,
+  getJobTitleByJobId,
   shortlistcand,
   getNonPendingApplicantsByEmployId,
   updateFavStatusforsavecand,
