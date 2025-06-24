@@ -133,29 +133,59 @@ exports.getChatMessagesByJobId = async (req, res) => {
   }
 };
 
-// List messages between an employee and employer for a specific job
+
 exports.getChatsByEmployerId = async (req, res) => {
   try {
-    const { employerId } = req.params;
+    const employerId = String(req.params.employerId);
 
-    const chats = await Chat.find({ employerId })
-      .select('-messages') // Exclude messages for this list view
-      .sort({ updatedAt: -1 });
+    console.log('📩 Employer ID:', employerId);
 
-    return res.status(200).json(chats);
-  } catch (err) {
-    return res.status(500).json({ message: 'Server error', error: err.message });
+    const chats = await Chat.aggregate([
+      {
+        $match: {
+          employerId: employerId,
+        }
+      },
+      { $sort: { updatedAt: -1 } },
+      {
+        $addFields: {
+          latestMessage: {
+            $cond: [
+              { $gt: [{ $size: "$messages" }, 0] },
+              { $arrayElemAt: ["$messages", -1] },
+              null
+            ]
+          }
+        }
+      },
+      {
+        $project: {
+          employeeId: 1,
+          employeeImage: 1,
+          employerName: 1,
+          employerImage: 1,
+          jobId: 1,
+          updatedAt: 1,
+          latestMessage: 1
+        }
+      }
+    ]);
+
+    console.log('✅ Chat count:', chats.length);
+    res.status(200).json({ success: true, data: chats });
+  } catch (error) {
+    console.error('❌ Error fetching chats:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 
 exports.getChatsByEmployeeId = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
     const chats = await Chat.find({ employeeId })
-      .select('-messages') // Exclude messages here too
-      .sort({ updatedAt: -1 });
-
+     
     return res.status(200).json(chats);
   } catch (err) {
     return res.status(500).json({ message: 'Server error', error: err.message });
