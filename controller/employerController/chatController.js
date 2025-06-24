@@ -7,11 +7,7 @@ const { cloudinary } = require('../../config/cloudinary');
 
 exports.sendMessage = async (req, res) => {
   try {
-    console.log('📦 Incoming Request:', {
-      file: req.file,
-      body: req.body,
-    });
-
+    console.log('Request body:', req.file,req.files,req.file);
     const {
       employeeId,
       employerId,
@@ -24,91 +20,83 @@ exports.sendMessage = async (req, res) => {
       employeeImage,
     } = req.body;
 
-    // ✅ Validation
+    // Validate required fields
     if (!employeeId || !employerId || !jobId || !sender) {
-      console.error('❌ Missing required fields:', employeeId, employerId, jobId, sender);
+      console.error('Missing required fields:', employeeId , employerId, jobId ,sender)
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
     let mediaUrl = null;
     let mediaType = null;
 
-    // ✅ Handle file upload to Cloudinary
+    // Handle file upload to Cloudinary if file exists
     if (req.file) {
       try {
-        const mimetype = req.file.mimetype;
-        console.log('📁 File MIME type:', mimetype);
-
-        // Determine Cloudinary resource_type
-        const resourceType = mimetype.startsWith('image')
-          ? 'image'
-          : mimetype.startsWith('audio')
-          ? 'video' // Cloudinary treats audio as 'video' resource type
-          : 'auto';
-
-        // Determine mediaType to save in DB
-        if (mimetype.startsWith('image')) {
-          mediaType = 'image';
-        } else if (mimetype.startsWith('audio')) {
-          mediaType = 'audio';
-        } else {
-          mediaType = 'file'; // Fallback if unknown type
-        }
-
-        // Convert buffer to base64
-        const base64Data = `data:${mimetype};base64,${req.file.buffer.toString('base64')}`;
+        // Determine resource type based on file type
+        const resourceType = req.file.mimetype.startsWith('image') ? 'image' : 
+                           req.file.mimetype.startsWith('audio') ? 'video' : 'auto';
 
         // Upload to Cloudinary
-        const result = await cloudinary.uploader.upload(base64Data, {
+        const result = await cloudinary.uploader.upload(req.file.path, {
           resource_type: resourceType,
           folder: resourceType === 'image' ? 'chat_images' : 'chat_audio',
         });
 
         mediaUrl = result.secure_url;
-        console.log('✅ Uploaded to Cloudinary:', mediaUrl);
+        mediaType = resourceType === 'image' ? 'image' : 'audio';
+
+        // Delete the temporary file after upload
+        const fs = require('fs');
+        fs.unlinkSync(req.file.path);
       } catch (uploadError) {
-        console.error('❌ Cloudinary upload error:', uploadError);
-        return res.status(500).json({
-          success: false,
+        console.error('Cloudinary upload error:', uploadError);
+        return res.status(500).json({ 
+          success: false, 
           message: 'File upload failed',
-          error: uploadError.message,
+          error: uploadError.message 
         });
       }
     }
 
-    // ✅ Construct message data to store
+    // Prepare message object
     const newMessage = {
-      message: message || (mediaType === 'image' ? '[Image]' : '[Voice Message]'),
+      message: message || (mediaType ? `[${mediaType === 'image' ? 'Image' : 'Voice Message'}]` : ''),
       sender,
-      employeeId,
-      employerId,
-      jobId,
       createdAt: new Date(),
       isRead: false,
-      mediaUrl,
-      mediaType,
-      employerName,
-      employerImage,
-      employeeName,
-      employeeImage,
+      ...(mediaUrl && { mediaUrl }),
+      ...(mediaType && { mediaType }),
     };
 
-    // ✅ Save to DB (you can modify as needed)
-    const chat = await Chat.create(newMessage);
+    // Find existing chat or create new one
+    let chat = await Chat.findOneAndUpdate(
+      { employeeId, employerId, jobId },
+      {
+        $setOnInsert: {
+          employerName,
+          employerImage,
+          employeeName,
+          employeeImage,
+          createdAt: new Date(),
+        },
+        $push: { messages: newMessage },
+        $set: { updatedAt: new Date() },
+      },
+      { upsert: true, new: true }
+    );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Message sent successfully',
       chatId: chat._id,
       data: newMessage,
     });
-
   } catch (error) {
-    console.error('❌ sendMessage error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Something went wrong while sending the message.',
-      error: error.message,
+    console.error('Error in sendMessage:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error', 
+      error: error.message 
     });
   }
 };
