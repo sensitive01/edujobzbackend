@@ -1,7 +1,26 @@
 const mongoose = require("mongoose");
 const Job = require('../../models/jobSchema');
 const Employer = require('../../models/employerSchema');
-// Create a new job
+
+const getJobTitleByJobId = async (req, res) => {
+  try {
+    const jobId = req.params.jobId;
+    if (!jobId || jobId.length !== 24) {
+      return res.status(400).json({ success: false, message: 'Invalid jobId' });
+    }
+    const job = await Job.findById(jobId).select('jobTitle');
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+    res.json({ success: true, jobTitle: job.jobTitle });
+  } catch (error) {
+    console.error('Error fetching job title:', error.message);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+
+
 const createJob = async (req, res) => {
   try {
     const newJob = new Job(req.body);
@@ -523,22 +542,7 @@ const fetchAllJobs = async (req, res) => {
   }
 };
 
-const getJobTitleByJobId = async (jobId) => {
-  try {
-    const job = await Job.findById(jobId).select('jobTitle');
-    
-    if (!job) {
-      console.log('Job not found');
-      return null;
-    }
 
-    console.log('Job Title:', job.jobTitle);
-    return job.jobTitle;
-  } catch (error) {
-    console.error('Error fetching job title:', error.message);
-    return null;
-  }
-};
 
 const fetchSavedJobslist = async (req, res) => {
   try {
