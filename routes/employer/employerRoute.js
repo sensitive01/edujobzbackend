@@ -175,6 +175,7 @@ employerRoute.get('/chats/:jobId', chatController.getChatMessagesByJobId);
 employerRoute.get('/employer/:employerId', chatController.getChatsByEmployerId);
 
 employerRoute.get('/employee/:employeeId', chatController.getChatsByEmployeeId);
+employerRoute.get('/getchatmessagesbyemployerid', chatController.getchatmessagesbyemployerid);
 employerRoute.get('/view', chatController.getChatMessages);
 
 employerRoute.get('/unread', chatController.getUnreadCount);

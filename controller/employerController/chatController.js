@@ -206,11 +206,11 @@ exports.getChatMessages = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
-exports.getChatMessages = async (req, res) => {
+exports.getchatmessagesbyemployerid = async (req, res) => {
   try {
-    const { employeeId, employerId, jobId } = req.query;
+    const { employeeId, jobId } = req.query;
 
-    const chat = await Chat.findOne({ employeeId, employerId, jobId });
+    const chat = await Chat.findOne({ employeeId, jobId });
 
     if (!chat) {
       return res.status(404).json({ message: 'Chat not found' });
