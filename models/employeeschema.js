@@ -51,6 +51,7 @@ resume: {
     name: { type: String },
     url: { type: String },
   },
+  referralCode: { type: String, unique: true }, 
   profilesummary: { type: String },
   profileImage: { type: String }, // URL to profile image
   createdAt: { type: Date, default: Date.now },
