@@ -91,78 +91,6 @@ exports.sendMessage = async (req, res) => {
       { upsert: true, new: true }
     );
 
-     const isSenderEmployer = sender === 'employer';
-    const recipientId = isSenderEmployer ? employeeId : employerId;
-    const senderName = isSenderEmployer ? employerName : employeeName;
-    const senderImage = isSenderEmployer ? employerImage : employeeImage;
-
-    // ✅ Get recipient's FCM tokens
-    const recipientModel = isSenderEmployer ? Employee : Employer;
-    const recipient = await recipientModel.findById(recipientId).select('employeefcmtoken employerfcmtoken');
-    const fcmTokens = isSenderEmployer ? 
-      (recipient?.employeefcmtoken || []) : 
-      (recipient?.employerfcmtoken || []);
-
-    // ✅ Create notification payload
-    const notificationPayload = {
-      title: `New message from ${senderName}`,
-      body: message || (mediaType ? `Sent a ${mediaType}` : 'New message'),
-      image: senderImage,
-      data: {
-        chatId: chat._id.toString(),
-        jobId: jobId,
-        type: 'chat_message',
-        senderId: isSenderEmployer ? employerId : employeeId,
-        senderType: sender,
-        click_action: 'FLUTTER_NOTIFICATION_CLICK'
-      }
-    };
-
-    // ✅ Send notifications to all recipient devices
-    if (fcmTokens.length > 0) {
-      try {
-        await admin.messaging().sendEachForMulticast({
-          tokens: fcmTokens,
-          notification: notificationPayload,
-          apns: {
-            payload: {
-              aps: {
-                sound: 'default',
-                badge: 1,
-              },
-            },
-          },
-          android: {
-            notification: {
-              sound: 'default',
-              channel_id: 'chat_messages',
-              priority: 'high',
-            },
-          },
-        });
-        console.log('✅ Notifications sent successfully');
-      } catch (fcmError) {
-        console.error('❌ FCM Error:', fcmError);
-        // Don't fail the request if FCM fails
-      }
-    }
-
-    // ✅ Store the notification in database
-    const notification = new Notification({
-      recipientId,
-      recipientType: isSenderEmployer ? 'employee' : 'employer',
-      senderId: isSenderEmployer ? employerId : employeeId,
-      senderType: sender,
-      title: notificationPayload.title,
-      body: notificationPayload.body,
-      image: senderImage,
-      data: notificationPayload.data,
-      isRead: false,
-      createdAt: new Date()
-    });
-
-    await notification.save();
-
     return res.status(200).json({
       success: true,
       message: 'Message sent successfully',
@@ -180,6 +108,7 @@ exports.sendMessage = async (req, res) => {
 };
 
 // Add other chat controller functions as needed...
+
 // Multer middleware for handling file uploads
 
 

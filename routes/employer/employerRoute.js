@@ -167,7 +167,7 @@ employerRoute.put('/events/:eventId/registrations/:participantId/updatestatus', 
 
 // BEFORE (broken image handling):
 employerRoute.post('/sendchats', dynamicUploadMiddlewareNew, chatController.sendMessage);
-// employerRoute.post('/sendchat/:docId', dynamicUploadMiddlewareNew, helpcontroller.sendChat);
+// employerRoute.post('/send', dynamicUploadMiddlewareNew, helpcontroller.sendsMessage);
 
 employerRoute.get('/chats/:jobId', chatController.getChatMessagesByJobId);
 
