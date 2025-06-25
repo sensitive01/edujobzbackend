@@ -26,10 +26,10 @@ exports.sendMessage = async (req, res) => {
     } = req.body;
 
     // ✅ Validation
-    if (!employeeId || !employerId || !jobId || !sender || !position) {
-      console.error('❌ Missing required fields:', employeeId, employerId, jobId, sender, position);
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
-    }
+    // if (!employeeId || !employerId || !jobId || !sender || !position) {
+    //   console.error('❌ Missing required fields:', employeeId, employerId, jobId, sender, position);
+    //   return res.status(400).json({ success: false, message: 'Missing required fields' });
+    // }
 
     let mediaUrl = null;
     let mediaType = null;
@@ -206,15 +206,29 @@ exports.getChatMessages = async (req, res) => {
     return res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+exports.getChatMessages = async (req, res) => {
+  try {
+    const { employeeId, employerId, jobId } = req.query;
 
+    const chat = await Chat.findOne({ employeeId, employerId, jobId });
+
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat not found' });
+    }
+
+    return res.status(200).json(chat);
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
 // Unread message count
 exports.getUnreadCount = async (req, res) => {
   try {
-    const { employeeId, employerId, jobId, viewer } = req.query;
+    const { employeeId,  jobId, viewer } = req.query;
 
     const unreadCount = await Chat.countDocuments({
       employeeId,
-      employerId,
+     
       jobId,
       sender: { $ne: viewer },
       isRead: false
