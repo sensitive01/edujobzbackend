@@ -4,11 +4,6 @@ const bcrypt = require('bcrypt');
 const Job = require('../../models/jobSchema');
 const userModel = require('../../models/employeeschema');
 const generateOTP = require("../../utils/generateOTP")
-
-
-
-
-
 const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
 const { v4: uuidv4 } = require('uuid');
