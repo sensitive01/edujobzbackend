@@ -11,6 +11,7 @@ const employerSchema = new mongoose.Schema({
   city: String, 
   state: String, 
   pincode: String, 
+      employerfcmtoken: { type: [String], default: [] },
   institutionName: String, 
   board: String,
   institutionType: String, 

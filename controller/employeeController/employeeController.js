@@ -58,7 +58,7 @@ const signUp = async (req, res) => {
 // Email/Mobile Login
 const login = async (req, res) => {
   try {
-    const { userMobile, userEmail, userPassword } = req.body;
+    const { userMobile, userEmail, userPassword, fcmToken } = req.body;
 
     if (!userMobile && !userEmail) {
       return res.status(400).json({ message: "Mobile or email is required." });
@@ -66,7 +66,7 @@ const login = async (req, res) => {
 
     const user = await userModel.findOne({
       $or: [
-        ...(userMobile ? [{ userMobile: parseInt(userMobile) }] : []),
+        ...(userMobile ? [{ userMobile: userMobile.toString() }] : []),
         ...(userEmail ? [{ userEmail }] : [])
       ]
     });
@@ -77,7 +77,13 @@ const login = async (req, res) => {
 
     const match = await bcrypt.compare(userPassword, user.userPassword);
     if (!match) {
-      return res.status(400).json({ message: "Please check your email and password" });
+      return res.status(400).json({ message: "Please check your email and password." });
+    }
+
+    // ✅ Optional FCM token saving logic
+    if (fcmToken && typeof fcmToken === 'string' && !user.employeefcmtoken.includes(fcmToken)) {
+      user.employeefcmtoken.push(fcmToken);
+      await user.save(); // only if token is new
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -95,6 +101,7 @@ const login = async (req, res) => {
     res.status(500).json({ message: "Internal server error." });
   }
 };
+
 
 // Google Sign-In
 const googleAuth = async (req, res) => {

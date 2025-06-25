@@ -21,6 +21,7 @@ const workExperienceSchema = new mongoose.Schema({
 const employeeschema = new mongoose.Schema({
   uuid: String,
   googleId: String,
+   employeefcmtoken: { type: [String], default: [] },
   appleId: String,
   userName: String,
   userEmail: String,
