@@ -36,6 +36,7 @@ const signUp = async (req, res) => {
     lastName = lastName?.trim();
     firstName = firstName?.trim();
     userEmail = userEmail?.trim();
+    userPassword = userPassword?.trim();
     referralCode = referralCode.trim();
 
     // Validation
@@ -43,6 +44,7 @@ const signUp = async (req, res) => {
       return res.status(400).json({ message: "Email or mobile is required." });
     }
 
+    // Check if user already exists
     const existUser = await userModel.findOne({
       $or: [{ userMobile }, { userEmail }]
     });
@@ -51,11 +53,12 @@ const signUp = async (req, res) => {
       return res.status(400).json({ message: "Employer already registered." });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    // Handle referral
+    // Handle referral code if provided
     let referredBy = null;
-    if (referralCode !== "") {
+    if (referralCode) {
       const referringEmployer = await userModel.findOne({ referralCode });
       if (!referringEmployer) {
         return res.status(400).json({ message: "Invalid referral code." });
@@ -63,7 +66,7 @@ const signUp = async (req, res) => {
       referredBy = referringEmployer._id;
     }
 
-    // Create new employer without referralCode (auto-generated)
+    // Create new employer
     const newEmployer = new userModel({
       uuid: uuidv4(),
       employerType,
@@ -76,17 +79,18 @@ const signUp = async (req, res) => {
       referredBy
     });
 
-    // Generate referral code using schema method
+    // Generate unique referral code
     newEmployer.referralCode = newEmployer.generateReferralCode();
 
+    // Save the new employer
     await newEmployer.save();
 
-    // Update referring employer's stats
+    // Update referrer's counts if applicable
     if (referredBy) {
       await userModel.findByIdAndUpdate(referredBy, {
         $inc: {
           referralCount: 1,
-          referralRewards: 100 // example reward value
+          referralRewards: 100 // You can adjust this value
         }
       });
     }
@@ -98,27 +102,43 @@ const signUp = async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    // Return success response
     res.status(201).json({
-      message: "Employer registered successfully.",
-      user: {
+      success: true,
+      message: "Employer registered successfully",
+      data: {
         id: newEmployer._id,
         uuid: newEmployer.uuid,
         firstName: newEmployer.firstName,
         lastName: newEmployer.lastName,
         userEmail: newEmployer.userEmail,
         userMobile: newEmployer.userMobile,
-        referralCode: newEmployer.referralCode
+        referralCode: newEmployer.referralCode,
+        referredBy: referredBy
       },
       token
     });
 
   } catch (err) {
-    console.error("Error in registration:", err.message);
+    console.error("Error in employer registration:", err.message);
     console.error(err.stack);
-    res.status(500).json({ message: "Server error", error: err.message });
+    
+    // Handle duplicate key errors (like duplicate referral code)
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Registration failed due to duplicate data",
+        error: err.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: "Server error during registration",
+      error: err.message
+    });
   }
 };
-
 // Email/Mobile Login
 const login = async (req, res) => {
   try {
