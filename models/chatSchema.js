@@ -39,6 +39,9 @@ const chatSchema = new mongoose.Schema({
   employerName: {
     type: String
   },
+    position: {
+    type: String
+  },
   employerImage: {
     type: String
   },

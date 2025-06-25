@@ -18,6 +18,7 @@ exports.sendMessage = async (req, res) => {
       jobId,
       message,
       sender,
+      position,
       employerName,
       employerImage,
       employeeName,
@@ -25,8 +26,8 @@ exports.sendMessage = async (req, res) => {
     } = req.body;
 
     // ✅ Validation
-    if (!employeeId || !employerId || !jobId || !sender) {
-      console.error('❌ Missing required fields:', employeeId, employerId, jobId, sender);
+    if (!employeeId || !employerId || !jobId || !sender || !position) {
+      console.error('❌ Missing required fields:', employeeId, employerId, jobId, sender, position);
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
@@ -78,6 +79,7 @@ exports.sendMessage = async (req, res) => {
       {
         $setOnInsert: {
           employerName,
+          position,
           employerImage,
           employeeName,
           employeeImage,
