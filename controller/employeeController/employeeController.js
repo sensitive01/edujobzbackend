@@ -28,6 +28,7 @@ const signUp = async (req, res) => {
     const existUser = await userModel.findOne({
       $or: [{ userMobile: mobile }, { userEmail }]
     });
+
     if (existUser) {
       return res.status(400).json({ message: "Employee already registered." });
     }
@@ -37,18 +38,23 @@ const signUp = async (req, res) => {
     const newUser = new userModel({
       uuid: uuidv4(),
       userName,
-    
       userMobile: mobile,
       userEmail,
       userPassword: hashedPassword,
     });
 
+    // Generate and assign referral code
+    newUser.referralCode = newUser.generateReferralCode();
+
     await newUser.save();
 
-    // Generate JWT token
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-    res.status(201).json({ message: "Employee registered successfully.", user: newUser, token });
+    res.status(201).json({
+      message: "Employee registered successfully.",
+      user: newUser,
+      token
+    });
   } catch (err) {
     console.error("Error in registration:", err);
     res.status(500).json({ message: "Server error" });

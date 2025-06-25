@@ -64,10 +64,24 @@ resume: {
   currentCity:  String ,
 totalExperience: mongoose.Schema.Types.Mixed,
 });
-employeeschema.pre('save', function (next) {
-  if (this.totalExperience === 'Fresher') {
-    this.workExperience = [];
+employeeschema.methods.generateReferralCode = function () {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let result = '';
+
+  // Example using first letters of userName (since there's no schoolName in this schema)
+  if (this.userName) {
+    result += this.userName.replace(/\s+/g, '').substring(0, 3).toUpperCase();
+  } else {
+    for (let i = 0; i < 3; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
   }
-  next();
-});
+
+  for (let i = 0; i < 5; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return result;
+};
+
 module.exports = mongoose.model('employee', employeeschema);
