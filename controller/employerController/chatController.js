@@ -148,6 +148,7 @@ exports.getChatsByEmployerId = async (req, res) => {
           employeeId: 1,
           employeeImage: 1,
           employerName: 1,
+          position: 1,
           employerImage: 1,
           jobId: 1,
           updatedAt: 1,
