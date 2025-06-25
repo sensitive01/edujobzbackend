@@ -22,7 +22,7 @@ const mongoose = require('mongoose');
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    const { userName, userMobile, userEmail, userPassword } = req.body;
+    const { userName, userMobile, userEmail, userPassword, referralCode } = req.body;
     const mobile = parseInt(userMobile);
 
     const existUser = await userModel.findOne({
@@ -46,6 +46,21 @@ const signUp = async (req, res) => {
     // Generate and assign referral code
     newUser.referralCode = newUser.generateReferralCode();
 
+    // Handle referral if referral code is provided
+    if (referralCode) {
+      const referrer = await userModel.findOne({ referralCode });
+      if (referrer) {
+        newUser.referredBy = referrer._id;
+        
+        // Update referrer's counts
+        referrer.referralCount += 1;
+        // You can add any referral rewards logic here
+        // referrer.referralRewards += 100; // Example: add 100 points
+        
+        await referrer.save();
+      }
+    }
+
     await newUser.save();
 
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -60,7 +75,6 @@ const signUp = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 // Email/Mobile Login
 const login = async (req, res) => {
   try {

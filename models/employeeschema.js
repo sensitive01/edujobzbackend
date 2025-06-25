@@ -64,6 +64,10 @@ resume: {
   expectedSalary: Number ,
   currentCity:  String ,
 totalExperience: mongoose.Schema.Types.Mixed,
+  referredBy: { type: mongoose.Schema.Types.ObjectId, },
+  referralCount: { type: Number, default: 0 },
+  referralRewards: { type: Number, default: 0 },
+  
 });
 employeeschema.methods.generateReferralCode = function () {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
