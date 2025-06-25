@@ -163,18 +163,34 @@ exports.getChatsByEmployerId = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
-
 exports.getChatsByEmployeeId = async (req, res) => {
   try {
     const { employeeId } = req.params;
 
-    const chats = await Chat.find({ employeeId })
-     
-    return res.status(200).json(chats);
-  } catch (err) {
-    return res.status(500).json({ message: 'Server error', error: err.message });
+    const chats = await Chat.aggregate([
+      { $match: { employeeId } },
+      { $sort: { updatedAt: -1 } },
+      {
+        $project: {
+          employeeId: 1,
+          employeeImage: 1,
+          employerName: 1,
+          position: 1,
+          employerImage: 1,
+          jobId: 1,
+          updatedAt: 1,
+          latestMessage: { $arrayElemAt: ["$messages", -1] } // last message
+        }
+      }
+    ]);
+
+    res.status(200).json({ success: true, data: chats });
+  } catch (error) {
+    console.error('Error fetching chats:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
 exports.getChatMessages = async (req, res) => {
   try {
     const { employeeId, employerId, jobId } = req.query;
