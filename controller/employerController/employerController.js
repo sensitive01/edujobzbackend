@@ -512,6 +512,7 @@ module.exports = {
   googleAuth,
   getReferralLink,
   appleAuth,
+
   listAllEmployees,
   getEmployerDetails,
   updateEmployerDetails,

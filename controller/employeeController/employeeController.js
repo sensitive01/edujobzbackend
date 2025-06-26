@@ -73,7 +73,15 @@ const signUp = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
+const getAllEmployees = async (req, res) => {
+  try {
+    const employees = await userModel.find(); // You can add `.select()` to limit fields
+    res.status(200).json(employees);
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    res.status(500).json({ message: 'Failed to fetch employees' });
+  }
+};
 // Email/Mobile Login
 const login = async (req, res) => {
   try {
@@ -724,6 +732,7 @@ module.exports = {
   userChangePassword,
  userForgotPassword,
  verifyOTP,
+ getAllEmployees,
     getProfileCompletion,
  calculateProfileCompletion,
   getApplicationStatus,

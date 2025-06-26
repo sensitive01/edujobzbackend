@@ -48,6 +48,7 @@ employeeRoute.post('/google', employeeController.googleAuth);
 employeeRoute.post('/apple', employeeController.appleAuth);
 employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
 
+employeeRoute.get('/fetchallemployee', employeeController.getAllEmployees);
 // Upload file to Cloudinary
 employeeRoute.put(
   '/uploadfile/:employid',
