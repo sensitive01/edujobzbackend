@@ -1,6 +1,6 @@
 const express = require("express");
 const employeeController = require("../../controller/employeeController/employeeController");
-const { profileImageStorage, resumeStorage, coverLetterStorage,profileVideoStorage } = require("../../config/cloudinary");
+const { profileImageStorage, resumeStorage, coverLetterStorage,profileVideoStorage,audioStorage } = require("../../config/cloudinary");
 const jobController = require ("../../controller/employerController/postjobcontroller");
 const feedbackController = require ("../../controller/employeeController/feedbackreview");
 const employeeRoute = express.Router();
@@ -13,6 +13,8 @@ const getStorage = (fileType) => {
     case 'resume': return resumeStorage;
     case 'coverLetter': return coverLetterStorage;
      case 'profileVideo': return profileVideoStorage; 
+       case 'audio': return audioStorage; 
+     
     default: return null;
   }
 };

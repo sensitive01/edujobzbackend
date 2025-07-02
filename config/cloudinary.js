@@ -99,9 +99,19 @@ const profileVideoStorage = new CloudinaryStorage({
     public_id: (req, file) => `video-${Date.now()}-${file.originalname}`,
   },
 });
+const audioStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    resource_type: 'video', // ✅ Audio is treated as 'video' in Cloudinary
+    folder: 'audioFiles',
+    allowed_formats: ['mp3', 'wav', 'm4a'],
+    public_id: (req, file) => `audio-${Date.now()}-${file.originalname}`,
+  },
+});
 module.exports = {
   cloudinary,
   sendimage,
+  audioStorage,
   profileVideoStorage,
   profileImageStorage,
   eventImageStorage,
