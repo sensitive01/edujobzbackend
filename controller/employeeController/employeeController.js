@@ -17,7 +17,7 @@ const mongoose = require('mongoose');
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    const { userName, userMobile, userEmail, userPassword } = req.body;
+    const { userName, userMobile, userEmail, userPassword, referralCode } = req.body;
     const mobile = parseInt(userMobile);
 
     const existUser = await userModel.findOne({
@@ -40,25 +40,24 @@ const signUp = async (req, res) => {
 
     // Generate and assign referral code
     newUser.referralCode = newUser.generateReferralCode();
- let referralApplied = false;
+
+    let referralApplied = false;
     if (referralCode && referralCode.trim() !== '') {
-      const referrer = await userModel.findOne({ 
-        referralCode: referralCode.trim() 
-      });
-      
+      const referrer = await userModel.findOne({ referralCode: referralCode.trim() });
+
       if (referrer) {
         newUser.referredBy = referrer._id;
         referralApplied = true;
-        
-        // Update referrer's stats atomically
+
         await userModel.findByIdAndUpdate(referrer._id, {
-          $inc: { 
+          $inc: {
             referralCount: 1,
-            referralRewards: 100 // Adjust reward points as needed
+            referralRewards: 100
           }
         });
       }
     }
+
     await newUser.save();
 
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -73,6 +72,7 @@ const signUp = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 const getAllEmployees = async (req, res) => {
   try {
     const employees = await userModel.find(); // You can add `.select()` to limit fields
