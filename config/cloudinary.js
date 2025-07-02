@@ -90,10 +90,19 @@ const coverLetterStorage = new CloudinaryStorage({
     format: 'pdf',
   }),
 });
-
+const profileVideoStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    resource_type: 'video', // ✅ VERY IMPORTANT
+    folder: 'profileVideos',
+    allowed_formats: ['mp4', 'mov', 'avi'],
+    public_id: (req, file) => `video-${Date.now()}-${file.originalname}`,
+  },
+});
 module.exports = {
   cloudinary,
   sendimage,
+  profileVideoStorage,
   profileImageStorage,
   eventImageStorage,
   resumeStorage,

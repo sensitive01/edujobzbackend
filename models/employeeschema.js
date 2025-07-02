@@ -16,7 +16,14 @@ const workExperienceSchema = new mongoose.Schema({
   endDate: { type: String }, // MM/YYYY format (optional)
   description: { type: String },
 });
-
+const mediaSchema = new mongoose.Schema({
+  name: { type: String },
+  url: { type: String },
+  type: { type: String, enum: ['audio', 'video', 'image'] },
+  duration: { type: Number }, // in seconds for audio/video
+  thumbnail: { type: String }, // for videos
+  createdAt: { type: Date, default: Date.now }
+});
 
 const employeeschema = new mongoose.Schema({
   uuid: String,
@@ -25,7 +32,20 @@ const employeeschema = new mongoose.Schema({
   appleId: String,
   userName: String,
   userEmail: String,
-  userMobile: String,               // <-- Add this
+  userMobile: String,  
+    audioFiles: [mediaSchema], // Array of audio files
+  videoFiles: [mediaSchema], 
+    profileVideo: { // Optional profile video
+    name: { type: String },
+    url: { type: String },
+    thumbnail: { type: String },
+    duration: { type: Number }
+  },
+  introductionAudio: { // Optional audio introduction
+    name: { type: String },
+    url: { type: String },
+    duration: { type: Number }
+  },            // <-- Add this
   userPassword: String,            // <-- Add this
   userProfilePic: String,
   isVerified: { type: Boolean, default: false },

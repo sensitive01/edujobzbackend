@@ -503,8 +503,10 @@ const getReferralLink = async (req, res) => {
   }
 };
 
+
 module.exports = {
   signUp,
+
  employerForgotPassword,
   employerverifyOTP,
   employerChangePassword,

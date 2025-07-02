@@ -7,7 +7,7 @@ const generateOTP = require("../../utils/generateOTP")
 const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
 const { v4: uuidv4 } = require('uuid');
-const { cloudinary, profileImageStorage, resumeStorage, coverLetterStorage } = require('../../config/cloudinary');
+const { cloudinary, profileImageStorage, resumeStorage, coverLetterStorage,profileVideoStorage } = require('../../config/cloudinary');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const appleKeysClient = jwksClient({ 
   jwksUri: 'https://appleid.apple.com/auth/keys' 
@@ -718,7 +718,68 @@ const userChangePassword = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+const uploadProfileVideo = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const file = req.file;
 
+    console.log("Received file:", file);
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    const fileInfo = {
+      name: file.originalname,
+      url: file.path,
+      thumbnail: `${file.path}-thumbnail`, // Adjust if you're generating real thumbnails
+    };
+
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+      employeeId,
+      { profileVideo: fileInfo },
+      { new: true } // returns updated document (optional)
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ success: false, message: "Employee not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Profile video uploaded successfully", file: fileInfo });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+// PUT: Upload intro audio for an employee
+const uploadIntroAudio = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+      employeeId,
+      {
+        introductionAudio: {
+          name: file.originalname,
+          url: file.path,
+          duration: req.body.duration || 0,
+        },
+      },
+      { new: true }
+    );
+
+    res.status(200).json({ success: true, employee: updatedEmployee });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 //hbh
 module.exports = {
@@ -728,7 +789,9 @@ module.exports = {
   getEmployeeDetails,
   appleAuth,
   uploadFile,
+  uploadProfileVideo,
   applyForJob,
+  uploadIntroAudio,
   userChangePassword,
  userForgotPassword,
  verifyOTP,

@@ -1,6 +1,6 @@
 const express = require("express");
 const employeeController = require("../../controller/employeeController/employeeController");
-const { profileImageStorage, resumeStorage, coverLetterStorage } = require("../../config/cloudinary");
+const { profileImageStorage, resumeStorage, coverLetterStorage,profileVideoStorage } = require("../../config/cloudinary");
 const jobController = require ("../../controller/employerController/postjobcontroller");
 const feedbackController = require ("../../controller/employeeController/feedbackreview");
 const employeeRoute = express.Router();
@@ -12,6 +12,7 @@ const getStorage = (fileType) => {
     case 'profileImage': return profileImageStorage;
     case 'resume': return resumeStorage;
     case 'coverLetter': return coverLetterStorage;
+     case 'profileVideo': return profileVideoStorage; 
     default: return null;
   }
 };
@@ -47,6 +48,13 @@ employeeRoute.post('/login', employeeController.login);
 employeeRoute.post('/google', employeeController.googleAuth);
 employeeRoute.post('/apple', employeeController.appleAuth);
 employeeRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
+employeeRoute.put(
+  '/uploadprofilevideo/:employeeId',
+  dynamicUploadMiddleware,
+  employeeController.uploadProfileVideo
+);
+
+employeeRoute.put('/uploadintroaudio/:employeeId', dynamicUploadMiddleware, employeeController.uploadIntroAudio);
 
 employeeRoute.get('/fetchallemployee', employeeController.getAllEmployees);
 // Upload file to Cloudinary

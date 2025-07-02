@@ -81,8 +81,6 @@ const dynamicUploadMiddlewareNew = (req, res, next) => {
 
 
 
-
-
 employerRoute.post('/signup', employerController.signUp);
 
 // Email/Mobile Login
