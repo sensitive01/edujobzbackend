@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 const dbConnect = require("./config/dbConnect.js");
 const employeeRoute = require("./routes/employee/employeeRoute.js");
 const employerRoute = require("./routes/employer/employerRoute.js");
+const adminRoute = require("./routes/admin/adminRoute.js");
 const app = express();
 const { PORT } = require("./config/variables.js");
 
@@ -35,7 +36,7 @@ app.disable("x-powered-by");
 
 app.use("/", employeeRoute);
 app.use("/employer", employerRoute);
-
+app.use("/admin", adminRoute);
 // 404 Route Handling
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

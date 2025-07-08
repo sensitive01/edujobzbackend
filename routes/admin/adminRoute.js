@@ -1,6 +1,6 @@
 const express = require("express");
-
-const adminRout = express.Router();
+const adminController = require("../../controller/adminController/adminController");
+const adminRoute = express.Router();
 const multer = require("multer");
 
 // Determine storage based on fileType
@@ -14,13 +14,11 @@ const getStorage = (fileType) => {
 };
 
 
-// adminRoute.post('/signup', employeeController.signUp);
-// adminRoute.post('/login', employeeController.login);
-// adminRoute.post('/google', employeeController.googleAuth);
-// adminRoute.post('/apple', employeeController.appleAuth);
-// adminRoute.get('/fetchemployee/:id', employeeController.getEmployeeDetails);
+adminRoute.post('/adminsignup', adminController.signupAdmin);
+adminRoute.post('/adminlogin', adminController.loginAdmin);
+
 
 // Upload file to Cloudinary
 
 
-module.exports = employeeRoute;
+module.exports = adminRoute;
