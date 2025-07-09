@@ -17,8 +17,8 @@ const getStorage = (fileType) => {
 
 
 employeradminRoute.post('/employeradminsignup', employeradminController.employersignupAdmin);
-employeradminRoute.post('/adminlogin', employeradminController.loginAdmin);
-employeradminRoute.get('/fetchprofile/:id', employeradminController.getAdminById);
+employeradminRoute.post('/employerloginAdmin', employeradminController.employerloginAdmin);
+employeradminRoute.get('/fetchprofile/:id', employeradminController.employergetAdminById);
 employeradminRoute.post('/adminforgotpassword', employeradminController.adminForgotPassword);
 employeradminRoute.post('/adminverifyotp', employeradminController.adminverifyOTP);
 employeradminRoute.post('/adminchangepassword', employeradminController.adminChangePassword);

@@ -14,80 +14,90 @@ const Employer = require('../../models/employerSchema.js'); // adjust the path a
 // Admin Signup
 exports.employersignupAdmin = async (req, res) => {
   try {
-    const { employeradminUsername, employeradminEmail,employeradminMobile,  employeradminPassword, employerconfirmPassword } = req.body;
+    const {
+      employeradminUsername,
+      employeradminEmail,
+      employeradminMobile,
+      employeradminPassword,
+      employerconfirmPassword
+    } = req.body;
 
-
+    // Check if passwords match
     if (employeradminPassword !== employerconfirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
+    // Check if admin already exists with this email
     const existingAdmin = await employerAdmin.findOne({ employeradminEmail });
     if (existingAdmin) {
       return res.status(400).json({ message: "Admin already exists with this email" });
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(employeradminPassword, 10);
 
+    // Create and save new admin
     const newAdmin = new employerAdmin({
       uuid: uuidv4(),
       employeradminUsername,
       employeradminEmail,
-
-      adminPassword: hashedPassword
+      employeradminMobile,
+      employeradminPassword: hashedPassword
     });
 
     await newAdmin.save();
-    return res.status(201).json({ message: "employer Admin registered successfully" });
+
+    return res.status(201).json({ message: "Employer admin registered successfully" });
   } catch (err) {
-    console.error(err);
+    console.error("Signup Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 // Admin Login
-exports.loginAdmin = async (req, res) => {
+// ...existing code...
+exports.employerloginAdmin = async (req, res) => {
   try {
-    const { adminEmail, adminPassword } = req.body;
+    const { employeradminEmail, employeradminPassword } = req.body;
 
-    if (!adminEmail || !adminPassword) {
+    if (!employeradminEmail || !employeradminPassword) {
       return res.status(400).json({ message: "Email and Password are required" });
     }
 
-    const admin = await Admin.findOne({ adminEmail });
+    const admin = await employerAdmin.findOne({ employeradminEmail });
     if (!admin) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const isMatch = await bcrypt.compare(adminPassword, admin.adminPassword);
+    if (!admin.employeradminPassword) {
+      return res.status(400).json({ message: "No password set for this admin" });
+    }
+
+    const isMatch = await bcrypt.compare(employeradminPassword, admin.employeradminPassword);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { adminId: admin._id, adminEmail: admin.adminEmail },
-      JWT_SECRET,
-      { expiresIn: '1d' }
-    );
-
-    return res.status(200).json({ message: "Login successful", token, admin });
+    // ...generate token and respond...
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
   }
 };
-exports.getAdminById = async (req, res) => {
+// ...existing code...
+exports.employergetAdminById = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.params.id);
+    const admin = await employerAdmin.findById(req.params.id).select('-employeradminPassword'); // exclude password
+
     if (!admin) {
       return res.status(404).json({ message: 'Admin not found' });
     }
+
     return res.status(200).json({ admin });
   } catch (err) {
-    console.error(err);
+    console.error("Get Admin By ID Error:", err);
     return res.status(500).json({ message: 'Server error' });
   }
 };
-
 
 exports.adminForgotPassword = async (req, res) => {
   try {
