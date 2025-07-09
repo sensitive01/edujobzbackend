@@ -1,6 +1,6 @@
 // const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const Admin = require('../../models/adminSchema.js'); // Adjust the path as necessary
+const employerAdmin = require('../../models/employeradminSchema.js'); // Adjust the path as necessary
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const JWT_SECRET = "your_secret_key"; // Use env var in production
@@ -12,32 +12,32 @@ const Employer = require('../../models/employerSchema.js'); // adjust the path a
 
 
 // Admin Signup
-exports.signupAdmin = async (req, res) => {
+exports.employersignupAdmin = async (req, res) => {
   try {
-    const { adminUsername, adminEmail,  adminPassword, confirmPassword } = req.body;
+    const { employeradminUsername, employeradminEmail,employeradminMobile,  employeradminPassword, employerconfirmPassword } = req.body;
 
 
-    if (adminPassword !== confirmPassword) {
+    if (employeradminPassword !== employerconfirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    const existingAdmin = await Admin.findOne({ adminEmail });
+    const existingAdmin = await employerAdmin.findOne({ employeradminEmail });
     if (existingAdmin) {
       return res.status(400).json({ message: "Admin already exists with this email" });
     }
 
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const hashedPassword = await bcrypt.hash(employeradminPassword, 10);
 
-    const newAdmin = new Admin({
+    const newAdmin = new employerAdmin({
       uuid: uuidv4(),
-      adminUsername,
-      adminEmail,
+      employeradminUsername,
+      employeradminEmail,
 
       adminPassword: hashedPassword
     });
 
     await newAdmin.save();
-    return res.status(201).json({ message: "Admin registered successfully" });
+    return res.status(201).json({ message: "employer Admin registered successfully" });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
