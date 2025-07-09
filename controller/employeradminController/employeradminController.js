@@ -68,18 +68,33 @@ exports.employerloginAdmin = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    if (!admin.employeradminPassword) {
-      return res.status(400).json({ message: "No password set for this admin" });
-    }
-
     const isMatch = await bcrypt.compare(employeradminPassword, admin.employeradminPassword);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // ...generate token and respond...
+    const token = jwt.sign(
+      {
+        adminId: admin._id,
+        email: admin.employeradminEmail,
+        username: admin.employeradminUsername
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      admin: {
+        id: admin._id,
+        uuid: admin.uuid,
+        email: admin.employeradminEmail,
+        username: admin.employeradminUsername
+      }
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Login Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
