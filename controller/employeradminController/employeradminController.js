@@ -116,53 +116,53 @@ exports.employergetAdminById = async (req, res) => {
   }
 };
 
-exports.adminForgotPassword = async (req, res) => {
+exports.employeradminForgotPassword = async (req, res) => {
   try {
-    const { adminEmail } = req.body;
+    const { employeradminEmail } = req.body;
 
-    if (!adminEmail) {
+    if (!employeradminEmail) {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    const admin = await Admin.findOne({ adminEmail });
+    const admin = await employerAdmin.findOne({ employeradminEmail });
 
     if (!admin) {
       return res.status(404).json({ message: "Admin not found with the provided email" });
     }
 
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // valid for 5 mins
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins validity
 
     admin.otp = otp;
     admin.otpExpiry = otpExpiry;
     await admin.save();
 
-    // In production, send email here instead of returning OTP
+    // In production, send the OTP via email/SMS
     console.log("Generated OTP:", otp);
 
     return res.status(200).json({
       message: "OTP sent successfully",
-      otp: otp, // ⚠️ remove this in production
+      otp: otp, // ❗Remove in production
     });
   } catch (err) {
-    console.error("Error in adminForgotPassword:", err);
+    console.error("Error in employeradminForgotPassword:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 // ✅ Admin Verify OTP
-exports.adminverifyOTP = async (req, res) => {
+exports.employeradminVerifyOTP = async (req, res) => {
   try {
-    const { otp, adminEmail } = req.body;
+    const { otp, employeradminEmail } = req.body;
 
-    if (!otp || !adminEmail) {
+    if (!otp || !employeradminEmail) {
       return res.status(400).json({ message: "OTP and email are required" });
     }
 
-    const admin = await Admin.findOne({ adminEmail });
+    const admin = await employerAdmin.findOne({ employeradminEmail });
 
     if (!admin || !admin.otp || !admin.otpExpiry) {
-      return res.status(400).json({ message: "OTP has expired or is invalid", success: false });
+      return res.status(400).json({ message: "OTP not generated or expired", success: false });
     }
 
     if (admin.otp !== otp) {
@@ -173,24 +173,24 @@ exports.adminverifyOTP = async (req, res) => {
       return res.status(400).json({ message: "OTP has expired", success: false });
     }
 
-    // Clear OTP after successful verification
+    // Clear OTP after verification
     admin.otp = null;
     admin.otpExpiry = null;
     await admin.save();
 
     return res.status(200).json({ message: "OTP verified successfully", success: true });
   } catch (err) {
-    console.error("Error in adminverifyOTP:", err);
+    console.error("Error in employeradminVerifyOTP:", err);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 // ✅ Admin Change Password
-exports.adminChangePassword = async (req, res) => {
+exports.employeradminChangePassword = async (req, res) => {
   try {
-    const { adminEmail, password, confirmPassword } = req.body;
+    const { employeradminEmail, password, confirmPassword } = req.body;
 
-    if (!adminEmail || !password || !confirmPassword) {
+    if (!employeradminEmail || !password || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -198,22 +198,23 @@ exports.adminChangePassword = async (req, res) => {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    const admin = await Admin.findOne({ adminEmail });
+    const admin = await employerAdmin.findOne({ employeradminEmail });
 
     if (!admin) {
       return res.status(404).json({ message: "Admin not found" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    admin.adminPassword = hashedPassword;
+    admin.employeradminPassword = hashedPassword;
     await admin.save();
 
-    res.status(200).json({ message: "Password updated successfully" });
+    return res.status(200).json({ message: "Password updated successfully" });
   } catch (err) {
-    console.error("Error in adminChangePassword:", err);
-    res.status(500).json({ message: "Internal server error" });
+    console.error("Error in employeradminChangePassword:", err);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
+
 exports.getAllEmployees = async (req, res) => {
   try {
     const employees = await Employee.find();
