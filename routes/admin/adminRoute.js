@@ -24,4 +24,6 @@ adminRoute.post('/adminverifyotp', adminController.adminverifyOTP);
 adminRoute.post('/adminchangepassword', adminController.adminChangePassword);
 adminRoute.post('/addemployee', employeeController.signUp);
 adminRoute.post('/addemployer', employerController.signUp);
+adminRoute.get('/fetchallemployee', adminController.getAllEmployees);
+
 module.exports = adminRoute;

@@ -7,6 +7,7 @@ const JWT_SECRET = "your_secret_key"; // Use env var in production
 function generateOTP(length = 4) {
   return Math.floor(1000 + Math.random() * 9000).toString().substring(0, length);
 }
+const Employee = require('../../models/employeeschema.js'); // adjust the path if needed
 
 
 // Admin Signup
@@ -183,5 +184,21 @@ exports.adminChangePassword = async (req, res) => {
   } catch (err) {
     console.error("Error in adminChangePassword:", err);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+exports.getAllEmployees = async (req, res) => {
+  try {
+    const employees = await Employee.find();
+    res.status(200).json({
+      success: true,
+      count: employees.length,
+      data: employees
+    });
+  } catch (err) {
+    console.error('Error fetching employees:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error'
+    });
   }
 };
