@@ -8,6 +8,7 @@ function generateOTP(length = 4) {
   return Math.floor(1000 + Math.random() * 9000).toString().substring(0, length);
 }
 const Employee = require('../../models/employeeschema.js'); // adjust the path if needed
+const Employer = require('../../models/employerSchema.js'); // adjust the path as needed
 
 
 // Admin Signup
@@ -196,6 +197,22 @@ exports.getAllEmployees = async (req, res) => {
     });
   } catch (err) {
     console.error('Error fetching employees:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error'
+    });
+  }
+};
+exports.getAllEmployers = async (req, res) => {
+  try {
+    const employers = await Employer.find();
+    res.status(200).json({
+      success: true,
+      count: employers.length,
+      data: employers
+    });
+  } catch (err) {
+    console.error('Error fetching employers:', err);
     res.status(500).json({
       success: false,
       message: 'Server Error'
