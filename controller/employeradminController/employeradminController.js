@@ -8,7 +8,7 @@ function generateOTP(length = 4) {
   return Math.floor(1000 + Math.random() * 9000).toString().substring(0, length);
 }
 const Employee = require('../../models/employeeschema.js'); // adjust the path if needed
-const Employer = require('../../models/employerSchema.js'); // adjust the path as needed
+const employerModel = require('../../models/employerSchema.js'); // adjust the path as needed
 
 
 // Admin Signup
@@ -244,6 +244,163 @@ exports.getAllEmployers = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server Error'
+    });
+  }
+};
+
+
+exports.createemployersignUp = async (req, res) => {
+  try {
+    let {
+      googleId,
+      appleId,
+      schoolName,
+      firstName,
+      lastName,
+      address,
+      organizationid,
+      city,
+      state,
+      pincode,
+      institutionName,
+      board,
+      institutionType,
+      website,
+      userEmail,
+      userMobile,
+      userPassword,
+      userProfilePic,
+      employerType,
+      referralCode = "",
+    } = req.body;
+
+    // Trim all string fields
+    schoolName = schoolName?.trim();
+    firstName = firstName?.trim();
+    lastName = lastName?.trim();
+    address = address?.trim();
+    city = city?.trim();
+    state = state?.trim();
+    pincode = pincode?.trim();
+    institutionName = institutionName?.trim();
+    board = board?.trim();
+    institutionType = institutionType?.trim();
+    website = website?.trim();
+    userEmail = userEmail?.trim();
+    userMobile = userMobile?.trim();
+    userPassword = userPassword?.trim();
+    userProfilePic = userProfilePic?.trim();
+    employerType = employerType?.trim();
+    referralCode = referralCode?.trim();
+
+    // Validation: Require at least email or mobile
+    if (!userEmail && !userMobile) {
+      return res.status(400).json({ message: "Email or Mobile number is required." });
+    }
+
+    // Check for existing user
+    const existingEmployer = await employerModel.findOne({
+      $or: [{ userEmail }, { userMobile }],
+    });
+
+    if (existingEmployer) {
+      return res.status(400).json({ message: "Employer already registered." });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(userPassword, 10);
+
+    // Handle referral logic
+    let referredBy = null;
+    if (referralCode) {
+      const referringEmployer = await employerModel.findOne({ referralCode });
+      if (!referringEmployer) {
+        return res.status(400).json({ message: "Invalid referral code." });
+      }
+      referredBy = referringEmployer._id;
+    }
+
+    // Create new employer instance
+    const newEmployer = new employerModel({
+      uuid: uuidv4(),
+      googleId,
+      appleId,
+      schoolName,
+      firstName,
+      lastName,
+      address,
+      organizationid,
+      city,
+      state,
+      pincode,
+      institutionName,
+      board,
+      institutionType,
+      website,
+      userEmail,
+      userMobile,
+      userPassword: hashedPassword,
+      userProfilePic,
+      employerType,
+      referredBy
+    });
+
+    // Generate referral code
+    newEmployer.referralCode = newEmployer.generateReferralCode();
+
+    // Save the new employer
+    await newEmployer.save();
+
+    // Update referral count and rewards
+    if (referredBy) {
+      await employerModel.findByIdAndUpdate(referredBy, {
+        $inc: {
+          referralCount: 1,
+          referralRewards: 100, // Customize this value if needed
+        }
+      });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: newEmployer._id },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    // Success response
+    return res.status(201).json({
+      success: true,
+      message: "Employer registered successfully",
+      data: {
+        id: newEmployer._id,
+        uuid: newEmployer.uuid,
+        firstName: newEmployer.firstName,
+        lastName: newEmployer.lastName,
+        userEmail: newEmployer.userEmail,
+        userMobile: newEmployer.userMobile,
+        referralCode: newEmployer.referralCode,
+        referredBy: newEmployer.referredBy,
+      },
+      token,
+    });
+
+  } catch (err) {
+    console.error("Employer SignUp Error:", err.message);
+    console.error(err.stack);
+
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Duplicate data entry",
+        error: err.message,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error during employer registration",
+      error: err.message,
     });
   }
 };

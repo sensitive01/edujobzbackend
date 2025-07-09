@@ -8,6 +8,7 @@ const employerSchema = new mongoose.Schema({
   firstName: String,
   lastName: String,
   address: String, 
+  organizationid:String,
   city: String, 
   state: String, 
   pincode: String, 

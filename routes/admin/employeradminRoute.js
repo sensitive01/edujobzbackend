@@ -22,8 +22,10 @@ employeradminRoute.get('/fetchprofile/:id', employeradminController.employergetA
 employeradminRoute.post('/employeradminforgotpassword', employeradminController.employeradminForgotPassword);
 employeradminRoute.post('/employeradminverifyotp', employeradminController.employeradminVerifyOTP);
 employeradminRoute.post('/employeradminchangepassword', employeradminController.employeradminChangePassword);
-employeradminRoute.post('/addemployee', employeeController.signUp);
-employeradminRoute.post('/addemployer', employerController.signUp);
+employeradminRoute.post('/createemployer', employeradminController.createemployersignUp);
+
+
+
 employeradminRoute.get('/fetchallemployee', employeradminController.getAllEmployees);
 employeradminRoute.get('/fetchallemployers', employeradminController.getAllEmployers);
 
