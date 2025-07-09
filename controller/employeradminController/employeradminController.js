@@ -404,3 +404,28 @@ exports.createemployersignUp = async (req, res) => {
     });
   }
 };
+
+exports.getEmployersByOrganizationId = async (req, res) => {
+  try {
+    const { organizationid } = req.params;
+
+    if (!organizationid) {
+      return res.status(400).json({ message: "organizationid is required" });
+    }
+
+    const employers = await employerModel.find({ organizationid });
+
+    res.status(200).json({
+      success: true,
+      count: employers.length,
+      data: employers,
+    });
+  } catch (error) {
+    console.error("Error fetching employers:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching employers",
+      error: error.message,
+    });
+  }
+};

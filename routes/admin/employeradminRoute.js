@@ -24,7 +24,7 @@ employeradminRoute.post('/employeradminverifyotp', employeradminController.emplo
 employeradminRoute.post('/employeradminchangepassword', employeradminController.employeradminChangePassword);
 employeradminRoute.post('/createemployer', employeradminController.createemployersignUp);
 
-
+employeradminRoute.get('/fetchbyorg/:organizationid', employeradminController.getEmployersByOrganizationId);
 
 employeradminRoute.get('/fetchallemployee', employeradminController.getAllEmployees);
 employeradminRoute.get('/fetchallemployers', employeradminController.getAllEmployers);
