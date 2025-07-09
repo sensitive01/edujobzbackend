@@ -4,15 +4,15 @@ const Admin = require('../../models/adminSchema.js'); // Adjust the path as nece
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const JWT_SECRET = "your_secret_key"; // Use env var in production
+function generateOTP(length = 6) {
+  return Math.floor(100000 + Math.random() * 900000).toString().substring(0, length);
+}
 
 // Admin Signup
 exports.signupAdmin = async (req, res) => {
   try {
-    const { adminUsername, adminEmail, adminMobile, adminPassword, confirmPassword } = req.body;
+    const { adminUsername, adminEmail,  adminPassword, confirmPassword } = req.body;
 
-    if (!adminUsername || !adminEmail || !adminMobile || !adminPassword || !confirmPassword) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
 
     if (adminPassword !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
@@ -29,7 +29,7 @@ exports.signupAdmin = async (req, res) => {
       uuid: uuidv4(),
       adminUsername,
       adminEmail,
-      adminMobile,
+
       adminPassword: hashedPassword
     });
 
@@ -70,5 +70,117 @@ exports.loginAdmin = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
+  }
+};
+exports.getAdminById = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.params.id);
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+    return res.status(200).json({ admin });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+exports.adminForgotPassword = async (req, res) => {
+  try {
+    const { adminEmail } = req.body;
+
+    if (!adminEmail) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const admin = await Admin.findOne({ adminEmail });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found with the provided email" });
+    }
+
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000); // valid for 5 mins
+
+    admin.otp = otp;
+    admin.otpExpiry = otpExpiry;
+    await admin.save();
+
+    // In production, send email here instead of returning OTP
+    console.log("Generated OTP:", otp);
+
+    return res.status(200).json({
+      message: "OTP sent successfully",
+      otp: otp, // ⚠️ remove this in production
+    });
+  } catch (err) {
+    console.error("Error in adminForgotPassword:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ✅ Admin Verify OTP
+exports.adminverifyOTP = async (req, res) => {
+  try {
+    const { otp, adminEmail } = req.body;
+
+    if (!otp || !adminEmail) {
+      return res.status(400).json({ message: "OTP and email are required" });
+    }
+
+    const admin = await Admin.findOne({ adminEmail });
+
+    if (!admin || !admin.otp || !admin.otpExpiry) {
+      return res.status(400).json({ message: "OTP has expired or is invalid", success: false });
+    }
+
+    if (admin.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP", success: false });
+    }
+
+    if (admin.otpExpiry < new Date()) {
+      return res.status(400).json({ message: "OTP has expired", success: false });
+    }
+
+    // Clear OTP after successful verification
+    admin.otp = null;
+    admin.otpExpiry = null;
+    await admin.save();
+
+    return res.status(200).json({ message: "OTP verified successfully", success: true });
+  } catch (err) {
+    console.error("Error in adminverifyOTP:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ✅ Admin Change Password
+exports.adminChangePassword = async (req, res) => {
+  try {
+    const { adminEmail, password, confirmPassword } = req.body;
+
+    if (!adminEmail || !password || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    const admin = await Admin.findOne({ adminEmail });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    admin.adminPassword = hashedPassword;
+    await admin.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("Error in adminChangePassword:", err);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

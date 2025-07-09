@@ -7,6 +7,8 @@ const adminSchema = new mongoose.Schema({
   adminMobile: { type: String,  },
   adminPassword: { type: String,  }, // hash before saving!
   adminProfilePic: { type: String },
+otp: { type: String },
+otpExpiry: { type: Date },
 
   isVerified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }

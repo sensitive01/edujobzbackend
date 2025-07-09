@@ -16,9 +16,10 @@ const getStorage = (fileType) => {
 
 adminRoute.post('/adminsignup', adminController.signupAdmin);
 adminRoute.post('/adminlogin', adminController.loginAdmin);
-
-
-// Upload file to Cloudinary
+adminRoute.get('/fetchprofile/:id', adminController.getAdminById);
+adminRoute.post('/adminforgotpassword', adminController.adminForgotPassword);
+adminRoute.post('/adminverifyotp', adminController.adminverifyOTP);
+adminRoute.post('/adminchangepassword', adminController.adminChangePassword);
 
 
 module.exports = adminRoute;
