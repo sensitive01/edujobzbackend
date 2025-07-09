@@ -83,21 +83,23 @@ exports.employerloginAdmin = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    // Clone admin object and remove sensitive data
+    const adminData = admin.toObject();
+    delete adminData.employeradminPassword;
+    delete adminData.otp;
+    delete adminData.otpExpiry;
+
     return res.status(200).json({
       message: "Login successful",
       token,
-      admin: {
-        id: admin._id,
-        uuid: admin.uuid,
-        email: admin.employeradminEmail,
-        username: admin.employeradminUsername
-      }
+      admin: adminData
     });
   } catch (err) {
     console.error("Login Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 // ...existing code...
 exports.employergetAdminById = async (req, res) => {
   try {
