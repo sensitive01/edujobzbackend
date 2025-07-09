@@ -4,9 +4,10 @@ const Admin = require('../../models/adminSchema.js'); // Adjust the path as nece
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
 const JWT_SECRET = "your_secret_key"; // Use env var in production
-function generateOTP(length = 6) {
-  return Math.floor(100000 + Math.random() * 900000).toString().substring(0, length);
+function generateOTP(length = 4) {
+  return Math.floor(1000 + Math.random() * 9000).toString().substring(0, length);
 }
+
 
 // Admin Signup
 exports.signupAdmin = async (req, res) => {
