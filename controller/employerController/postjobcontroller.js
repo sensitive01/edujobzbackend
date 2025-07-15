@@ -308,7 +308,15 @@ const updateFavoriteStatus = async (req, res) => {
 const updateApplicantStatus = async (req, res) => {
   try {
     const { applicationId, applicantId } = req.params;
-    const { status, notes } = req.body;
+    const {
+      status,
+      notes,
+      interviewtype,
+      interviewdate,
+      interviewtime,
+      interviewlink,
+      interviewvenue
+    } = req.body;
 
     if (!status || !notes) {
       return res.status(400).json({ success: false, message: "Status and notes are required" });
@@ -322,12 +330,22 @@ const updateApplicantStatus = async (req, res) => {
       {
         $set: {
           "applications.$.employapplicantstatus": status,
-          "applications.$.notes": notes
+          "applications.$.notes": notes,
+          "applications.$.interviewtype": interviewtype,
+          "applications.$.interviewdate": interviewdate,
+          "applications.$.interviewtime": interviewtime,
+          "applications.$.interviewlink": interviewlink,
+          "applications.$.interviewvenue": interviewvenue
         },
         $push: {
           "applications.$.statusHistory": {
             status,
             notes,
+            interviewtype,
+            interviewdate,
+            interviewtime,
+            interviewlink,
+            interviewvenue,
             updatedAt: new Date()
           }
         }
@@ -338,7 +356,7 @@ const updateApplicantStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Application not found or not updated' });
     }
 
-    return res.status(200).json({ success: true, message: 'Status and notes updated and history saved' });
+    return res.status(200).json({ success: true, message: 'Applicant status, notes, and interview details updated successfully' });
   } catch (error) {
     console.error('Error updating applicant status:', error);
     return res.status(500).json({ success: false, message: error.message });

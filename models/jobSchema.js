@@ -6,8 +6,18 @@ const applicationSchema = new mongoose.Schema({
   phone: { type: String },
     experience: { type: String },
       notes: { type: String },
+       interviewtype : { type: String },
+        interviewdate : { type: String },
+            interviewtime : { type: String },
+                interviewlink : { type: String },
+                    interviewvenue : { type: String },
         statusHistory: [
     {
+       interviewtype : { type: String },
+        interviewdate : { type: String },
+            interviewtime : { type: String },
+                interviewlink : { type: String },
+                    interviewvenue : { type: String },
       status: { type: String },
       notes: { type: String },
       updatedAt: { type: Date, default: Date.now }
