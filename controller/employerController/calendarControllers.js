@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 // Create Event
 const createEvent = async (req, res) => {
-  const { employerId, title, description, start, end, color } = req.body;
+  const { employerId, title, description, location, start, end, color } = req.body;
 
   if (!employerId || !title || !start || !end) {
     return res.status(400).json({ success: false, message: 'Employer ID, title, start time, and end time are required' });
@@ -17,22 +17,27 @@ const createEvent = async (req, res) => {
     const event = await Event.create({
       employerId,
       title,
+      location,
       description,
       start: new Date(start),
       end: new Date(end),
       color: color || '#6C63FF',
     });
 
-    res.status(201).json({ success: true, data: {
-      id: event._id,
-      employerId: event.employerId,
-      title: event.title,
-      description: event.description,
-      start: event.start,
-      end: event.end,
-      color: event.color,
-      allDay: false,
-    } });
+    res.status(201).json({
+      success: true,
+      data: {
+        id: event._id,
+        employerId: event.employerId,
+        title: event.title,
+        description: event.description,
+        location: event.location,
+        start: event.start,
+        end: event.end,
+        color: event.color,
+        allDay: false,
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: `Error creating event: ${error.message}` });
   }
