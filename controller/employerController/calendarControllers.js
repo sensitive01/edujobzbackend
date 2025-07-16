@@ -67,6 +67,7 @@ const getEvents = async (req, res) => {
       data: events.map(event => ({
         id: event._id,
         title: event.title,
+         location: event.location,
         description: event.description,
         start: event.start,
         end: event.end,
