@@ -160,7 +160,7 @@ employerRoute.post('/events/:eventId/registerevents', eventsController.registerI
 employerRoute.get('/events/:eventId/geteventspariticapant', eventsController.getEventRegistrations);
 employerRoute.put('/events/:eventId/registrations/:registrationId', eventsController.updateRegistrationStatus);
 employerRoute.put('/events/:eventId/registrations/:participantId/updatestatus', eventsController.updateRegistrationStatus);
-
+employerRoute.get('/events/:eventId/registration-status/:participantId', eventsController.checkRegistrationStatus);
 
 
 // BEFORE (broken image handling):

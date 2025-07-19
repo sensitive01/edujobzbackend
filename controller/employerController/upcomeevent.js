@@ -238,3 +238,25 @@ exports.updateRegistrationStatus = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// Check registration status for a participant in an event
+exports.checkRegistrationStatus = async (req, res) => {
+  try {
+    const { eventId, participantId } = req.params;
+
+    const event = await OrganizedEvent.findById(eventId);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    // Check if participant is registered
+    const isRegistered = event.registrations.some(
+      (r) => r.participantId.toString() === participantId
+    );
+
+    res.json({ isRegistered });
+  } catch (error) {
+    console.error('❌ Error in checkRegistrationStatus:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
