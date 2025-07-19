@@ -134,14 +134,16 @@ exports.registerInEvent = async (req, res) => {
       return res.status(404).json({ message: 'Event not found' });
     }
 
-    // Check if already registered
+    // Fix: Check if participantId exists before calling .toString()
     const already = event.registrations.find(
-      (r) => r.participantId.toString() === participantId
+      (r) => r.participantId && r.participantId.toString() === participantId
     );
+
     if (already) {
       return res.status(400).json({ message: 'Already registered for this event' });
     }
 
+    // Add new registration
     event.registrations.push({
       participantId,
       participantName,
@@ -160,6 +162,7 @@ exports.registerInEvent = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
 
 // Get event registrations
 exports.getEventRegistrations = async (req, res) => {
