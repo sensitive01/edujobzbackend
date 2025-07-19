@@ -154,7 +154,7 @@ employerRoute.get('/organizer/:organizerId/events', eventsController.getOrganize
 employerRoute.get('/details/:eventId', eventsController.getEventDetails);
 employerRoute.get('/getallevents', eventsController.getAllEvents);
 employerRoute.put('/updateevent/:eventId', eventsController.updateEvent);
-employerRoute.delete('/events/:eventId', eventsController.deleteEvent);
+employerRoute.delete('/removeevents/:eventId', eventsController.deleteEvent);
 
 employerRoute.post('/events/:eventId/registerevents', eventsController.registerInEvent);
 employerRoute.get('/events/:eventId/geteventspariticapant', eventsController.getEventRegistrations);
