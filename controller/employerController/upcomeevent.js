@@ -253,9 +253,10 @@ exports.checkRegistrationStatus = async (req, res) => {
     }
 
     // Check if participant is registered
-    const isRegistered = event.registrations.some(
-      (r) => r.participantId.toString() === participantId
-    );
+const isRegistered = event.registrations.some(
+  (r) => r.participantId && r.participantId.toString() === participantId
+);
+
 
     res.json({ isRegistered });
   } catch (error) {
