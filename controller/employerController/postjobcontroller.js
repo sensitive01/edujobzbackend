@@ -19,7 +19,27 @@ const getJobTitleByJobId = async (req, res) => {
   }
 };
 
+const updateJobById = async (req, res) => {
+  try {
+    const { id } = req.params; // _id from URL
+    const updatedData = req.body; // New data to overwrite existing
 
+    const updatedJob = await Job.findByIdAndUpdate(
+      id,
+      { ...updatedData, updatedAt: Date.now() }, // overwrite all fields, and update timestamp
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedJob) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    res.status(200).json(updatedJob);
+  } catch (error) {
+    console.error("Error updating job:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
 
 const createJob = async (req, res) => {
   try {
@@ -870,6 +890,7 @@ module.exports = {
   fetchAllJobs,
   fetchSavedJobslist,
   createJob,
+  updateJobById,
 getSchoolEmployerJobs,
  getJobsWithNonPendingApplications,
   getAppliedCandidates,
