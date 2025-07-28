@@ -28,5 +28,8 @@ employeradminRoute.get('/fetchbyorg/:organizationid', employeradminController.ge
 
 employeradminRoute.get('/fetchallemployee', employeradminController.getAllEmployees);
 employeradminRoute.get('/fetchallemployers', employeradminController.getAllEmployers);
+employeradminRoute.put('/updateemployeradmin/:id', employeradminController.updateEmployerAdmin);
 
+// employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
+employeradminRoute.get('/getjobsbyorg/:employerAdminId', employeradminController.getJobsByEmployerAdmin);
 module.exports = employeradminRoute;

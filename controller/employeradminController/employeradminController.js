@@ -1,4 +1,4 @@
-// const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 const employerAdmin = require('../../models/employeradminSchema.js'); // Adjust the path as necessary
 const { v4: uuidv4 } = require('uuid');
@@ -7,9 +7,11 @@ const JWT_SECRET = "your_secret_key"; // Use env var in production
 function generateOTP(length = 4) {
   return Math.floor(1000 + Math.random() * 9000).toString().substring(0, length);
 }
+const EmployerAdmin = require('../../models/employeradminSchema.js'); // Adjusted model name
+const Employer = require('../../models/employerSchema.js'); // Employer model
 const Employee = require('../../models/employeeschema.js'); // adjust the path if needed
 const employerModel = require('../../models/employerSchema.js'); // adjust the path as needed
-
+const Job = require('../../models/jobSchema');
 
 // Admin Signup
 exports.employersignupAdmin = async (req, res) => {
@@ -53,8 +55,7 @@ exports.employersignupAdmin = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-// Admin Login
-// ...existing code...
+
 exports.employerloginAdmin = async (req, res) => {
   try {
     const { employeradminEmail, employeradminPassword } = req.body;
@@ -425,6 +426,125 @@ exports.getEmployersByOrganizationId = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while fetching employers",
+      error: error.message,
+    });
+  }
+};
+exports.updateEmployerAdmin = async (req, res) => {
+  try {
+    const { id } = req.params; // Expecting employer admin ID in the URL params
+    const {
+      employeradminUsername,
+      employeradminEmail,
+      employeradminMobile,
+      employeradminPassword,
+      employerconfirmPassword,
+      employeradminProfilePic
+    } = req.body;
+
+    // Find the admin by ID
+    const admin = await employerAdmin.findById(id);
+    if (!admin) {
+      return res.status(404).json({ message: "Employer admin not found" });
+    }
+
+    // Update fields if provided
+    if (employeradminUsername) admin.employeradminUsername = employeradminUsername;
+    if (employeradminEmail) admin.employeradminEmail = employeradminEmail;
+    if (employeradminMobile) admin.employeradminMobile = employeradminMobile;
+    if (employeradminProfilePic) admin.employeradminProfilePic = employeradminProfilePic;
+
+    // If password update is requested
+    if (employeradminPassword || employerconfirmPassword) {
+      if (employeradminPassword !== employerconfirmPassword) {
+        return res.status(400).json({ message: "Passwords do not match" });
+      }
+      const hashedPassword = await bcrypt.hash(employeradminPassword, 10);
+      admin.employeradminPassword = hashedPassword;
+    }
+
+    await admin.save();
+
+    return res.status(200).json({ message: "Employer admin updated successfully", data: admin });
+  } catch (err) {
+    console.error("Update Error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+exports.getJobsByEmployerAdmin = async (req, res) => {
+  try {
+    // Step 1: Extract employerAdminId from request parameters
+    const { employerAdminId } = req.params;
+    console.log('Received employerAdminId:', employerAdminId);
+
+    // Step 2: Validate employerAdminId as a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(employerAdminId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid employer admin ID format',
+      });
+    }
+
+    // Step 3: Fetch EmployerAdmin document by _id
+    const admin = await EmployerAdmin.findById(employerAdminId).lean();
+    console.log('Fetched employerAdmin:', admin);
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employer admin not found',
+      });
+    }
+
+    // Step 4: Use admin._id as the organizationid
+    const organizationId = admin._id.toString(); // Convert ObjectId to string
+    console.log('Organization ID:', organizationId);
+
+    // Step 5: Fetch employers with matching organizationid
+    const employers = await Employer.find({
+      organizationid: organizationId,
+    }).select('_id').lean();
+    console.log('Matching employers:', employers);
+
+    if (employers.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No employers found for this organization',
+      });
+    }
+
+    // Step 6: Extract employer _id values for job query
+    const employerIds = employers.map(employer => employer._id);
+
+    // Step 7: Fetch jobs where employid matches any employer _id
+    const jobs = await Job.find({
+      employid: { $in: employerIds },
+    }).select(
+      'companyName jobTitle description category applydatetime salaryFrom salaryTo salaryType jobType experienceLevel educationLevel openings locationTypes location isRemote skills benefits contactEmail contactPhone companyUrl applicationInstructions deadline priority status createdAt updatedAt isActive applications'
+    ).lean();
+    console.log('Found jobs:', jobs.length);
+
+    // Step 8: Log job IDs and employid to verify matching
+    console.log('Jobs with employid:', jobs.map(job => ({ _id: job._id, employid: job.employid })));
+
+    if (jobs.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No jobs found for this employer admin',
+      });
+    }
+
+    // Step 9: Return successful response with jobs
+    return res.status(200).json({
+      success: true,
+      count: jobs.length,
+      data: jobs,
+    });
+  } catch (error) {
+    // Step 10: Handle any errors
+    console.error('Error fetching jobs by employer admin ID:', error.message, error.stack);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
       error: error.message,
     });
   }
