@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const employerAdmin = require('../../models/employeradminSchema.js'); // Adjust the path as necessary
 const { v4: uuidv4 } = require('uuid');
 const bcrypt = require('bcrypt');
+const { cloudinary } = require('../../config/cloudinary');
 const JWT_SECRET = "your_secret_key"; // Use env var in production
 function generateOTP(length = 4) {
   return Math.floor(1000 + Math.random() * 9000).toString().substring(0, length);
@@ -430,31 +431,46 @@ exports.getEmployersByOrganizationId = async (req, res) => {
     });
   }
 };
+// controller
 exports.updateEmployerAdmin = async (req, res) => {
   try {
-    const { id } = req.params; // Expecting employer admin ID in the URL params
+    const { id } = req.params;
     const {
       employeradminUsername,
       employeradminEmail,
       employeradminMobile,
       employeradminPassword,
-      employerconfirmPassword,
-      employeradminProfilePic
+      employerconfirmPassword
     } = req.body;
 
-    // Find the admin by ID
     const admin = await employerAdmin.findById(id);
     if (!admin) {
       return res.status(404).json({ message: "Employer admin not found" });
     }
 
-    // Update fields if provided
     if (employeradminUsername) admin.employeradminUsername = employeradminUsername;
     if (employeradminEmail) admin.employeradminEmail = employeradminEmail;
     if (employeradminMobile) admin.employeradminMobile = employeradminMobile;
-    if (employeradminProfilePic) admin.employeradminProfilePic = employeradminProfilePic;
 
-    // If password update is requested
+    // File Upload Check
+if (req.file) {
+  console.log("File received:", req.file);
+  const uploadStream = cloudinary.uploader.upload_stream(
+    { folder: 'employerAdminProfilePics' },
+    async (error, result) => {
+      if (error) {
+        console.error("Cloudinary upload error:", error);
+        throw error;
+      }
+      admin.employeradminProfilePic = result.secure_url;
+      await admin.save();
+      return res.status(200).json({ message: "Employer admin updated successfully", data: admin });
+    }
+  ).end(req.file.buffer);
+  return; // Important to return here to prevent double response
+}
+
+    // Password update
     if (employeradminPassword || employerconfirmPassword) {
       if (employeradminPassword !== employerconfirmPassword) {
         return res.status(400).json({ message: "Passwords do not match" });
@@ -464,13 +480,13 @@ exports.updateEmployerAdmin = async (req, res) => {
     }
 
     await admin.save();
-
     return res.status(200).json({ message: "Employer admin updated successfully", data: admin });
   } catch (err) {
     console.error("Update Error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 exports.getJobsByEmployerAdmin = async (req, res) => {
   try {
     // Step 1: Extract employerAdminId from request parameters

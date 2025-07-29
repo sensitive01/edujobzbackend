@@ -8,7 +8,6 @@ const jwtDecode = require('jwt-decode');
 const jwksClient = require('jwks-rsa');
 const { v4: uuidv4 } = require('uuid'); // Import uuid
 const mongoose = require('mongoose'); // <-- Add this line
-// ...existing code...
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const appleKeysClient = jwksClient({ 
   jwksUri: 'https://appleid.apple.com/auth/keys' 
