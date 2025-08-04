@@ -8,7 +8,7 @@ mainadminRoute.get('/getallplans', planController.getAllPlans);
 mainadminRoute.get('/getplans:id', planController.getPlanById);
 mainadminRoute.post('/createplan',  planController.createPlan);
 mainadminRoute.put('/updateplan:id',  planController.updatePlan);
-mainadminRoute.delete('/delteplan:id', planController.deletePlan);
+mainadminRoute.delete('/deleteplan:id', planController.deletePlan);
 
 
 // employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
