@@ -77,6 +77,7 @@ const signUp = async (req, res) => {
       firstName,
       userEmail,
         verificationstatus: 'pending',
+            blockstatus: 'unblock',
       userPassword: hashedPassword,
       referredBy
     });
@@ -117,6 +118,7 @@ const signUp = async (req, res) => {
         userMobile: newEmployer.userMobile,
         referralCode: newEmployer.referralCode,
            verificationstatus: newEmployer.verificationstatus,
+           blockstatus: newEmployer.blockstatus,
         referredBy: referredBy
       },
       token

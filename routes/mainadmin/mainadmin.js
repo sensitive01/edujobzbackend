@@ -13,5 +13,15 @@ mainadminRoute.put('/approveemployer/:id',  adminfunction.approveSingleEmployer)
 mainadminRoute.put('/approve-all',  adminfunction.approveAllEmployers);
 mainadminRoute.put('/approveemployee/:id',  adminfunction.approveSingleEmployee);
 mainadminRoute.put('/approveallemployee',  adminfunction.approveAllEmployee);
+mainadminRoute.put('/approveemployeradmin/:id',  adminfunction.approveSingleEmployeradmin);
+mainadminRoute.put('/approveallemployeradmin',  adminfunction.approveAllEmployeradmin);
+mainadminRoute.put('/updateapprovejobs/:id',  adminfunction.updateJobStatus);
+mainadminRoute.put('/updateallapprved',  adminfunction.updateapproved);
+mainadminRoute.put('/updateblockstatus/:id',  adminfunction.blockunblockemployer);
+mainadminRoute.put('/updateblockstatusemploye/:id',  adminfunction.blockunblockemployee);
+
+mainadminRoute.put('/updateblockstatusemployeradmin/:id',  adminfunction.blockunblockemployeradmin);
+mainadminRoute.put('/updateunlick',  adminfunction.updateallblock);
+
 // employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
 module.exports = mainadminRoute;

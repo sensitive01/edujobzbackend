@@ -23,7 +23,7 @@ const employerSchema = new mongoose.Schema({
   userProfilePic: String,
   employerType: String,
   verificationstatus: { type: String, default: 'pending' },
-
+ blockstatus: { type: String, default: 'unblock' },
   // Referral system fields
   referralCode: { type: String, unique: true, uppercase: true },
   referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employer' },

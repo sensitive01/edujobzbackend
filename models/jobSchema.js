@@ -106,7 +106,7 @@ const jobSchema = new mongoose.Schema({
   // Metadata
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
-
+ postingstatus: { type: String, default: 'pending' },
   isActive: { type: Boolean, default: true }
 });
 

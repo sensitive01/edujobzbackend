@@ -45,7 +45,9 @@ exports.employersignupAdmin = async (req, res) => {
       employeradminUsername,
       employeradminEmail,
       employeradminMobile,
-      employeradminPassword: hashedPassword
+      employeradminPassword: hashedPassword,
+       verificationstatus: 'pending',
+       blockstatus: 'unblock',
     });
 
     await newAdmin.save();

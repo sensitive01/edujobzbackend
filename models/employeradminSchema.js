@@ -9,7 +9,8 @@ const employeradminSchema = new mongoose.Schema({
   employeradminProfilePic: { type: String },
 otp: { type: String },
 otpExpiry: { type: Date },
-
+ verificationstatus: { type: String, default: 'pending' },
+  blockstatus: { type: String, default: 'unblock' },
   isVerified: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
 });
