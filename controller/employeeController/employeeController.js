@@ -36,6 +36,7 @@ const signUp = async (req, res) => {
       userMobile: mobile,
       userEmail,
       userPassword: hashedPassword,
+      verificationstatus: 'pending'
     });
 
     // Generate and assign referral code
@@ -143,28 +144,27 @@ const googleAuth = async (req, res) => {
     let user = await userModel.findOne({ googleId: payload.sub });
     if (!user) {
       user = new userModel({
-        uuid: uuidv4(),
+        uuid: generateUserUUID(),
         googleId: payload.sub,
         userEmail: payload.email,
         userName: payload.name,
         userProfilePic: payload.picture,
-        isVerified: true
-      });      
+        isVerified: true,
+      });
       await user.save();
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ 
+    res.json({
       message: "Google login successful",
       user,
-      token 
+      token,
     });
   } catch (err) {
     console.error("Google auth error:", err);
-    res.status(401).json({ message: 'Invalid Google token' });
+    res.status(401).json({ message: 'Invalid Google token', error: err.message });
   }
 };
-
 // Apple Sign-In
 const appleAuth = async (req, res) => {
   const { idToken } = req.body;

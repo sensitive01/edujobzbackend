@@ -1,5 +1,7 @@
+ 
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
+
 const bcrypt = require('bcrypt');
 const generateOTP = require("../../utils/generateOTP")
 const Job = require('../../models/jobSchema');
@@ -74,6 +76,7 @@ const signUp = async (req, res) => {
       lastName,
       firstName,
       userEmail,
+        verificationstatus: 'pending',
       userPassword: hashedPassword,
       referredBy
     });
@@ -113,6 +116,7 @@ const signUp = async (req, res) => {
         userEmail: newEmployer.userEmail,
         userMobile: newEmployer.userMobile,
         referralCode: newEmployer.referralCode,
+           verificationstatus: newEmployer.verificationstatus,
         referredBy: referredBy
       },
       token

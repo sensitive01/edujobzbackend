@@ -87,7 +87,7 @@ totalExperience: mongoose.Schema.Types.Mixed,
   referredBy: { type: mongoose.Schema.Types.ObjectId, },
   referralCount: { type: Number, default: 0 },
   referralRewards: { type: Number, default: 0 },
-  
+    verificationstatus: { type: String, default: 'pending' },
 });
 employeeschema.methods.generateReferralCode = function () {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
