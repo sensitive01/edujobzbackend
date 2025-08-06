@@ -4,6 +4,8 @@ const planController = require('../../controller/employerController/employerplan
 const adminfunction = require('../../controller/adminController/adminfunction');
 const mainadminRoute = express.Router();
 const multer = require("multer");
+mainadminRoute.get('/fetchplanbyemp/:employerId', planController.getPlansByEmployer);
+mainadminRoute.post('/activateplans', planController.activateSubscription);
 mainadminRoute.get('/getallplans', planController.getAllPlans);
 mainadminRoute.get('/getplans:id', planController.getPlanById);
 mainadminRoute.post('/createplan',  planController.createPlan);
@@ -19,9 +21,10 @@ mainadminRoute.put('/updateapprovejobs/:id',  adminfunction.updateJobStatus);
 mainadminRoute.put('/updateallapprved',  adminfunction.updateapproved);
 mainadminRoute.put('/updateblockstatus/:id',  adminfunction.blockunblockemployer);
 mainadminRoute.put('/updateblockstatusemploye/:id',  adminfunction.blockunblockemployee);
-
 mainadminRoute.put('/updateblockstatusemployeradmin/:id',  adminfunction.blockunblockemployeradmin);
 mainadminRoute.put('/updateunlick',  adminfunction.updateallblock);
+mainadminRoute.get('/getallemployers', adminfunction.getAllEmployers);
 
+mainadminRoute.get('/getsubscribedemployers', adminfunction.getSubscribedEmployers);
 // employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
 module.exports = mainadminRoute;

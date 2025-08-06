@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const planSchema = new mongoose.Schema({
+    employerid: {
+    type: String,
+
+  },
   name: {
     type: String,
     required: true,

@@ -307,3 +307,39 @@ exports.blockunblockemployeradmin = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+exports.getAllEmployers = async (req, res) => {
+  try {
+    const employers = await Employer.find().sort({ createdAt: -1 }); // latest first
+    res.status(200).json({
+      success: true,
+      count: employers.length,
+      data: employers
+    });
+  } catch (error) {
+    console.error("Error fetching employers:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message
+    });
+  }
+};
+exports.getSubscribedEmployers = async (req, res) => {
+  try {
+    const subscribedEmployers = await Employer.find({ subscription: "true" })
+      .sort({ createdAt: -1 }); // latest first
+
+    res.status(200).json({
+      success: true,
+      count: subscribedEmployers.length,
+      data: subscribedEmployers
+    });
+  } catch (error) {
+    console.error("Error fetching subscribed employers:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message
+    });
+  }
+};

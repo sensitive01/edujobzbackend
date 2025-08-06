@@ -11,8 +11,7 @@ const eventsController = require("../../controller/employerController/upcomeeven
 const helpcontroller = require("../../controller/employerController/employerhelpController");
 const chatController = require("../../controller/employerController/chatController");
 const certificatecontroller = require('../../controller/employerController/certificationControleler');
-// Determine storage based on fileType
-// const multer = require('multer');
+
 const memoryUpload = multer({ storage: multer.memoryStorage() }).single('file');
 const {
   profileImageStorage,

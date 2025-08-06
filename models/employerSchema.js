@@ -29,8 +29,32 @@ const employerSchema = new mongoose.Schema({
   referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employer' },
   referralCount: { type: Number, default: 0 },
   referralRewards: { type: Number, default: 0 },
-  
+     subscriptions: {
+    type: [{
+      planId: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },
+      planDetails: { type: Object }, // Stores the full plan snapshot
+      isTrial: Boolean,
+      startDate: Date,
+      endDate: Date,
+      status: { type: String, enum: ['active', 'expired'], default: 'active' }
+    }],
+    default: []
+  },
+  currentSubscription: {
+    type: {
+      planId: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },
+      planDetails: { type: Object },
+      isTrial: Boolean,
+      startDate: Date,
+      endDate: Date
+    },
+    default: null
+  },
   isVerified: { type: Boolean, default: false },
+    subscriptionleft: { type: Number, default: 0 },
+   subscription: { type: String, default: "false" },
+    trial : { type: String, default: "false" },
+    subscriptionenddate: { type: String, },
   createdAt: { type: Date, default: Date.now }
 });
 
