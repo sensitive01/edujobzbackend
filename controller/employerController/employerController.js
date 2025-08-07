@@ -1,7 +1,7 @@
  
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
-
+const sendEmail = require('../../utils/sendEmail');
 const bcrypt = require('bcrypt');
 const generateOTP = require("../../utils/generateOTP")
 const Job = require('../../models/jobSchema');
@@ -509,6 +509,63 @@ const getReferralLink = async (req, res) => {
 };
 
 
+const sendOtpToEmail = async (req, res) => {
+  const { userEmail } = req.body;
+
+  try {
+    const employer = await userModel.findOne({ userEmail });
+
+    if (!employer) {
+      return res.status(404).json({ message: 'User not found with this email' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
+
+    employer.otp = otp;
+    employer.otpExpires = otpExpires;
+    await employer.save();
+
+    await sendEmail(userEmail, 'Your OTP Code', `Your OTP is: ${otp}`);
+
+    return res.status(200).json({ message: 'OTP sent successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error sending OTP', error });
+  }
+};
+
+const verifyEmailOtp = async (req, res) => {
+  const { userEmail, otp } = req.body;
+
+  try {
+    const employer = await userModel.findOne({ userEmail });
+
+    if (!employer) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (
+      employer.otp !== otp ||
+      new Date() > new Date(employer.otpExpires)
+    ) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    employer.emailverifedstatus = true; // ✅ correct field
+    employer.otp = undefined;
+    employer.otpExpires = undefined;
+    await employer.save();
+
+    return res.status(200).json({ 
+      message: 'Email verified successfully',
+      emailverifedstatus: employer.emailverifedstatus
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'OTP verification failed', error });
+  }
+};
+
 module.exports = {
   signUp,
 
@@ -519,7 +576,8 @@ module.exports = {
   googleAuth,
   getReferralLink,
   appleAuth,
-
+  sendOtpToEmail,
+  verifyEmailOtp,
   listAllEmployees,
   getEmployerDetails,
   updateEmployerDetails,

@@ -12,6 +12,10 @@ const employerSchema = new mongoose.Schema({
   city: String, 
   state: String, 
   pincode: String, 
+  otp: { type: String },
+otpExpires: { type: Date },
+emailverifedstatus: { type: Boolean, default: false },
+
       employerfcmtoken: { type: [String], default: [] },
   institutionName: String, 
   board: String,

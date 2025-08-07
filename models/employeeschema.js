@@ -28,6 +28,10 @@ const mediaSchema = new mongoose.Schema({
 const employeeschema = new mongoose.Schema({
   uuid: String,
   googleId: String,
+    otp: { type: String },
+otpExpires: { type: Date },
+emailverifedstatus: { type: Boolean, default: false },
+
    employeefcmtoken: { type: [String], default: [] },
   appleId: String,
   userName: String,

@@ -44,6 +44,10 @@ const dynamicUploadMiddleware = (req, res, next) => {
     next();
   });
 };
+
+employeeRoute.post('/sendemailotp', employeeController.sendOtpToEmail);
+employeeRoute.post('/verifyemailotp', employeeController.verifyEmailOtp);
+
 // Existing routes
 employeeRoute.post('/signup', employeeController.signUp);
 employeeRoute.post('/login', employeeController.login);

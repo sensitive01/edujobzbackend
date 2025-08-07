@@ -78,7 +78,8 @@ const dynamicUploadMiddlewareNew = (req, res, next) => {
   });
 };
 
-
+employerRoute.post('/sendemailotp', employerController.sendOtpToEmail);
+employerRoute.post('/verifyemailotp', employerController.verifyEmailOtp);
 
 employerRoute.post('/signup', employerController.signUp);
 
