@@ -14,7 +14,7 @@ const employerSchema = new mongoose.Schema({
   pincode: String, 
   otp: { type: String },
 otpExpires: { type: Date },
-emailverifedstatus: { type: Boolean, default: false },
+emailverifedstatus: { type: Boolean, default: true },
 
       employerfcmtoken: { type: [String], default: [] },
   institutionName: String, 

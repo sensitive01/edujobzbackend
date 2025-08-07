@@ -79,6 +79,7 @@ const signUp = async (req, res) => {
         verificationstatus: 'pending',
             blockstatus: 'unblock',
       userPassword: hashedPassword,
+      emailverifedstatus: true ,
       referredBy
     });
 
@@ -119,6 +120,8 @@ const signUp = async (req, res) => {
         referralCode: newEmployer.referralCode,
            verificationstatus: newEmployer.verificationstatus,
            blockstatus: newEmployer.blockstatus,
+           emailverifedstatus: newEmployer.emailverifedstatus,
+
         referredBy: referredBy
       },
       token

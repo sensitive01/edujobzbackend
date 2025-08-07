@@ -30,7 +30,7 @@ const employeeschema = new mongoose.Schema({
   googleId: String,
     otp: { type: String },
 otpExpires: { type: Date },
-emailverifedstatus: { type: Boolean, default: false },
+emailverifedstatus: { type: Boolean, default: true },
 
    employeefcmtoken: { type: [String], default: [] },
   appleId: String,

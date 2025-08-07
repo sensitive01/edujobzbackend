@@ -39,6 +39,7 @@ const signUp = async (req, res) => {
       userPassword: hashedPassword,
       verificationstatus: 'pending',
       blockstatus: 'unblock',
+        emailverifedstatus: true 
     });
 
     // Generate and assign referral code
