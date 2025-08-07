@@ -5,7 +5,7 @@ const jobController = require ("../../controller/employerController/postjobcontr
 const feedbackController = require ("../../controller/employeeController/feedbackreview");
 const employeeRoute = express.Router();
 const multer = require("multer");
-
+const emailverifycontroller = require("../../controller/employerController/emailverfycontoller");
 // Determine storage based on fileType
 const getStorage = (fileType) => {
   switch (fileType) {
@@ -45,8 +45,8 @@ const dynamicUploadMiddleware = (req, res, next) => {
   });
 };
 
-employeeRoute.post('/sendemailotp', employeeController.sendOtpToEmail);
-employeeRoute.post('/verifyemailotp', employeeController.verifyEmailOtp);
+employeeRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmail);
+employeeRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtp);
 
 // Existing routes
 employeeRoute.post('/signup', employeeController.signUp);

@@ -7,7 +7,7 @@ const jobController = require ("../../controller/employerController/postjobcontr
 // const { profileImageStorage, resumeStorage, coverLetterStorage,chatImageStorage,eventImageStorage ,sendimage } = require("../../config/cloudinary");
 const eventController = require("../../controller/employerController/calendarControllers");
 const eventsController = require("../../controller/employerController/upcomeevent");
-
+const emailverifycontroller = require("../../controller/employerController/emailverfycontoller");
 const helpcontroller = require("../../controller/employerController/employerhelpController");
 const chatController = require("../../controller/employerController/chatController");
 const certificatecontroller = require('../../controller/employerController/certificationControleler');
@@ -78,8 +78,8 @@ const dynamicUploadMiddlewareNew = (req, res, next) => {
   });
 };
 
-employerRoute.post('/sendemailotp', employerController.sendOtpToEmail);
-employerRoute.post('/verifyemailotp', employerController.verifyEmailOtp);
+employerRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmail);
+employerRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtp);
 
 employerRoute.post('/signup', employerController.signUp);
 
