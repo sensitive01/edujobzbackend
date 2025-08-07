@@ -513,27 +513,41 @@ const sendOtpToEmail = async (req, res) => {
   const { userEmail } = req.body;
 
   try {
-    const employer = await userModel.findOne({ userEmail });
+    // Find existing user or create new
+    let employer = await userModel.findOne({ userEmail });
 
     if (!employer) {
-      return res.status(404).json({ message: 'User not found with this email' });
+      // If not found, create a new user with just the email
+      employer = new userModel({ userEmail });
     }
 
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
 
+    // Update OTP fields
     employer.otp = otp;
     employer.otpExpires = otpExpires;
-    await employer.save();
 
-    await sendEmail(userEmail, 'Your OTP Code', `Your OTP is: ${otp}`);
+    await employer.save();
+    console.log(`OTP generated: ${otp} for email: ${userEmail}`);
+
+    // Send email
+    try {
+      await sendEmail(userEmail, 'Your OTP Code', `Your OTP is: ${otp}`);
+      console.log('OTP email sent successfully');
+    } catch (emailErr) {
+      console.error('Failed to send OTP email:', emailErr);
+      return res.status(500).json({ message: 'Failed to send OTP email', error: emailErr });
+    }
 
     return res.status(200).json({ message: 'OTP sent successfully' });
   } catch (error) {
+    console.error('Error in sendOtpToEmail:', error);
     return res.status(500).json({ message: 'Error sending OTP', error });
   }
 };
+
 
 const verifyEmailOtp = async (req, res) => {
   const { userEmail, otp } = req.body;
@@ -545,16 +559,19 @@ const verifyEmailOtp = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (
-      employer.otp !== otp ||
-      new Date() > new Date(employer.otpExpires)
-    ) {
+    // Check OTP and expiry
+    const isOtpValid = employer.otp === otp;
+    const isOtpExpired = new Date() > new Date(employer.otpExpires);
+
+    if (!isOtpValid || isOtpExpired) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    employer.emailverifedstatus = true; // ✅ correct field
+    // Mark email as verified
+    employer.emailverifedstatus = true;
     employer.otp = undefined;
     employer.otpExpires = undefined;
+
     await employer.save();
 
     return res.status(200).json({ 
@@ -562,6 +579,7 @@ const verifyEmailOtp = async (req, res) => {
       emailverifedstatus: employer.emailverifedstatus
     });
   } catch (error) {
+    console.error('OTP verification error:', error);
     return res.status(500).json({ message: 'OTP verification failed', error });
   }
 };
