@@ -12,7 +12,7 @@ const orderSchema = new mongoose.Schema({
     enum: ['created', 'paid', 'failed'],
     default: 'created'
   },
-    vendor_id: String,
+    employerid: String,
   plan_id: String,
   paymentId: String,
   createdAt: {
