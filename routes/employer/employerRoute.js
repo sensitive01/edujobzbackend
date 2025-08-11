@@ -12,6 +12,7 @@ const helpcontroller = require("../../controller/employerController/employerhelp
 const chatController = require("../../controller/employerController/chatController");
 const certificatecontroller = require('../../controller/employerController/certificationControleler');
 
+const OrderController = require("../../controller/employeeController/orderController");
 const memoryUpload = multer({ storage: multer.memoryStorage() }).single('file');
 const {
   profileImageStorage,
@@ -182,7 +183,7 @@ employerRoute.get('/unread', chatController.getUnreadCount);
 // Mark messages as read
 employerRoute.post('/mark-read', chatController.markAsRead);
 
-
+employerRoute.post('/createorderrazo', OrderController.createOrder);
 
 
 employerRoute.post('/createtraining', certificatecontroller.createTraining);

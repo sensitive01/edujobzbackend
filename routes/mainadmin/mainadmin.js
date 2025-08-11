@@ -2,6 +2,10 @@ const express = require("express");
 const router = express.Router();
 const planController = require('../../controller/employerController/employerplanController');
 const adminfunction = require('../../controller/adminController/adminfunction');
+
+
+// const planController = require('../../controller/employerController/employerplanController');
+const adminlogincontroller = require('../../controller/adminController/adminlogin');
 const mainadminRoute = express.Router();
 const multer = require("multer");
 mainadminRoute.get('/fetchplanbyemp/:employerId', planController.getPlansByEmployer);
@@ -26,5 +30,13 @@ mainadminRoute.put('/updateunlick',  adminfunction.updateallblock);
 mainadminRoute.get('/getallemployers', adminfunction.getAllEmployers);
 
 mainadminRoute.get('/getsubscribedemployers', adminfunction.getSubscribedEmployers);
+
+
+
+
+mainadminRoute.post('/signup', adminlogincontroller.adminSignup);
+
+// Login route
+mainadminRoute.post('/adminlogin', adminlogincontroller.adminLogin);
 // employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
 module.exports = mainadminRoute;
