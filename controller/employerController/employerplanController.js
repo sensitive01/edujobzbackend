@@ -172,7 +172,13 @@ exports.activateSubscription = async (req, res) => {
       status: 'active'
     };
 
-    // Update employer
+    // Update employer's subscription totals by adding the new plan's limits
+    employer.totalperdaylimit += plan.perDayLimit || 0;
+    employer.totalprofileviews += plan.profileViews || 0;
+    employer.totaldownloadresume += plan.downloadResume || 0;
+    employer.totaljobpostinglimit += plan.jobPostingLimit || 0;
+
+    // Update subscription information
     employer.subscriptions.push(subscriptionRecord);
     employer.currentSubscription = subscriptionRecord;
     
@@ -190,7 +196,13 @@ exports.activateSubscription = async (req, res) => {
       data: {
         employerId: employer._id,
         currentSubscription: employer.currentSubscription,
-        subscriptionLeft: employer.subscriptionleft
+        subscriptionLeft: employer.subscriptionleft,
+        newLimits: {
+          totalperdaylimit: employer.totalperdaylimit,
+          totalprofileviews: employer.totalprofileviews,
+          totaldownloadresume: employer.totaldownloadresume,
+          totaljobpostinglimit: employer.totaljobpostinglimit
+        }
       }
     });
   } catch (error) {

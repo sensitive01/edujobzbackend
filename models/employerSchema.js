@@ -33,6 +33,10 @@ emailverifedstatus: { type: Boolean, default: true },
   referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employer' },
   referralCount: { type: Number, default: 0 },
   referralRewards: { type: Number, default: 0 },
+  totalperdaylimit: { type: Number, default: 0 },
+  totalprofileviews: { type: Number, default: 0 },
+  totaldownloadresume: { type: Number, default: 0 },
+  totaljobpostinglimit: { type: Number, default: 0 },
      subscriptions: {
     type: [{
       planId: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },

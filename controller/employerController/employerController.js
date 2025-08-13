@@ -587,9 +587,79 @@ const verifyEmailOtp = async (req, res) => {
   }
 };
 
+
+// API to decrease downloadResume count when a resume is downloaded
+const decreaseResumeDownload = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    // Find employer by ID
+    const employer = await userModel.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
+
+    // Check if totaldownloadresume is greater than 0
+    if (employer.totaldownloadresume <= 0) {
+      return res.status(400).json({ message: "No resume downloads remaining" });
+    }
+
+    // Decrease totaldownloadresume
+    employer.totaldownloadresume -= 1;
+
+    // Mark modified path for Mongoose
+    employer.markModified("totaldownloadresume");
+
+    // Save the updated employer document
+    await employer.save();
+
+    return res.status(200).json({
+      message: "Resume download count decreased successfully",
+      totalRemaining: employer.totaldownloadresume,
+    });
+  } catch (error) {
+    console.error("❌ Error:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+const decreaseProfileView = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    // Find employer by ID
+    const employer = await userModel.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
+
+    // Check if totalprofileviews is greater than 0
+    if (employer.totalprofileviews <= 0) {
+      return res.status(400).json({ message: "No profile views remaining" });
+    }
+
+    // Decrease totalprofileviews
+    employer.totalprofileviews -= 1;
+
+    // Mark modified path for Mongoose
+    employer.markModified("totalprofileviews");
+
+    // Save the updated employer document
+    await employer.save();
+
+    return res.status(200).json({
+      message: "Profile view count decreased successfully",
+      totalRemaining: employer.totalprofileviews,
+    });
+  } catch (error) {
+    console.error("❌ Error:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = {
   signUp,
-
+  decreaseProfileView,
+decreaseResumeDownload,
  employerForgotPassword,
   employerverifyOTP,
   employerChangePassword,
