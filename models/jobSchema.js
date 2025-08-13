@@ -59,18 +59,12 @@ const jobSchema = new mongoose.Schema({
   // Job Details
   jobType: { 
     type: String, 
-   
-   
   },
   experienceLevel: { 
     type: String, 
-
-
   },
   educationLevel: { 
     type: String, 
-   
- 
   },
   openings: { type: String,  },
   

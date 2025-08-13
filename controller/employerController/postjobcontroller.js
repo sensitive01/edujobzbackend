@@ -43,8 +43,29 @@ const updateJobById = async (req, res) => {
 
 const createJob = async (req, res) => {
   try {
-    const newJob = new Job(req.body);
+    const jobData = req.body;
+
+    // Find the employer by employid
+    const employer = await Employer.findOne({ uuid: jobData.employid });
+
+    if (!employer) {
+      return res.status(404).json({ message: 'Employer not found' });
+    }
+
+    // Check if totaljobpostinglimit is greater than 0
+    if (employer.totaljobpostinglimit <= 0) {
+      return res.status(403).json({ message: 'Job posting limit reached. Please upgrade your subscription.' });
+    }
+
+    // Create the new job
+    const newJob = new Job(jobData);
     const savedJob = await newJob.save();
+
+    // Decrease the totaljobpostinglimit by 1
+    employer.totaljobpostinglimit -= 1;
+    await employer.save();
+
+    // Return the saved job
     res.status(201).json(savedJob);
   } catch (error) {
     res.status(400).json({ message: error.message });
