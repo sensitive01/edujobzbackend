@@ -83,6 +83,7 @@ employerRoute.patch('/decreaseprofile/:employerId/view', employerController.decr
 employerRoute.patch('/decrease/:employerId/download', employerController.decreaseResumeDownload);
 employerRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmail);
 employerRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtp);
+employerRoute.post("/track/:employerId/:employeeId", employerController.trackProfileView);
 
 employerRoute.post('/signup', employerController.signUp);
 

@@ -655,9 +655,61 @@ const decreaseProfileView = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+// Add this new endpoint to track profile views
+const trackProfileView = async (req, res) => {
+  try {
+    const { employerId, employeeId } = req.params;
 
+    // Check if this employer has already viewed this employee's profile
+    const existingView = await ProfileView.findOne({
+      employer: employerId,
+      employee: employeeId
+    });
+
+    if (!existingView) {
+      // First time view - decrease count and create record
+      const employer = await Employer.findById(employerId);
+      
+      if (!employer) {
+        return res.status(404).json({ message: "Employer not found" });
+      }
+
+      if (employer.totalprofileviews <= 0) {
+        return res.status(400).json({ message: "No profile views remaining" });
+      }
+
+      // Decrease count and save
+      employer.totalprofileviews -= 1;
+      await employer.save();
+
+      // Record this view
+      await new ProfileView({
+        employer: employerId,
+        employee: employeeId,
+        viewedAt: new Date()
+      }).save();
+
+      return res.status(200).json({
+        message: "Profile view counted",
+        totalRemaining: employer.totalprofileviews,
+        isFirstView: true
+      });
+    }
+
+    // If view already exists
+    return res.status(200).json({
+      message: "Profile view already counted",
+      isFirstView: false
+    });
+
+  } catch (error) {
+    console.error("❌ Error:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
 module.exports = {
   signUp,
+  trackProfileView,
   decreaseProfileView,
 decreaseResumeDownload,
  employerForgotPassword,
