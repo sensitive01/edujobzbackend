@@ -19,6 +19,10 @@ emailverifedstatus: { type: Boolean, default: true },
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
     viewedAt: { type: Date, default: Date.now }
   }],
+  resumedownload: [{
+  employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'employee' },
+  viewedAt: { type: Date, default: Date.now }
+}],
       employerfcmtoken: { type: [String], default: [] },
   institutionName: String, 
   board: String,

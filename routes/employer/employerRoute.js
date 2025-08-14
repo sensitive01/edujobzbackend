@@ -80,7 +80,7 @@ const dynamicUploadMiddlewareNew = (req, res, next) => {
 };
 
 employerRoute.put('/decreaseProfileView/:employerId/:employeeId', employerController.decreaseProfileView);
-employerRoute.patch('/decrease/:employerId/download', employerController.decreaseResumeDownload);
+employerRoute.put('/decrease/:employerId/:employeeId', employerController.decreaseResumeDownload);
 employerRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmail);
 employerRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtp);
 

@@ -588,10 +588,10 @@ const verifyEmailOtp = async (req, res) => {
 };
 
 
-// API to decrease downloadResume count when a resume is downloaded
+
 const decreaseResumeDownload = async (req, res) => {
   try {
-    const { employerId } = req.params;
+    const { employerId, employeeId } = req.params;
 
     // Find employer by ID
     const employer = await userModel.findById(employerId);
@@ -599,7 +599,19 @@ const decreaseResumeDownload = async (req, res) => {
       return res.status(404).json({ message: "Employer not found" });
     }
 
-    // Check if totaldownloadresume is greater than 0
+    // Check if this employee's resume has already been downloaded
+    const alreadyDownloaded = employer.resumedownload.some(
+      (item) => item.employeeId.toString() === employeeId
+    );
+
+    if (alreadyDownloaded) {
+      return res.status(200).json({
+        message: "Resume already downloaded, count not decreased",
+        totalRemaining: employer.totaldownloadresume,
+      });
+    }
+
+    // If first time downloading, check if downloads are available
     if (employer.totaldownloadresume <= 0) {
       return res.status(400).json({ message: "No resume downloads remaining" });
     }
@@ -607,8 +619,15 @@ const decreaseResumeDownload = async (req, res) => {
     // Decrease totaldownloadresume
     employer.totaldownloadresume -= 1;
 
-    // Mark modified path for Mongoose
+    // Add the new resume download record
+    employer.resumedownload.push({
+      employeeId,
+      viewedAt: new Date(),
+    });
+
+    // Mark modified paths for Mongoose
     employer.markModified("totaldownloadresume");
+    employer.markModified("resumedownload");
 
     // Save the updated employer document
     await employer.save();
@@ -617,11 +636,13 @@ const decreaseResumeDownload = async (req, res) => {
       message: "Resume download count decreased successfully",
       totalRemaining: employer.totaldownloadresume,
     });
+
   } catch (error) {
     console.error("❌ Error:", error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 const decreaseProfileView = async (req, res) => {
   try {
     const { employerId, employeeId } = req.params;
