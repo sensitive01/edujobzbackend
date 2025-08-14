@@ -35,7 +35,7 @@ mainadminRoute.get('/getsubscribedemployers', adminfunction.getSubscribedEmploye
 
 
 mainadminRoute.post('/signup', adminlogincontroller.adminSignup);
-
+mainadminRoute.get('/fetchallemployeradmin', adminlogincontroller.getAllEmployerAdmins);
 // Login route
 mainadminRoute.post('/adminlogin', adminlogincontroller.adminLogin);
 // employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);

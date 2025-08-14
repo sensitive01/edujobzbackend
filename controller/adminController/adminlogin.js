@@ -1,7 +1,24 @@
 const Admin = require('../../models/adminloginschema');
 const bcrypt = require('bcrypt');
-// const Admin = require('../models/Admin');
+const EmployerAdmin = require('../../models/employeradminSchema');
+exports.getAllEmployerAdmins = async (req, res) => {
+  try {
+    // Fetch all documents
+    const admins = await EmployerAdmin.find();
 
+    res.status(200).json({
+      success: true,
+      count: admins.length,
+      data: admins
+    });
+  } catch (error) {
+    console.error("Error fetching employer admins:", error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching employer admins'
+    });
+  }
+};
 exports.adminSignup = async (req, res) => {
   const { adminid, username, password } = req.body;
 
