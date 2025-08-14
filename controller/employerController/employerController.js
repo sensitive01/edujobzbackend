@@ -653,7 +653,7 @@ const decreaseProfileView = async (req, res) => {
       return res.status(404).json({ message: "Employer not found" });
     }
 
-    // Check if already viewed
+    // Check if already viewed (no decrement if already viewed)
     const alreadyViewed = employer.viewedEmployees.some(
       view => view.employeeId.toString() === employeeId
     );
@@ -666,14 +666,32 @@ const decreaseProfileView = async (req, res) => {
       });
     }
 
-    // Check if profile views are available
+    // Check global total profile views
     if (employer.totalprofileviews <= 0) {
       return res.status(400).json({ message: "No profile views remaining" });
     }
 
-    // Decrease count and record view
+    // ---- Check daily limit ----
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Midnight today
+
+    // Count how many profiles have been viewed today
+    const todayViews = employer.viewedEmployees.filter(view => {
+      const viewedDate = new Date(view.viewedAt);
+      viewedDate.setHours(0, 0, 0, 0);
+      return viewedDate.getTime() === today.getTime();
+    }).length;
+
+    if (todayViews >= employer.totalperdaylimit) {
+      return res.status(400).json({ message: "Daily profile view limit reached" });
+    }
+
+    // ---- Decrease global count and record today's view ----
     employer.totalprofileviews -= 1;
-    employer.viewedEmployees.push({ employeeId });
+    employer.viewedEmployees.push({
+      employeeId,
+      viewedAt: new Date()
+    });
 
     await employer.save();
 
@@ -682,11 +700,13 @@ const decreaseProfileView = async (req, res) => {
       totalRemaining: employer.totalprofileviews,
       firstView: true
     });
+
   } catch (error) {
     console.error("❌ Error:", error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 module.exports = {
   signUp,
