@@ -79,11 +79,10 @@ const dynamicUploadMiddlewareNew = (req, res, next) => {
   });
 };
 
-employerRoute.patch('/decreaseprofile/:employerId/view', employerController.decreaseProfileView);
+employerRoute.put('/decreaseProfileView/:employerId/:employeeId', employerController.decreaseProfileView);
 employerRoute.patch('/decrease/:employerId/download', employerController.decreaseResumeDownload);
 employerRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmail);
 employerRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtp);
-employerRoute.post("/track/:employerId/:employeeId", employerController.trackProfileView);
 
 employerRoute.post('/signup', employerController.signUp);
 

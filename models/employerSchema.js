@@ -15,7 +15,10 @@ const employerSchema = new mongoose.Schema({
   otp: { type: String },
 otpExpires: { type: Date },
 emailverifedstatus: { type: Boolean, default: true },
-
+  viewedEmployees: [{
+    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+    viewedAt: { type: Date, default: Date.now }
+  }],
       employerfcmtoken: { type: [String], default: [] },
   institutionName: String, 
   board: String,

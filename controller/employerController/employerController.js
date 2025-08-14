@@ -624,92 +624,51 @@ const decreaseResumeDownload = async (req, res) => {
 };
 const decreaseProfileView = async (req, res) => {
   try {
-    const { employerId } = req.params;
+    const { employerId, employeeId } = req.params;
 
-    // Find employer by ID
+    // Find employer
     const employer = await userModel.findById(employerId);
     if (!employer) {
       return res.status(404).json({ message: "Employer not found" });
     }
 
-    // Check if totalprofileviews is greater than 0
+    // Check if already viewed
+    const alreadyViewed = employer.viewedEmployees.some(
+      view => view.employeeId.toString() === employeeId
+    );
+
+    if (alreadyViewed) {
+      return res.status(200).json({
+        message: "Employee already viewed",
+        totalRemaining: employer.totalprofileviews,
+        firstView: false
+      });
+    }
+
+    // Check if profile views are available
     if (employer.totalprofileviews <= 0) {
       return res.status(400).json({ message: "No profile views remaining" });
     }
 
-    // Decrease totalprofileviews
+    // Decrease count and record view
     employer.totalprofileviews -= 1;
+    employer.viewedEmployees.push({ employeeId });
 
-    // Mark modified path for Mongoose
-    employer.markModified("totalprofileviews");
-
-    // Save the updated employer document
     await employer.save();
 
     return res.status(200).json({
       message: "Profile view count decreased successfully",
       totalRemaining: employer.totalprofileviews,
+      firstView: true
     });
   } catch (error) {
     console.error("❌ Error:", error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-// Add this new endpoint to track profile views
-const trackProfileView = async (req, res) => {
-  try {
-    const { employerId, employeeId } = req.params;
 
-    // Check if this employer has already viewed this employee's profile
-    const existingView = await ProfileView.findOne({
-      employer: employerId,
-      employee: employeeId
-    });
-
-    if (!existingView) {
-      // First time view - decrease count and create record
-      const employer = await Employer.findById(employerId);
-      
-      if (!employer) {
-        return res.status(404).json({ message: "Employer not found" });
-      }
-
-      if (employer.totalprofileviews <= 0) {
-        return res.status(400).json({ message: "No profile views remaining" });
-      }
-
-      // Decrease count and save
-      employer.totalprofileviews -= 1;
-      await employer.save();
-
-      // Record this view
-      await new ProfileView({
-        employer: employerId,
-        employee: employeeId,
-        viewedAt: new Date()
-      }).save();
-
-      return res.status(200).json({
-        message: "Profile view counted",
-        totalRemaining: employer.totalprofileviews,
-        isFirstView: true
-      });
-    }
-
-    // If view already exists
-    return res.status(200).json({
-      message: "Profile view already counted",
-      isFirstView: false
-    });
-
-  } catch (error) {
-    console.error("❌ Error:", error);
-    return res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
 module.exports = {
   signUp,
-  trackProfileView,
   decreaseProfileView,
 decreaseResumeDownload,
  employerForgotPassword,
