@@ -3,6 +3,7 @@ const router = express.Router();
 const planController = require('../../controller/employerController/employerplanController');
 const adminfunction = require('../../controller/adminController/adminfunction');
 const banercontroller = require('../../controller/adminController/eventbannerController');
+const employeebanner = require('../../controller/adminController/employeebanner');
 const { bannerImageStorage } = require("../../config/cloudinary"); 
 const multer = require("multer");
 
@@ -33,13 +34,15 @@ mainadminRoute.put('/updateunlick',  adminfunction.updateallblock);
 mainadminRoute.get('/getallemployers', adminfunction.getAllEmployers);
 
 mainadminRoute.get('/getsubscribedemployers', adminfunction.getSubscribedEmployers);
-mainadminRoute.post("/createeventbanner", upload.fields([{ name: 'image', maxCount: 1 }]), banercontroller.createBanner)
-// mainadminRoute.post('/createbanner', upload.single('image'), banercontroller.createBanner);
+mainadminRoute.post("/createeventbanner", upload.fields([{ name: 'image', maxCount: 1 }]), banercontroller.createBanner);
 mainadminRoute.get('/fetchalleventbanner', banercontroller.getBanners);
 
 mainadminRoute.post('/signup', adminlogincontroller.adminSignup);
 mainadminRoute.get('/fetchallemployeradmin', adminlogincontroller.getAllEmployerAdmins);
 // Login route
 mainadminRoute.post('/adminlogin', adminlogincontroller.adminLogin);
+mainadminRoute.post("/createemployeebanner", upload.fields([{ name: 'image', maxCount: 1 }]), employeebanner.employeecreatebanner);
+mainadminRoute.get('/fetchemployeebanner', employeebanner.getemployeeBanners);
+
 // employeradminRoute.get();
 module.exports = mainadminRoute;
