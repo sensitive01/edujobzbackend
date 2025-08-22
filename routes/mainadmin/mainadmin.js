@@ -33,9 +33,9 @@ mainadminRoute.put('/updateunlick',  adminfunction.updateallblock);
 mainadminRoute.get('/getallemployers', adminfunction.getAllEmployers);
 
 mainadminRoute.get('/getsubscribedemployers', adminfunction.getSubscribedEmployers);
-mainadminRoute.post("/createbanner", upload.fields([{ name: 'image', maxCount: 1 }]), banercontroller.createBanner)
+mainadminRoute.post("/createeventbanner", upload.fields([{ name: 'image', maxCount: 1 }]), banercontroller.createBanner)
 // mainadminRoute.post('/createbanner', upload.single('image'), banercontroller.createBanner);
-mainadminRoute.get('/fetchallbanner', banercontroller.getBanners);
+mainadminRoute.get('/fetchalleventbanner', banercontroller.getBanners);
 
 mainadminRoute.post('/signup', adminlogincontroller.adminSignup);
 mainadminRoute.get('/fetchallemployeradmin', adminlogincontroller.getAllEmployerAdmins);
