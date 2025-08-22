@@ -50,7 +50,8 @@ emailverifedstatus: { type: Boolean, default: true },
     url: { type: String },
     duration: { type: Number }
   },            // <-- Add this
-  userPassword: String,            // <-- Add this
+  userPassword: String,  
+  currentrole: String,          // <-- Add this
   userProfilePic: String,
   isVerified: { type: Boolean, default: false },
    gender: { type: String, enum: ['Male', 'Female', 'Others'] },
