@@ -23,6 +23,7 @@ const updateJobById = async (req, res) => {
   try {
     const { id } = req.params; // _id from URL
     const updatedData = req.body; // New data to overwrite existing
+    
 
     const updatedJob = await Job.findByIdAndUpdate(
       id,
@@ -44,9 +45,17 @@ const updateJobById = async (req, res) => {
 const createJob = async (req, res) => {
   try {
     const jobData = req.body;
+    console.log("jobData",jobData)
 
     // Find the employer by employid
     const employer = await Employer.findOne({ _id: jobData.employid });
+   // const employer = await Employer.findOne({
+ // $or: [
+   // { _id: jobData.employid },
+  //  { userEmail: jobData.contactEmail }
+//  ]
+//});
+
 
     if (!employer) {
       return res.status(404).json({ message: 'Employer not found' });
