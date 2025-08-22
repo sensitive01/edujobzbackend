@@ -108,8 +108,25 @@ const audioStorage = new CloudinaryStorage({
     public_id: (req, file) => `audio-${Date.now()}-${file.originalname}`,
   },
 });
+const uploadImage = async (imageBuffer, folder) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      {
+        folder: folder, 
+        resource_type: "auto",
+      },
+      (error, result) => {
+        if (error) {
+          return reject(new Error("Cloudinary upload failed: " + error.message));
+        }
+        resolve(result.secure_url);
+      }
+    ).end(imageBuffer); 
+  });
+};
 module.exports = {
   cloudinary,
+  uploadImage,
   sendimage,
   audioStorage,
   profileVideoStorage,
