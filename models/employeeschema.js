@@ -50,9 +50,9 @@ emailverifedstatus: { type: Boolean, default: true },
     url: { type: String },
     duration: { type: Number }
   },            // <-- Add this
-  userPassword: String,  
-  currentrole: String,          // <-- Add this
+  userPassword: String,            // <-- Add this
   userProfilePic: String,
+  currentrole: { type: String,  }, // Default role is 'employee'
   isVerified: { type: Boolean, default: false },
    gender: { type: String, enum: ['Male', 'Female', 'Others'] },
   dob: { type: String }, // DD/MM/YYYY format
