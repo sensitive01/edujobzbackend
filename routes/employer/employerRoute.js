@@ -135,6 +135,8 @@ employerRoute.post("/employerforgotpassword",employerController.employerForgotPa
 employerRoute.post("/employerverify-otp",employerController.employerverifyOTP)
 employerRoute.post("/employerresend-otp",employerController.employerForgotPassword)
 employerRoute.post("/employerchange-password",employerController.employerChangePassword)
+employerRoute.put("/changeMyPassword/:employerId",employerController.employerChangeMyPassword)
+
 employerRoute.put('/updatejobstatus/:jobId', jobController.updateJobActiveStatus);
 employerRoute.post('/createcalender', eventController.createEvent);
 employerRoute.get('/geteveent', eventController.getEvents);

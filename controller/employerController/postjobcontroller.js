@@ -45,8 +45,12 @@ const createJob = async (req, res) => {
   try {
     const jobData = req.body;
 
+    console.log("jobData",jobData)
+
     // Find the employer by employid
     const employer = await Employer.findOne({ _id: jobData.employid });
+        console.log("employer",employer)
+
 
     if (!employer) {
       return res.status(404).json({ message: 'Employer not found' });

@@ -43,7 +43,7 @@ emailverifedstatus: { type: Boolean, default: true },
   totalperdaylimit: { type: Number, default: 0 },
   totalprofileviews: { type: Number, default: 0 },
   totaldownloadresume: { type: Number, default: 0 },
-  totaljobpostinglimit: { type: Number, default: 0 },
+  totaljobpostinglimit: { type: Number, default: 1 },
      subscriptions: {
     type: [{
       planId: { type: mongoose.Schema.Types.ObjectId, ref: 'Plan' },

@@ -1,28 +1,35 @@
-const { OAuth2Client } = require('google-auth-library');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const Job = require('../../models/jobSchema');
-const userModel = require('../../models/employeeschema');
-const generateOTP = require("../../utils/generateOTP")
-const jwtDecode = require('jwt-decode');
-const jwksClient = require('jwks-rsa');
-const sendEmail = require('../../utils/sendEmail');
-const { v4: uuidv4 } = require('uuid');
-const { cloudinary, profileImageStorage, resumeStorage, coverLetterStorage,profileVideoStorage } = require('../../config/cloudinary');
+const { OAuth2Client } = require("google-auth-library");
+const jwt = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
+const Job = require("../../models/jobSchema");
+const userModel = require("../../models/employeeschema");
+const generateOTP = require("../../utils/generateOTP");
+const jwtDecode = require("jwt-decode");
+const jwksClient = require("jwks-rsa");
+const sendEmail = require("../../utils/sendEmail");
+const { v4: uuidv4 } = require("uuid");
+const {
+  cloudinary,
+  profileImageStorage,
+  resumeStorage,
+  coverLetterStorage,
+  profileVideoStorage,
+} = require("../../config/cloudinary");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const appleKeysClient = jwksClient({ 
-  jwksUri: 'https://appleid.apple.com/auth/keys' 
+const appleKeysClient = jwksClient({
+  jwksUri: "https://appleid.apple.com/auth/keys",
 });
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    const { userName, userMobile, userEmail, userPassword, referralCode } = req.body;
+    const { userName, userMobile, userEmail, userPassword, referralCode } =
+      req.body;
     const mobile = parseInt(userMobile);
 
     const existUser = await userModel.findOne({
-      $or: [{ userMobile: mobile }, { userEmail }]
+      $or: [{ userMobile: mobile }, { userEmail }],
     });
 
     if (existUser) {
@@ -37,17 +44,19 @@ const signUp = async (req, res) => {
       userMobile: mobile,
       userEmail,
       userPassword: hashedPassword,
-      verificationstatus: 'pending',
-      blockstatus: 'unblock',
-        emailverifedstatus: true 
+      verificationstatus: "pending",
+      blockstatus: "unblock",
+      emailverifedstatus: true,
     });
 
     // Generate and assign referral code
     newUser.referralCode = newUser.generateReferralCode();
 
     let referralApplied = false;
-    if (referralCode && referralCode.trim() !== '') {
-      const referrer = await userModel.findOne({ referralCode: referralCode.trim() });
+    if (referralCode && referralCode.trim() !== "") {
+      const referrer = await userModel.findOne({
+        referralCode: referralCode.trim(),
+      });
 
       if (referrer) {
         newUser.referredBy = referrer._id;
@@ -56,20 +65,22 @@ const signUp = async (req, res) => {
         await userModel.findByIdAndUpdate(referrer._id, {
           $inc: {
             referralCount: 1,
-            referralRewards: 100
-          }
+            referralRewards: 100,
+          },
         });
       }
     }
 
     await newUser.save();
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     res.status(201).json({
       message: "Employee registered successfully.",
       user: newUser,
-      token
+      token,
     });
   } catch (err) {
     console.error("Error in registration:", err);
@@ -82,8 +93,8 @@ const getAllEmployees = async (req, res) => {
     const employees = await userModel.find(); // You can add `.select()` to limit fields
     res.status(200).json(employees);
   } catch (error) {
-    console.error('Error fetching employees:', error);
-    res.status(500).json({ message: 'Failed to fetch employees' });
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ message: "Failed to fetch employees" });
   }
 };
 // Email/Mobile Login
@@ -98,41 +109,49 @@ const login = async (req, res) => {
     const user = await userModel.findOne({
       $or: [
         ...(userMobile ? [{ userMobile: userMobile.toString() }] : []),
-        ...(userEmail ? [{ userEmail }] : [])
-      ]
+        ...(userEmail ? [{ userEmail }] : []),
+      ],
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Please check your email and password." });
+      return res
+        .status(400)
+        .json({ message: "Please check your email and password." });
     }
 
     const match = await bcrypt.compare(userPassword, user.userPassword);
     if (!match) {
-      return res.status(400).json({ message: "Please check your email and password." });
+      return res
+        .status(400)
+        .json({ message: "Please check your email and password." });
     }
 
     // ✅ Optional FCM token saving logic
-    if (fcmToken && typeof fcmToken === 'string' && !user.employeefcmtoken.includes(fcmToken)) {
+    if (
+      fcmToken &&
+      typeof fcmToken === "string" &&
+      !user.employeefcmtoken.includes(fcmToken)
+    ) {
       user.employeefcmtoken.push(fcmToken);
       await user.save(); // only if token is new
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     const { userPassword: _, ...safeUser } = user._doc;
 
     res.json({
       message: "Login successful",
       user: safeUser,
-      token
+      token,
     });
-
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Internal server error." });
   }
 };
-
 
 // Google Sign-In
 const googleAuth = async (req, res) => {
@@ -157,7 +176,9 @@ const googleAuth = async (req, res) => {
       await user.save();
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
     res.json({
       message: "Google login successful",
       user,
@@ -165,7 +186,9 @@ const googleAuth = async (req, res) => {
     });
   } catch (err) {
     console.error("Google auth error:", err);
-    res.status(401).json({ message: 'Invalid Google token', error: err.message });
+    res
+      .status(401)
+      .json({ message: "Invalid Google token", error: err.message });
   }
 };
 // Apple Sign-In
@@ -174,27 +197,29 @@ const appleAuth = async (req, res) => {
   try {
     const decoded = jwtDecode(idToken);
     let user = await userModel.findOne({ appleId: decoded.sub });
-    
+
     if (!user) {
       user = new userModel({
         uuid: uuidv4(),
         appleId: decoded.sub,
         userEmail: decoded.email,
         userName: "Apple User",
-        isVerified: true
+        isVerified: true,
       });
       await user.save();
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ 
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res.json({
       message: "Apple login successful",
       user,
-      token 
+      token,
     });
   } catch (err) {
     console.error("Apple auth error:", err);
-    res.status(401).json({ message: 'Invalid Apple token' });
+    res.status(401).json({ message: "Invalid Apple token" });
   }
 };
 
@@ -206,7 +231,9 @@ const getEmployeeDetails = async (req, res) => {
       return res.status(400).json({ message: "Employee ID is required" });
     }
 
-    const employee = await userModel.findById(employeeId).select('-userPassword');
+    const employee = await userModel
+      .findById(employeeId)
+      .select("-userPassword");
 
     if (!employee) {
       return res.status(404).json({ message: "Employee not found" });
@@ -215,7 +242,7 @@ const getEmployeeDetails = async (req, res) => {
     res.json(employee);
   } catch (err) {
     console.error("Error fetching employee details:", err);
-    if (err.kind === 'ObjectId') {
+    if (err.kind === "ObjectId") {
       return res.status(400).json({ message: "Invalid employee ID format" });
     }
     res.status(500).json({ message: "Server error" });
@@ -224,16 +251,16 @@ const getEmployeeDetails = async (req, res) => {
 const applyForJob = async (req, res) => {
   try {
     const { jobId } = req.params;
-    const { 
+    const {
       applicantId,
       firstName,
       email,
       phone,
       resume,
-     experience,
-     jobrole,
-  currentcity,
-      profileurl // <-- Extract profileurl from body
+      experience,
+      jobrole,
+      currentcity,
+      profileurl, // <-- Extract profileurl from body
     } = req.body;
 
     // Optionally validate required fields
@@ -250,14 +277,14 @@ const applyForJob = async (req, res) => {
       email,
       phone,
       jobrole,
-          experience,
-  currentcity,
+      experience,
+      currentcity,
       resume: {
-        name: resume?.name || 'resume.pdf',
-        url: resume?.url || ''
+        name: resume?.name || "resume.pdf",
+        url: resume?.url || "",
       },
       profileurl, // <-- Add profileurl to application
-      status: 'Applied'
+      status: "Applied",
     };
 
     const updatedJob = await Job.findByIdAndUpdate(
@@ -269,22 +296,21 @@ const applyForJob = async (req, res) => {
     if (!updatedJob) {
       return res.status(404).json({
         success: false,
-        message: 'Job not found'
+        message: "Job not found",
       });
     }
 
     res.status(201).json({
       success: true,
-      message: 'Application submitted successfully',
-      data: updatedJob.applications.slice(-1)[0]
+      message: "Application submitted successfully",
+      data: updatedJob.applications.slice(-1)[0],
     });
-
   } catch (error) {
-    console.error('Error submitting application:', error);
+    console.error("Error submitting application:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: "Server error",
+      error: error.message,
     });
   }
 };
@@ -298,36 +324,36 @@ const getApplicationStatus = async (req, res) => {
     if (!job) {
       return res.status(404).json({
         success: false,
-        message: 'Job not found'
+        message: "Job not found",
       });
     }
 
-    const application = job.applications.find(app => app.applicantId === applicantId);
+    const application = job.applications.find(
+      (app) => app.applicantId === applicantId
+    );
 
     if (!application) {
       return res.status(404).json({
         success: false,
-        message: 'Application not found for this applicant'
+        message: "Application not found for this applicant",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: 'Application status fetched successfully',
+      message: "Application status fetched successfully",
       status: application.status,
-      application
+      application,
     });
-
   } catch (error) {
-    console.error('Error fetching application status:', error);
+    console.error("Error fetching application status:", error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
-      error: error.message
+      message: "Server error",
+      error: error.message,
     });
   }
 };
-
 
 // employeeController.js
 
@@ -338,24 +364,26 @@ const uploadFile = async (req, res) => {
 
     // Validate inputs
     if (!employid || !mongoose.isValidObjectId(employid)) {
-      return res.status(400).json({ message: 'Valid employee ID is required' });
+      return res.status(400).json({ message: "Valid employee ID is required" });
     }
 
     if (!fileType) {
-      return res.status(400).json({ message: 'File type (fileType) is required' });
+      return res
+        .status(400)
+        .json({ message: "File type (fileType) is required" });
     }
 
     if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
+      return res.status(400).json({ message: "No file uploaded" });
     }
 
     const result = req.file;
 
     // Check if we have a valid URL in the result
     if (!result.secure_url && !result.url && !result.path) {
-      return res.status(500).json({ 
-        message: 'Cloudinary upload failed: No URL returned',
-        details: result 
+      return res.status(500).json({
+        message: "Cloudinary upload failed: No URL returned",
+        details: result,
       });
     }
 
@@ -365,60 +393,76 @@ const uploadFile = async (req, res) => {
     // First, get the current employee to check for existing files
     const currentEmployee = await userModel.findById(employid);
     if (!currentEmployee) {
-      return res.status(404).json({ message: 'Employee not found' });
+      return res.status(404).json({ message: "Employee not found" });
     }
 
     // Delete old file from Cloudinary if it exists
     try {
       switch (fileType) {
-        case 'profileImage':
+        case "profileImage":
           if (currentEmployee.userProfilePic) {
-            const publicId = currentEmployee.userProfilePic.split('/').slice(-2).join('/').split('.')[0];
+            const publicId = currentEmployee.userProfilePic
+              .split("/")
+              .slice(-2)
+              .join("/")
+              .split(".")[0];
             await cloudinary.uploader.destroy(publicId);
           }
           break;
-        case 'resume':
+        case "resume":
           if (currentEmployee.resume?.url) {
-            const publicId = currentEmployee.resume.url.split('/').slice(-2).join('/').split('.')[0];
-            await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+            const publicId = currentEmployee.resume.url
+              .split("/")
+              .slice(-2)
+              .join("/")
+              .split(".")[0];
+            await cloudinary.uploader.destroy(publicId, {
+              resource_type: "raw",
+            });
           }
           break;
-        case 'coverLetter':
+        case "coverLetter":
           if (currentEmployee.coverLetterFile?.url) {
-            const publicId = currentEmployee.coverLetterFile.url.split('/').slice(-2).join('/').split('.')[0];
-            await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+            const publicId = currentEmployee.coverLetterFile.url
+              .split("/")
+              .slice(-2)
+              .join("/")
+              .split(".")[0];
+            await cloudinary.uploader.destroy(publicId, {
+              resource_type: "raw",
+            });
           }
           break;
       }
     } catch (deleteError) {
-      console.error('Error deleting old file:', deleteError);
+      console.error("Error deleting old file:", deleteError);
       // Continue with the update even if deletion fails
     }
 
     // Prepare field update
     let updateField;
     switch (fileType) {
-      case 'profileImage':
+      case "profileImage":
         updateField = { userProfilePic: fileUrl };
         break;
-      case 'resume':
+      case "resume":
         updateField = {
           resume: {
-            name: result.originalname || result.filename || 'Unnamed',
+            name: result.originalname || result.filename || "Unnamed",
             url: fileUrl,
           },
         };
         break;
-      case 'coverLetter':
+      case "coverLetter":
         updateField = {
           coverLetterFile: {
-            name: result.originalname || result.filename || 'Unnamed',
+            name: result.originalname || result.filename || "Unnamed",
             url: fileUrl,
           },
         };
         break;
       default:
-        return res.status(400).json({ message: 'Invalid file type provided' });
+        return res.status(400).json({ message: "Invalid file type provided" });
     }
 
     // Update employee document
@@ -432,16 +476,16 @@ const uploadFile = async (req, res) => {
       success: true,
       fileType,
       file: {
-        name: result.originalname || result.filename || 'Unnamed',
+        name: result.originalname || result.filename || "Unnamed",
         url: fileUrl,
       },
-      message: 'File uploaded and saved successfully',
+      message: "File uploaded and saved successfully",
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    console.error("Error uploading file:", error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error during file upload',
+      message: "Internal server error during file upload",
       error: error.message,
     });
   }
@@ -460,29 +504,26 @@ const updateProfile = async (req, res) => {
     );
 
     if (!updatedEmployee) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'Employee not found' 
+        message: "Employee not found",
       });
     }
 
     res.status(200).json({
       success: true,
       data: updatedEmployee,
-      message: 'Profile updated successfully'
+      message: "Profile updated successfully",
     });
-
   } catch (error) {
-    console.error('Error updating profile:', error);
-    res.status(500).json({ 
+    console.error("Error updating profile:", error);
+    res.status(500).json({
       success: false,
-      message: 'Error updating profile', 
-      error: error.message 
+      message: "Error updating profile",
+      error: error.message,
     });
   }
 };
-
-
 
 const appliedjobsfetch = async (req, res) => {
   const { applicantId } = req.params;
@@ -491,52 +532,54 @@ const appliedjobsfetch = async (req, res) => {
     const jobs = await Job.aggregate([
       {
         $match: {
-          'applications.applicantId': applicantId
-        }
+          "applications.applicantId": applicantId,
+        },
       },
       {
         $addFields: {
-          employidObject: { $toObjectId: "$employid" }
-        }
+          employidObject: { $toObjectId: "$employid" },
+        },
       },
       {
         $lookup: {
           from: "employers",
           localField: "employidObject",
           foreignField: "_id",
-          as: "employerInfo"
-        }
+          as: "employerInfo",
+        },
       },
       {
         $unwind: {
           path: "$employerInfo",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $addFields: {
           employerProfilePic: "$employerInfo.userProfilePic",
           employerName: {
-            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"]
-          }
-        }
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"],
+          },
+        },
       },
       {
         $project: {
           employerInfo: 0,
-          employidObject: 0
-        }
-      }
+          employidObject: 0,
+        },
+      },
     ]);
 
     if (!jobs || jobs.length === 0) {
-      return res.status(404).json({ message: 'No jobs found for this applicant.' });
+      return res
+        .status(404)
+        .json({ message: "No jobs found for this applicant." });
     }
 
     res.status(200).json(jobs);
   } catch (error) {
-    console.error('Error fetching jobs by applicant:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error fetching jobs by applicant:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -569,10 +612,15 @@ const calculateProfileCompletion = (employee) => {
   if (employee.pincode) report.address += 2.5;
 
   // Education (15%)
-  if (employee.education && employee.education.length > 0) report.education += 15;
+  if (employee.education && employee.education.length > 0)
+    report.education += 15;
 
   // Work Experience (15%)
-  if (employee.totalExperience === 'Fresher' || (employee.workExperience && employee.workExperience.length > 0)) report.workExperience += 15;
+  if (
+    employee.totalExperience === "Fresher" ||
+    (employee.workExperience && employee.workExperience.length > 0)
+  )
+    report.workExperience += 15;
 
   // Profile Details (15%)
   if (employee.userProfilePic) report.profileDetails += 3.75;
@@ -592,13 +640,19 @@ const calculateProfileCompletion = (employee) => {
   // if (employee.preferredLocation) report.jobPreferences += 2;
   if (employee.expectedSalary) report.jobPreferences += 2;
   if (employee.currentCity) report.jobPreferences += 4;
- 
+
   if (employee.gradeLevels) report.jobPreferences += 4;
 
   // Calculate Total
   report.total = Math.round(
-    report.basicInfo + report.address + report.education + report.workExperience +
-    report.profileDetails + report.documents + report.socialLinks + report.jobPreferences
+    report.basicInfo +
+      report.address +
+      report.education +
+      report.workExperience +
+      report.profileDetails +
+      report.documents +
+      report.socialLinks +
+      report.jobPreferences
   );
 
   return report;
@@ -607,25 +661,25 @@ const calculateProfileCompletion = (employee) => {
 const getProfileCompletion = async (req, res) => {
   try {
     const employee = await userModel.findById(req.params.id);
-    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    if (!employee)
+      return res.status(404).json({ message: "Employee not found" });
 
     const percentageReport = calculateProfileCompletion(employee);
     res.json({ total: percentageReport.total }); // Return only the total
   } catch (err) {
-    res.status(500).json({ message: 'Server Error', error: err.message });
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
-
 
 const userForgotPassword = async (req, res) => {
   try {
     const { userMobile } = req.body;
 
-    const existUser = await userModel.findOne({userMobile:userMobile})
+    const existUser = await userModel.findOne({ userMobile: userMobile });
 
     if (!existUser) {
       return res.status(404).json({
-        message: "User not found with the provided contact number"
+        message: "User not found with the provided contact number",
       });
     }
 
@@ -637,7 +691,6 @@ const userForgotPassword = async (req, res) => {
     console.log("Generated OTP:", otp);
 
     req.app.locals.otp = otp;
-
 
     return res.status(200).json({
       message: "OTP sent successfully",
@@ -654,9 +707,7 @@ const verifyOTP = async (req, res) => {
     const { otp } = req.body;
 
     if (!otp) {
-      return res
-        .status(400)
-        .json({ message: "OTP is required" });
+      return res.status(400).json({ message: "OTP is required" });
     }
 
     if (req.app.locals.otp) {
@@ -721,6 +772,57 @@ const userChangePassword = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+const candidateChangePassword = async (req, res) => {
+  try {
+    const { candidateId } = req.params;
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate inputs
+    if (!candidateId || !currentPassword || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Find candidate
+    const candidate = await userModel.findById(candidateId);
+    if (!candidate) {
+      return res.status(404).json({ message: "Candidate not found" });
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(
+      currentPassword,
+      candidate.userPassword
+    );
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    // Prevent reusing old password
+    const isSamePassword = await bcrypt.compare(
+      newPassword,
+      candidate.userPassword
+    );
+    if (isSamePassword) {
+      return res
+        .status(400)
+        .json({ message: "New password cannot be same as old password" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update candidate's password
+    candidate.userPassword = hashedPassword;
+    await candidate.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("Error in candidateChangePassword:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 const uploadProfileVideo = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -729,7 +831,9 @@ const uploadProfileVideo = async (req, res) => {
     console.log("Received file:", file);
 
     if (!file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
     }
 
     const fileInfo = {
@@ -745,16 +849,23 @@ const uploadProfileVideo = async (req, res) => {
     );
 
     if (!updatedEmployee) {
-      return res.status(404).json({ success: false, message: "Employee not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found" });
     }
 
-    res.status(200).json({ success: true, message: "Profile video uploaded successfully", file: fileInfo });
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Profile video uploaded successfully",
+        file: fileInfo,
+      });
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 // PUT: Upload intro audio for an employee
 const uploadIntroAudio = async (req, res) => {
@@ -763,7 +874,9 @@ const uploadIntroAudio = async (req, res) => {
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ success: false, message: "No file uploaded" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
     }
 
     const updatedEmployee = await userModel.findByIdAndUpdate(
@@ -808,20 +921,21 @@ const sendOtpToEmail = async (req, res) => {
 
     // Send email
     try {
-      await sendEmail(userEmail, 'Your OTP Code', `Your OTP is: ${otp}`);
-      console.log('OTP email sent successfully');
+      await sendEmail(userEmail, "Your OTP Code", `Your OTP is: ${otp}`);
+      console.log("OTP email sent successfully");
     } catch (emailErr) {
-      console.error('Failed to send OTP email:', emailErr);
-      return res.status(500).json({ message: 'Failed to send OTP email', error: emailErr });
+      console.error("Failed to send OTP email:", emailErr);
+      return res
+        .status(500)
+        .json({ message: "Failed to send OTP email", error: emailErr });
     }
 
-    return res.status(200).json({ message: 'OTP sent successfully' });
+    return res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
-    console.error('Error in sendOtpToEmail:', error);
-    return res.status(500).json({ message: 'Error sending OTP', error });
+    console.error("Error in sendOtpToEmail:", error);
+    return res.status(500).json({ message: "Error sending OTP", error });
   }
 };
-
 
 const verifyEmailOtp = async (req, res) => {
   const { userEmail, otp } = req.body;
@@ -830,7 +944,7 @@ const verifyEmailOtp = async (req, res) => {
     const employer = await userModel.findOne({ userEmail });
 
     if (!employer) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Check OTP and expiry
@@ -838,7 +952,7 @@ const verifyEmailOtp = async (req, res) => {
     const isOtpExpired = new Date() > new Date(employer.otpExpires);
 
     if (!isOtpValid || isOtpExpired) {
-      return res.status(400).json({ message: 'Invalid or expired OTP' });
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
     // Mark email as verified
@@ -848,16 +962,15 @@ const verifyEmailOtp = async (req, res) => {
 
     await employer.save();
 
-    return res.status(200).json({ 
-      message: 'Email verified successfully',
-      emailverifedstatus: employer.emailverifedstatus
+    return res.status(200).json({
+      message: "Email verified successfully",
+      emailverifedstatus: employer.emailverifedstatus,
     });
   } catch (error) {
-    console.error('OTP verification error:', error);
-    return res.status(500).json({ message: 'OTP verification failed', error });
+    console.error("OTP verification error:", error);
+    return res.status(500).json({ message: "OTP verification failed", error });
   }
 };
-
 
 //hbh
 module.exports = {
@@ -873,12 +986,13 @@ module.exports = {
   applyForJob,
   uploadIntroAudio,
   userChangePassword,
- userForgotPassword,
- verifyOTP,
- getAllEmployees,
-    getProfileCompletion,
- calculateProfileCompletion,
+  userForgotPassword,
+  verifyOTP,
+  getAllEmployees,
+  getProfileCompletion,
+  calculateProfileCompletion,
   getApplicationStatus,
   appliedjobsfetch,
-  updateProfile
+  updateProfile,
+  candidateChangePassword,
 };
