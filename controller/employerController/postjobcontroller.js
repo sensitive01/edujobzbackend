@@ -52,7 +52,6 @@ const createJob = async (req, res) => {
 
     // Find the employer by employid
     // const employer = await Employer.findOne({ _id: jobData.employid });
-    console.log("employer", employer);
     const employer = await Employer.findOne({
       $or: [{ _id: jobData.employid }, { userEmail: jobData.contactEmail }],
     });
