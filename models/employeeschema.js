@@ -52,6 +52,7 @@ emailverifedstatus: { type: Boolean, default: true },
   },            // <-- Add this
   userPassword: String,            // <-- Add this
   userProfilePic: String,
+  currentrole: { type: String,  }, // Default role is 'employee'
   isVerified: { type: Boolean, default: false },
    gender: { type: String, enum: ['Male', 'Female', 'Others'] },
   dob: { type: String }, // DD/MM/YYYY format

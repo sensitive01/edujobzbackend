@@ -2,12 +2,16 @@ const express = require("express");
 const router = express.Router();
 const planController = require('../../controller/employerController/employerplanController');
 const adminfunction = require('../../controller/adminController/adminfunction');
+const banercontroller = require('../../controller/adminController/eventbannerController');
+const employeebanner = require('../../controller/adminController/employeebanner');
+const { bannerImageStorage } = require("../../config/cloudinary"); 
+const multer = require("multer");
 
-
-// const planController = require('../../controller/employerController/employerplanController');
+// Use the Cloudinary storage instead of memoryStorage
+const upload = multer({ storage: bannerImageStorage });
 const adminlogincontroller = require('../../controller/adminController/adminlogin');
 const mainadminRoute = express.Router();
-const multer = require("multer");
+
 mainadminRoute.get('/fetchplanbyemp/:employerId', planController.getPlansByEmployer);
 mainadminRoute.post('/activateplans', planController.activateSubscription);
 mainadminRoute.get('/getallplans', planController.getAllPlans);
@@ -30,13 +34,15 @@ mainadminRoute.put('/updateunlick',  adminfunction.updateallblock);
 mainadminRoute.get('/getallemployers', adminfunction.getAllEmployers);
 
 mainadminRoute.get('/getsubscribedemployers', adminfunction.getSubscribedEmployers);
-
-
-
+mainadminRoute.post("/createeventbanner", upload.fields([{ name: 'image', maxCount: 1 }]), banercontroller.createBanner);
+mainadminRoute.get('/fetchalleventbanner', banercontroller.getBanners);
 
 mainadminRoute.post('/signup', adminlogincontroller.adminSignup);
 mainadminRoute.get('/fetchallemployeradmin', adminlogincontroller.getAllEmployerAdmins);
 // Login route
 mainadminRoute.post('/adminlogin', adminlogincontroller.adminLogin);
-// employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
+mainadminRoute.post("/createemployeebanner", upload.fields([{ name: 'image', maxCount: 1 }]), employeebanner.employeecreatebanner);
+mainadminRoute.get('/fetchemployeebanner', employeebanner.getemployeeBanners);
+
+// employeradminRoute.get();
 module.exports = mainadminRoute;

@@ -11,7 +11,7 @@ const emailverifycontroller = require("../../controller/employerController/email
 const helpcontroller = require("../../controller/employerController/employerhelpController");
 const chatController = require("../../controller/employerController/chatController");
 const certificatecontroller = require('../../controller/employerController/certificationControleler');
-
+const savecontroller = require('../../controller/employerController/savedCandiateControlller');
 const OrderController = require("../../controller/employeeController/orderController");
 const memoryUpload = multer({ storage: multer.memoryStorage() }).single('file');
 const {
@@ -153,8 +153,9 @@ employerRoute.get('/fetchchat/:docId', helpcontroller.fetchChat);
 
 // Send Chat Message (with optional image)
 employerRoute.post('/sendchat/:docId', dynamicUploadMiddleware, helpcontroller.sendChat);
+employerRoute.post("/savecandi/:employerId/:employeeId",savecontroller.toggleSaveCandidate);
 
-
+employerRoute.get("/getsavedcandidates/:employerId",savecontroller.getSavedCandidates);
 employerRoute.post('/:organizerId/events', dynamicUploadMiddleware, eventsController.createsEvent);
 employerRoute.get('/organizer/:organizerId/events', eventsController.getOrganizerEvents);
 employerRoute.get('/details/:eventId', eventsController.getEventDetails);
