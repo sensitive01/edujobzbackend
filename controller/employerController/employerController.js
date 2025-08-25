@@ -245,7 +245,7 @@ const signUp = async (req, res) => {
           <img src="${logoUrl}" alt="EdProfio Logo" style="max-height:80px; margin-bottom:20px;" />
           <h2 style="color:#333;">Welcome to EdProfio!</h2>
         </div>
-        <p>Hi <b>${firstName} ${lastName}</b>,</p>
+        <p>Hi <b> ${lastName}</b>,</p>
         <p>Your employer account has been successfully created.</p>
 
         <p><b>Login Credentials:</b></p>
