@@ -1,20 +1,21 @@
 const SavedCandidate = require("../../models/savedcandiSchema");
 
-// const SavedCandidate = require("../models/savedCandidate");
-
+/**
+ * Toggle saving/unsaving a candidate for an employer
+ */
 exports.toggleSaveCandidate = async (req, res) => {
   try {
     const { employerId, employeeId } = req.params;
 
     if (!employerId || !employeeId) {
-      return res.status(400).json({ message: "employerId and employeeId are required" });
+      return res.status(400).json({ success: false, message: "employerId and employeeId are required" });
     }
 
-    // Find if employer already has a savedCandidate record
+    // Find existing saved record
     let saved = await SavedCandidate.findOne({ employerId });
 
     if (!saved) {
-      // If no record, create new with this employeeId
+      // Create new record if none exists
       saved = new SavedCandidate({
         employerId,
         employeeIds: [employeeId],
@@ -23,16 +24,16 @@ exports.toggleSaveCandidate = async (req, res) => {
       return res.status(201).json({ success: true, message: "Candidate saved", data: saved });
     }
 
-    // Check if employee already exists in saved list
-    const exists = saved.employeeIds.includes(employeeId);
+    // Check if employee is already saved
+    const exists = saved.employeeIds.some(id => id.toString() === employeeId);
 
     if (exists) {
-      // Remove employeeId (unsave)
+      // Remove employeeId
       saved.employeeIds = saved.employeeIds.filter(id => id.toString() !== employeeId);
       await saved.save();
       return res.status(200).json({ success: true, message: "Candidate removed", data: saved });
     } else {
-      // Add employeeId (save)
+      // Add employeeId
       saved.employeeIds.push(employeeId);
       await saved.save();
       return res.status(200).json({ success: true, message: "Candidate saved", data: saved });
@@ -40,17 +41,22 @@ exports.toggleSaveCandidate = async (req, res) => {
 
   } catch (error) {
     console.error("Error saving/removing candidate:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
+/**
+ * Get all saved candidates for an employer
+ */
 exports.getSavedCandidates = async (req, res) => {
   try {
     const { employerId } = req.params;
 
     if (!employerId) {
-      return res.status(400).json({ message: "employerId is required" });
+      return res.status(400).json({ success: false, message: "employerId is required" });
     }
 
+    // Fetch saved candidates with populated employee objects
     const saved = await SavedCandidate.findOne({ employerId }).populate("employeeIds");
 
     if (!saved) {
@@ -69,6 +75,6 @@ exports.getSavedCandidates = async (req, res) => {
 
   } catch (error) {
     console.error("Error fetching saved candidates:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
