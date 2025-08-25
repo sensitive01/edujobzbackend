@@ -231,7 +231,7 @@ const signUp = async (req, res) => {
     }
 
     // ✅ Send email with login details
-    const loginLink = "https://edujobzz.netlify.app/employer/login";
+    const loginLink = "https://gleaming-chebakia-f1ab7a.netlify.app/employer/login";
     const logoUrl = "../../assets/logo (1).png"; // put your actual EdProfio logo URL here
 
     let extraNote = "";
