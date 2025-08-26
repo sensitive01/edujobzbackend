@@ -395,6 +395,7 @@ const updateApplicantStatus = async (req, res) => {
           "applications.$.interviewdate": interviewdate,
           "applications.$.interviewtime": interviewtime,
           "applications.$.interviewlink": interviewlink,
+             "applications.$.lastupdatestatusdate": now, // ← add this
           "applications.$.interviewvenue": interviewvenue,
         },
         $push: {

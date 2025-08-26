@@ -10,6 +10,7 @@ const applicationSchema = new mongoose.Schema({
         interviewdate : { type: String },
             interviewtime : { type: String },
                 interviewlink : { type: String },
+                 lastupdatestatusdate : { type: String },
                     interviewvenue : { type: String },
         statusHistory: [
     {

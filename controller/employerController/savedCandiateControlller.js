@@ -1,8 +1,6 @@
 const SavedCandidate = require("../../models/savedcandiSchema");
 
-/**
- * Toggle saving/unsaving a candidate for an employer
- */
+
 exports.toggleSaveCandidate = async (req, res) => {
   try {
     const { employerId, employeeId } = req.params;
@@ -45,9 +43,7 @@ exports.toggleSaveCandidate = async (req, res) => {
   }
 };
 
-/**
- * Get all saved candidates for an employer
- */
+
 exports.getSavedCandidates = async (req, res) => {
   try {
     const { employerId } = req.params;
