@@ -24,6 +24,7 @@ const mongoose = require("mongoose");
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
+    console.log("req.body",req.body)
     const { userName, userMobile, userEmail, userPassword, referralCode } =
       req.body;
     const mobile = parseInt(userMobile);
@@ -854,13 +855,11 @@ const uploadProfileVideo = async (req, res) => {
         .json({ success: false, message: "Employee not found" });
     }
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Profile video uploaded successfully",
-        file: fileInfo,
-      });
+    res.status(200).json({
+      success: true,
+      message: "Profile video uploaded successfully",
+      file: fileInfo,
+    });
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -972,8 +971,29 @@ const verifyEmailOtp = async (req, res) => {
   }
 };
 
+const verifyTheCandidateRegisterOrNot = async (req, res) => {
+  try {
+    const { candidateEmail } = req.params;
+
+    const candidateData = await userModel.findOne({
+      userEmail: candidateEmail,
+    });
+    console.log(candidateData);
+
+    if (candidateData) {
+      return res.status(200).json({ exists: true,candidateData });
+    } else {
+      return res.status(200).json({ exists: false });
+    }
+  } catch (err) {
+    console.error("Error verifying candidate:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
 //hbh
 module.exports = {
+  verifyTheCandidateRegisterOrNot,
   sendOtpToEmail,
   verifyEmailOtp,
   signUp,
