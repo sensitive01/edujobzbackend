@@ -88,6 +88,11 @@ employeeRoute.post("/verify-otp",employeeController.verifyOTP)
 employeeRoute.post("/resend-otp",employeeController.userForgotPassword)
 employeeRoute.post("/change-password",employeeController.userChangePassword)
 employeeRoute.put("/employeee-change-password/:candidateId",employeeController.candidateChangePassword)
+employeeRoute.get(
+  "/verify-the-candidate-register-or-not/:candidateEmail",
+  employeeController.verifyTheCandidateRegisterOrNot
+);
+
 
 
 module.exports = employeeRoute;
