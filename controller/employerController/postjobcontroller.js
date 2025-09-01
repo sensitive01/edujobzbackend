@@ -285,7 +285,7 @@ const getAppliedCandidates = async (req, res) => {
   }
 };
 
-
+//sjsjjs
 const shortlistcand = async (req, res) => {
   const jobId = req.params.id;
 
