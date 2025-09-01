@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Job = require("../../models/jobSchema");
 const Employer = require("../../models/employerSchema");
-
+const SavedCandidate = require('../../models/savedcandiSchema');
 const getJobTitleByJobId = async (req, res) => {
   try {
     const jobId = req.params.jobId;
@@ -247,21 +247,35 @@ const getJobsByEmployee = async (req, res) => {
   }
 };
 
+
 const getAppliedCandidates = async (req, res) => {
   const jobId = req.params.id;
 
   try {
-    const job = await Job.findById(jobId).select("applications");
+    // 1️⃣ Fetch the job with applications and employid
+    const job = await Job.findById(jobId).select("applications employid");
 
     if (!job) {
       return res.status(404).json({ success: false, message: "Job not found" });
     }
 
-    // Return the embedded application objects
+    // 2️⃣ Fetch saved candidates for this employer
+    const savedCandidatesDoc = await SavedCandidate.findOne({ employerId: job.employid });
+    const savedEmployeeIds = savedCandidatesDoc
+      ? savedCandidatesDoc.employeeIds.map(id => id.toString())
+      : [];
+
+    // 3️⃣ Map applications to mark favourite
+    const applications = job.applications.map(app => ({
+      ...app.toObject(),
+      favourite: savedEmployeeIds.includes(app.applicantId)
+    }));
+
     res.status(200).json({
       success: true,
-      applications: job.applications,
+      applications
     });
+
   } catch (error) {
     console.error("Error fetching applied candidates:", error);
     res.status(500).json({
@@ -271,25 +285,37 @@ const getAppliedCandidates = async (req, res) => {
   }
 };
 
+
 const shortlistcand = async (req, res) => {
   const jobId = req.params.id;
 
   try {
-    const job = await Job.findById(jobId).select("applications");
+    // 1️⃣ Fetch job and applications
+    const job = await Job.findById(jobId).select("applications employid");
 
     if (!job) {
       return res.status(404).json({ success: false, message: "Job not found" });
     }
 
-    // Filter out applications with employapplicantstatus === 'Pending'
-    const nonPendingApplications = job.applications.filter(
-      (app) => app.employapplicantstatus !== "Pending"
-    );
+    // 2️⃣ Fetch saved candidates for this employer (using job.employid)
+    const savedCandidatesDoc = await SavedCandidate.findOne({ employerId: job.employid });
+    const savedEmployeeIds = savedCandidatesDoc
+      ? savedCandidatesDoc.employeeIds.map(id => id.toString())
+      : [];
+
+    // 3️⃣ Map applications to mark favourites and filter non-pending
+    const applications = job.applications
+      .map(app => ({
+        ...app.toObject(),
+        favourite: savedEmployeeIds.includes(app.applicantId)
+      }))
+      .filter(app => app.employapplicantstatus !== "Pending");
 
     res.status(200).json({
       success: true,
-      applications: nonPendingApplications,
+      applications
     });
+
   } catch (error) {
     console.error("Error fetching applied candidates:", error);
     res.status(500).json({
@@ -474,16 +500,22 @@ const getNonPendingApplicantsByEmployId = async (req, res) => {
   try {
     const { employid } = req.params;
 
-    // Find jobs by employid and select jobTitle and applications
+    // 1️⃣ Find saved candidates for this employer
+    const savedCandidatesDoc = await SavedCandidate.findOne({ employerId: employid });
+    const savedEmployeeIds = savedCandidatesDoc
+      ? savedCandidatesDoc.employeeIds.map(id => id.toString())
+      : [];
+
+    // 2️⃣ Find jobs by employid and select jobTitle and applications
     const jobs = await Job.find({ employid }).select("jobTitle applications");
 
-    // Flatten all applications from multiple jobs and filter non-pending,
-    // attaching jobTitle and jobId for context
+    // 3️⃣ Flatten all applications, mark favourite, filter non-pending, attach job info
     const nonPendingApplications = jobs.flatMap((job) =>
       job.applications
         .filter((app) => app.employapplicantstatus !== "Pending")
         .map((app) => ({
           ...app.toObject(),
+          favourite: savedEmployeeIds.includes(app.applicantId),
           jobTitle: job.jobTitle,
           jobId: job._id,
         }))
@@ -493,6 +525,7 @@ const getNonPendingApplicantsByEmployId = async (req, res) => {
       success: true,
       data: nonPendingApplications,
     });
+
   } catch (error) {
     console.error("Error fetching applicants:", error);
     res.status(500).json({
