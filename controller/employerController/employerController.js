@@ -13,6 +13,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const appleKeysClient = jwksClient({
   jwksUri: "https://appleid.apple.com/auth/keys",
 });
+const jobModel = require("../../models/jobSchema")
 
 const generateUserUUID = () => uuidv4(); // Define the function
 
@@ -947,7 +948,38 @@ const decreaseProfileView = async (req, res) => {
   }
 };
 
+
+
+const getJobAndEmployerCount = async (req, res) => {
+  try {
+    const employerCount = await userModel.countDocuments();  
+    const jobCount = await jobModel.countDocuments();       
+
+    return res.status(200).json({
+      success: true,
+      employerCount,
+      jobCount,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+      error: err.message,
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
 module.exports = {
+  getJobAndEmployerCount,
   signUp,
   decreaseProfileView,
   decreaseResumeDownload,

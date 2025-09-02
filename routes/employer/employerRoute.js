@@ -201,4 +201,13 @@ employerRoute.get('/training/:trainingId/employer/:employerId/status', certifica
 
 employerRoute.get('/sendlink/:userId', employerController.getReferralLink);
 
+
+
+employerRoute.get("/get-job-and-employer-count",employerController.getJobAndEmployerCount)
+
+
+
+
+
+
 module.exports = employerRoute;
