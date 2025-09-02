@@ -408,6 +408,9 @@ const updateApplicantStatus = async (req, res) => {
         .json({ success: false, message: "Status and notes are required" });
     }
 
+    // ✅ Fix: define `now`
+    const now = new Date();
+
     const result = await Job.updateOne(
       {
         "applications._id": applicationId,
@@ -421,7 +424,7 @@ const updateApplicantStatus = async (req, res) => {
           "applications.$.interviewdate": interviewdate,
           "applications.$.interviewtime": interviewtime,
           "applications.$.interviewlink": interviewlink,
-             "applications.$.lastupdatestatusdate": now, // ← add this
+          "applications.$.lastupdatestatusdate": now,
           "applications.$.interviewvenue": interviewvenue,
         },
         $push: {
@@ -433,28 +436,24 @@ const updateApplicantStatus = async (req, res) => {
             interviewtime,
             interviewlink,
             interviewvenue,
-            updatedAt: new Date(),
+            updatedAt: now,
           },
         },
       }
     );
 
     if (result.modifiedCount === 0) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "Application not found or not updated",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "Application not found or not updated",
+      });
     }
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        message:
-          "Applicant status, notes, and interview details updated successfully",
-      });
+    return res.status(200).json({
+      success: true,
+      message:
+        "Applicant status, notes, and interview details updated successfully",
+    });
   } catch (error) {
     console.error("Error updating applicant status:", error);
     return res.status(500).json({ success: false, message: error.message });
