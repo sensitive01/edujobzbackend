@@ -24,7 +24,7 @@ const mongoose = require("mongoose");
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    console.log("req.body",req.body)
+    console.log("req.body", req.body);
     const { userName, userMobile, userEmail, userPassword, referralCode } =
       req.body;
     const mobile = parseInt(userMobile);
@@ -981,7 +981,7 @@ const verifyTheCandidateRegisterOrNot = async (req, res) => {
     console.log(candidateData);
 
     if (candidateData) {
-      return res.status(200).json({ exists: true,candidateData });
+      return res.status(200).json({ exists: true, candidateData });
     } else {
       return res.status(200).json({ exists: false });
     }
@@ -991,8 +991,41 @@ const verifyTheCandidateRegisterOrNot = async (req, res) => {
   }
 };
 
+const getDesiredJobAlerts = async (req, res) => {
+  try {
+   
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
+    const token = authHeader.split(" ")[1]; 
+
+ 
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+  
+    const userId = decoded.id; 
+    const user = await userModel.findById(userId);
+        console.log("user",user)
+
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+  
+    const jobAlerts = []; 
+    return res.status(200).json({ jobAlerts });
+  } catch (err) {
+    console.error("Error getting desired job alerts:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 //hbh
 module.exports = {
+  getDesiredJobAlerts,
   verifyTheCandidateRegisterOrNot,
   sendOtpToEmail,
   verifyEmailOtp,
