@@ -95,6 +95,8 @@ employeeRoute.get(
 
 
 employeeRoute.get("/get-job-alerts",employeeController.getDesiredJobAlerts)
+employeeRoute.post("/add-job-alert",employeeController.addJobAlert)
+
 
 
 module.exports = employeeRoute;

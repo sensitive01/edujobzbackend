@@ -20,6 +20,7 @@ const appleKeysClient = jwksClient({
   jwksUri: "https://appleid.apple.com/auth/keys",
 });
 const mongoose = require("mongoose");
+const JobFilter = require("../../models/jobAlertModal");
 
 // Email/Mobile Signup
 const signUp = async (req, res) => {
@@ -979,9 +980,12 @@ const verifyTheCandidateRegisterOrNot = async (req, res) => {
       userEmail: candidateEmail,
     });
     console.log(candidateData);
+    const token = jwt.sign({ id: candidateData._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
 
     if (candidateData) {
-      return res.status(200).json({ exists: true, candidateData });
+      return res.status(200).json({ exists: true, candidateData, token });
     } else {
       return res.status(200).json({ exists: false });
     }
@@ -991,32 +995,111 @@ const verifyTheCandidateRegisterOrNot = async (req, res) => {
   }
 };
 
-const getDesiredJobAlerts = async (req, res) => {
+const addJobAlert = async (req, res) => {
   try {
-   
+    console.log("submitData", req.body);
+
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({ message: "No token provided" });
     }
 
-    const token = authHeader.split(" ")[1]; 
-
- 
+    const token = authHeader.split(" ")[1];
+    console.log("token", token);
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  
-    const userId = decoded.id; 
-    const user = await userModel.findById(userId);
-        console.log("user",user)
+    const userId = decoded.id; // make sure your token payload has `id`
 
+    const {
+      salaryFrom,
+      salaryTo,
+      location,
+      workType,
+      experience,
+      jobCategories,
+    } = req.body;
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    // ✅ Find by userId and update, or create new if not exists
+    const updatedJobAlert = await JobFilter.findOneAndUpdate(
+      { userId },
+      {
+        salaryFrom,
+        salaryTo,
+        location,
+        workType,
+        experience,
+        jobCategories,
+        userId,
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedJobAlert,
+      message: "Job alert saved successfully",
+    });
+  } catch (err) {
+    console.error("Error in addJobAlert:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const getDesiredJobAlerts = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const userJobPreference = await JobFilter.findOne({ userId });
+    if (!userJobPreference) {
+      return res.status(404).json({ message: "No job preference found" });
     }
 
-  
-    const jobAlerts = []; 
-    return res.status(200).json({ jobAlerts });
+    const query = {
+      $or: [],
+    };
+
+    if (userJobPreference.salaryFrom && userJobPreference.salaryTo) {
+      query.$or.push({
+        $and: [
+          { salaryFrom: { $lte: userJobPreference.salaryTo } },
+          { salaryTo: { $gte: userJobPreference.salaryFrom } },
+        ],
+      });
+    }
+
+    if (userJobPreference.location) {
+      query.$or.push({ location: userJobPreference.location });
+    }
+
+    if (userJobPreference.workType) {
+      query.$or.push({ jobType: userJobPreference.workType });
+    }
+
+    if (userJobPreference.experience) {
+      query.$or.push({ experienceLevel: userJobPreference.experience });
+    }
+
+    if (userJobPreference.jobCategories?.length > 0) {
+      query.$or.push({ category: { $in: userJobPreference.jobCategories } });
+    }
+
+    if (query.$or.length === 0) {
+      return res.status(200).json({ jobAlerts: [] });
+    }
+
+    const jobAlerts = await Job.find(query);
+
+    return res.status(200).json({ jobAlerts ,userJobPreference});
   } catch (err) {
     console.error("Error getting desired job alerts:", err);
     return res.status(500).json({ message: "Server error" });
@@ -1025,6 +1108,7 @@ const getDesiredJobAlerts = async (req, res) => {
 
 //hbh
 module.exports = {
+  addJobAlert,
   getDesiredJobAlerts,
   verifyTheCandidateRegisterOrNot,
   sendOtpToEmail,
