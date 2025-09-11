@@ -1183,8 +1183,119 @@ const getDesiredJobAlerts = async (req, res) => {
   }
 };
 
+const getDesiredJobAlertswithouttoken = async (req, res) => {
+  try {
+    const { userId } = req.query; // ✅ Change from req.body to req.query
+
+    // Validate userId presence
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    const userJobPreference = await JobFilter.findOne({ userId });
+    if (!userJobPreference) {
+      return res.status(404).json({ success: false, message: "No job preference found" });
+    }
+
+    const query = {
+      $or: [],
+    };
+
+    // Match salary range
+    if (userJobPreference.salaryFrom && userJobPreference.salaryTo) {
+      query.$or.push({
+        $and: [
+          { salaryFrom: { $lte: userJobPreference.salaryTo } },
+          { salaryTo: { $gte: userJobPreference.salaryFrom } },
+        ],
+      });
+    }
+
+    // Match location
+    if (userJobPreference.location) {
+      query.$or.push({ location: userJobPreference.location });
+    }
+
+    // Match work type
+    if (userJobPreference.workType) {
+      query.$or.push({ jobType: userJobPreference.workType });
+    }
+
+    // Match experience level
+    if (userJobPreference.experience) {
+      query.$or.push({ experienceLevel: userJobPreference.experience });
+    }
+
+    // Match categories
+    if (userJobPreference.jobCategories?.length > 0) {
+      query.$or.push({ category: { $in: userJobPreference.jobCategories } });
+    }
+
+    // If no filters available
+    if (query.$or.length === 0) {
+      return res.status(200).json({ success: true, jobAlerts: [], userJobPreference });
+    }
+
+    const jobAlerts = await Job.find(query);
+
+    return res.status(200).json({ success: true, jobAlerts, userJobPreference });
+  } catch (err) {
+    console.error("Error getting desired job alerts:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const addwithouttoeken = async (req, res) => {
+  try {
+    console.log("submitData", req.body);
+
+    const {
+      userId,
+      salaryFrom,
+      salaryTo,
+      location,
+      workType,
+      experience,
+      jobCategories,
+    } = req.body;
+
+    // Validate userId presence
+    if (!userId) {
+      return res.status(400).json({ success: false, message: "User ID is required" });
+    }
+
+    // Find by userId and update, or create new if not exists
+    const updatedJobAlert = await JobFilter.findOneAndUpdate(
+      { userId },
+      {
+        salaryFrom,
+        salaryTo,
+        location,
+        workType,
+        experience,
+        jobCategories,
+        userId,
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedJobAlert,
+      message: "Job alert saved successfully",
+    });
+  } catch (err) {
+    console.error("Error in addJobAlert:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 //hbh
 module.exports = {
+  addwithouttoeken,
   addJobAlert,
   getDesiredJobAlerts,
   verifyTheCandidateRegisterOrNot,
@@ -1192,6 +1303,7 @@ module.exports = {
   verifyEmailOtp,
   signUp,
   login,
+  getDesiredJobAlertswithouttoken,
   googleAuth,
   getEmployeeDetails,
   appleAuth,
