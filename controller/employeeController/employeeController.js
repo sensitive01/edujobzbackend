@@ -1108,7 +1108,7 @@ const getDesiredJobAlerts = async (req, res) => {
 
 const getDesiredJobAlertswithouttoken = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.query; // ✅ Change from req.body to req.query
 
     // Validate userId presence
     if (!userId) {
@@ -1124,6 +1124,7 @@ const getDesiredJobAlertswithouttoken = async (req, res) => {
       $or: [],
     };
 
+    // Match salary range
     if (userJobPreference.salaryFrom && userJobPreference.salaryTo) {
       query.$or.push({
         $and: [
@@ -1133,22 +1134,27 @@ const getDesiredJobAlertswithouttoken = async (req, res) => {
       });
     }
 
+    // Match location
     if (userJobPreference.location) {
       query.$or.push({ location: userJobPreference.location });
     }
 
+    // Match work type
     if (userJobPreference.workType) {
       query.$or.push({ jobType: userJobPreference.workType });
     }
 
+    // Match experience level
     if (userJobPreference.experience) {
       query.$or.push({ experienceLevel: userJobPreference.experience });
     }
 
+    // Match categories
     if (userJobPreference.jobCategories?.length > 0) {
       query.$or.push({ category: { $in: userJobPreference.jobCategories } });
     }
 
+    // If no filters available
     if (query.$or.length === 0) {
       return res.status(200).json({ success: true, jobAlerts: [], userJobPreference });
     }
@@ -1161,6 +1167,7 @@ const getDesiredJobAlertswithouttoken = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 const addwithouttoeken = async (req, res) => {
   try {
     console.log("submitData", req.body);
