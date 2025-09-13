@@ -41,7 +41,7 @@ const sendEmail = async (to, subject, text, html = null) => {
     to,
     subject,
     text,
-    html, // ✅ this allows HTML email with button & logo
+    html, 
   };
 
   await transporter.sendMail(mailOptions);
