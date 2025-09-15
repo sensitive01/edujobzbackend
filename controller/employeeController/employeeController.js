@@ -1236,7 +1236,79 @@ const getDesiredJobAlertswithouttoken = async (req, res) => {
       return res.status(200).json({ success: true, jobAlerts: [], userJobPreference });
     }
 
-    const jobAlerts = await Job.find(query);
+    // Enrich each job with employer profile picture using aggregation
+    let jobAlerts = await Job.aggregate([
+      { $match: query },
+      { $sort: { createdAt: -1 } },
+      {
+        $addFields: {
+          employidObject: { $toObjectId: "$employid" },
+        },
+      },
+      {
+        $lookup: {
+          from: "employers",
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo",
+        },
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+        },
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0,
+        },
+      },
+    ]);
+
+    // Fallback: if no matching jobs, return recent jobs to avoid empty UI
+    if (!jobAlerts || jobAlerts.length === 0) {
+      jobAlerts = await Job.aggregate([
+        { $sort: { createdAt: -1 } },
+        { $limit: 20 },
+        {
+          $addFields: {
+            employidObject: { $toObjectId: "$employid" },
+          },
+        },
+        {
+          $lookup: {
+            from: "employers",
+            localField: "employidObject",
+            foreignField: "_id",
+            as: "employerInfo",
+          },
+        },
+        {
+          $unwind: {
+            path: "$employerInfo",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $addFields: {
+            employerProfilePic: "$employerInfo.userProfilePic",
+          },
+        },
+        {
+          $project: {
+            employerInfo: 0,
+            employidObject: 0,
+          },
+        },
+      ]);
+    }
 
     return res.status(200).json({ success: true, jobAlerts, userJobPreference });
   } catch (err) {
