@@ -98,6 +98,7 @@ employeeRoute.get("/get-job-alerts",employeeController.getDesiredJobAlerts)
 employeeRoute.post("/add-job-alert",employeeController.addJobAlert)
 employeeRoute.post("/addjobtoken",employeeController.addwithouttoeken)
 employeeRoute.get("/getalretjobs",employeeController.getDesiredJobAlertswithouttoken)
-
+employeeRoute.get('/fetchAvailabilityStatus/:employeeId', employeeController.fetchAvailabilityStatus);
+employeeRoute.put('/updateAvailabilityStatus/:employeeId', employeeController.updateAvailabilityStatus);
 
 module.exports = employeeRoute;

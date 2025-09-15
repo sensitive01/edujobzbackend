@@ -83,6 +83,7 @@ resume: {
   updatedAt: { type: Date, default: Date.now },
    languages: [String],
     maritalStatus:  String,
+    isAvailable: { type: Boolean, default: false },
   github: String ,
   linkedin:   String ,
   portfolio:  String ,
