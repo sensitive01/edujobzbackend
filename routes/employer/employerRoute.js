@@ -79,6 +79,10 @@ const dynamicUploadMiddlewareNew = (req, res, next) => {
   });
 };
 
+employerRoute.post('/sendemailotpforgot', emailverifycontroller.sendForgotOtpToEmailEmployer);
+employerRoute.post('/verifyemailotpforgot', emailverifycontroller.verifyEmailForgotOtpEmployer);
+
+
 
 employerRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmailEmployer);
 employerRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtpEmployer);
@@ -208,6 +212,8 @@ employerRoute.get('/sendlink/:userId', employerController.getReferralLink);
 
 
 employerRoute.get("/get-job-and-employer-count",employerController.getJobAndEmployerCount)
+employerRoute.get("/get-employer-dashnoard-count/:employerId",employerController.getEmployerDashboardCount)
+
 
 
 

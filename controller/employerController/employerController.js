@@ -654,10 +654,10 @@ const employerChangePassword = async (req, res) => {
   try {
     console.log("Welcome to user change password");
 
-    const { userMobile, password, confirmPassword } = req.body;
+    const { userEmail, password, confirmPassword } = req.body;
 
     // Validate inputs
-    if (!userMobile || !password || !confirmPassword) {
+    if (!userEmail || !password || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -670,7 +670,7 @@ const employerChangePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Find the user by contact number
-    const user = await userModel.findOne({ userMobile: userMobile });
+    const user = await userModel.findOne({ userEmail: userEmail });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -1064,6 +1064,69 @@ const getJobAndEmployerCount = async (req, res) => {
 
 
 
+const getEmployerDashboardCount = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    // Get all jobs for this employer
+    const jobData = await jobModel.find(
+      { employid: employerId },
+      { isActive: 1, applications: 1 } // only fetch required fields
+    );
+
+    // Initialize counters
+    let totalJobs = jobData.length;
+    let activeJobs = jobData.filter(job => job.isActive).length;
+
+    let appliedCount = 0;
+    let interviewScheduledCount = 0;
+    let shortlistedCount = 0; // "In Progress"
+    let rejectedCount = 0;
+    let pendingCount = 0;
+
+    // Loop through jobs & applications
+    jobData.forEach(job => {
+      job.applications.forEach(app => {
+        appliedCount++; // every application is an "applied candidate"
+        console.log(app.employapplicantstatus)
+
+        switch (app.employapplicantstatus) {
+          case "Interview Scheduled":
+            interviewScheduledCount++;
+            break;
+          case "In Progress":
+            shortlistedCount++;
+            break;
+          case "Rejected":
+            rejectedCount++;
+            break;
+          case "Pending":
+            pendingCount++;
+            break;
+          default:
+            break;
+        }
+      });
+    });
+
+    // Build response object
+    const counts = {
+      totalJobs,
+      activeJobs,
+      appliedCount,
+      interviewScheduledCount,
+      shortlistedCount,
+      rejectedCount,
+      pendingCount,
+    };
+    console.log(counts)
+
+    res.status(200).json({ success: true, counts });
+  } catch (err) {
+    console.log("Error in getting the job data", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
 
 
@@ -1071,6 +1134,7 @@ const getJobAndEmployerCount = async (req, res) => {
 
 
 module.exports = {
+  getEmployerDashboardCount,
   getJobAndEmployerCount,
   signUp,
   decreaseProfileView,
