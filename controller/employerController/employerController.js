@@ -182,10 +182,22 @@ const signUp = async (req, res) => {
       $or: [{ userMobile }, { userEmail }],
     });
 
-    if (existUser) {
-      return res.status(400).json({ message: "Employer already registered." });
+     if (existUser.userEmail === userEmail && existUser.userMobile === userMobile) {
+      return res.status(400).json({
+        message: "Employee email and mobile number is already registered.",
+      });
+    } else if (existUser.userEmail === userEmail) {
+      return res
+        .status(400)
+        .json({ message: "Employee email is already registered." });
+    } else if (existUser.userMobile == mobile) {
+      return res.status(400).json({
+        message: "Employee mobile number is already registered.",
+      });
     }
 
+
+  
     // Hash password
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
