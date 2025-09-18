@@ -38,7 +38,7 @@ const signUp = async (req, res) => {
 
     console.log("existUser", existUser);
 
-    if (existUser.userEmail === userEmail && existUser.userMobile === mobile) {
+    if (existUser.userEmail === userEmail && existUser.userMobile == mobile) {
       return res.status(400).json({
         message: "Employee email and mobile number is already registered.",
       });
