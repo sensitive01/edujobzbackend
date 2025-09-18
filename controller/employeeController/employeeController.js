@@ -38,15 +38,15 @@ const signUp = async (req, res) => {
 
     console.log("existUser", existUser);
 
-    if (existUser.userEmail === userEmail && existUser.userMobile == mobile) {
+    if (existUser?.userEmail === userEmail && existUser?.userMobile == mobile) {
       return res.status(400).json({
         message: "Employee email and mobile number is already registered.",
       });
-    } else if (existUser.userEmail === userEmail) {
+    } else if (existUser?.userEmail === userEmail) {
       return res
         .status(400)
         .json({ message: "Employee email is already registered." });
-    } else if (existUser.userMobile == mobile) {
+    } else if (existUser?.userMobile == mobile) {
       return res.status(400).json({
         message: "Employee mobile number is already registered.",
       });
@@ -375,6 +375,7 @@ const getApplicationStatus = async (req, res) => {
 
 const uploadFile = async (req, res) => {
   try {
+    console.log("Inside controller")
     const { employid } = req.params;
     const fileType = req.query.fileType || req.body.fileType;
 
@@ -402,6 +403,8 @@ const uploadFile = async (req, res) => {
         details: result,
       });
     }
+
+    console.log("response in upload",result)
 
     // Use secure_url if available, otherwise fall back to url or path
     const fileUrl = result.secure_url || result.url || result.path;

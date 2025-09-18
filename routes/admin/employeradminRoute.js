@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const employeradminController = require("../../controller/employeradminController/employeradminController");
-const employeeController = require("../../controller/employeeController/employeeController");
-const employerController = require("../../controller/employerController/employerController");
+const emailverifycontroller = require("../../controller/employerController/emailverfycontoller")
 const employeradminRoute = express.Router();
 const multer = require("multer");
 
@@ -54,6 +53,9 @@ const dynamicUploadMiddleware = (req, res, next) => {
     next();
   });
 };
+
+employeradminRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmailEmployer);
+employeradminRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtpEmployer);
 
 employeradminRoute.post('/employeradminsignup', employeradminController.employersignupAdmin);
 employeradminRoute.post('/employerloginAdmin', employeradminController.employerloginAdmin);
