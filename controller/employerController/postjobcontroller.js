@@ -814,6 +814,161 @@ const getJobsWithNonPendingApplications = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+
+const getPendingJobs = async (req, res) => {
+  const applicantId = req.params.applicantId;
+
+  try {
+    const result = await Job.aggregate([
+      {
+        $match: {
+          applications: {
+            $elemMatch: {
+              applicantId: applicantId,
+              employapplicantstatus: { $eq: "Pending" },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          applications: {
+            $filter: {
+              input: "$applications",
+              as: "app",
+              cond: {
+                $and: [
+                  { $eq: ["$$app.applicantId", applicantId] },
+                  { $ne: ["$$app.employapplicantstatus", "Pending"] },
+                ],
+              },
+            },
+          },
+          employidObject: { $toObjectId: "$employid" },
+        },
+      },
+      {
+        $lookup: {
+          from: "employers", // <- MongoDB uses lowercase/plural collection names
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo",
+        },
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"],
+          },
+        },
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0,
+        },
+      },
+    ]);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching jobs with non-pending applications:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+
+
+
+const getRejectedJobs = async (req, res) => {
+  const applicantId = req.params.applicantId;
+
+  try {
+    const result = await Job.aggregate([
+      {
+        $match: {
+          applications: {
+            $elemMatch: {
+              applicantId: applicantId,
+              employapplicantstatus: { $eq: "Rejected" },
+            },
+          },
+        },
+      },
+      {
+        $addFields: {
+          applications: {
+            $filter: {
+              input: "$applications",
+              as: "app",
+              cond: {
+                $and: [
+                  { $eq: ["$$app.applicantId", applicantId] },
+                  { $ne: ["$$app.employapplicantstatus", "Rejected"] },
+                ],
+              },
+            },
+          },
+          employidObject: { $toObjectId: "$employid" },
+        },
+      },
+      {
+        $lookup: {
+          from: "employers", // <- MongoDB uses lowercase/plural collection names
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo",
+        },
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"],
+          },
+        },
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0,
+        },
+      },
+    ]);
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching jobs with non-pending applications:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
 // GET /jobs/school-employers
 const getSchoolEmployerJobs = async (req, res) => {
   try {
@@ -975,6 +1130,7 @@ const updateJobActiveStatus = async (req, res) => {
 };
 
 module.exports = {
+  getRejectedJobs,
   updateJobActiveStatus,
   toggleSaveJob,
   fetchAllJobs,
@@ -996,4 +1152,5 @@ module.exports = {
   shortlistcand,
   getNonPendingApplicantsByEmployId,
   updateFavStatusforsavecand,
+  getPendingJobs
 };

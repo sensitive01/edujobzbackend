@@ -111,6 +111,20 @@ employeeRoute.get(
   "/fetchshorlitstedjobsemployee/:applicantId",
   jobController.getJobsWithNonPendingApplications
 );
+
+employeeRoute.get(
+  "/getrejectedjob/:applicantId",
+  jobController.getPendingJobs
+);
+
+
+
+employeeRoute.get(
+  "/pendingJobs/:applicantId",
+  jobController.getPendingJobs
+);
+
+
 employeeRoute.get("/percentage/:id", employeeController.getProfileCompletion);
 employeeRoute.get("/getfeedback", feedbackController.fetchFeedback);
 employeeRoute.post("/createfeedback", feedbackController.addFeedback);
@@ -148,5 +162,28 @@ employeeRoute.put(
   "/updateAvailabilityStatus/:employeeId",
   employeeController.updateAvailabilityStatus
 );
+
+
+employeeRoute.delete(
+  "/delete-audio-record/:employeeId",
+  employeeController.deleteAudioRecord
+);
+
+employeeRoute.delete(
+  "/delete-profile-video-record/:employeeId",
+  employeeController.deleteProfileAudioRecord
+);
+
+
+employeeRoute.delete(
+  "/delete-cover-letter/:employeeId",
+  employeeController.deleteCoverLetter
+);
+
+employeeRoute.delete(
+  "/delete-resume/:employeeId",
+  employeeController.deleteResumeLetter
+);
+
 
 module.exports = employeeRoute;

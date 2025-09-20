@@ -375,7 +375,7 @@ const getApplicationStatus = async (req, res) => {
 
 const uploadFile = async (req, res) => {
   try {
-    console.log("Inside controller")
+    console.log("Inside controller");
     const { employid } = req.params;
     const fileType = req.query.fileType || req.body.fileType;
 
@@ -404,7 +404,7 @@ const uploadFile = async (req, res) => {
       });
     }
 
-    console.log("response in upload",result)
+    console.log("response in upload", result);
 
     // Use secure_url if available, otherwise fall back to url or path
     const fileUrl = result.secure_url || result.url || result.path;
@@ -996,16 +996,18 @@ const verifyTheCandidateRegisterOrNot = async (req, res) => {
     const candidateData = await userModel.findOne({
       userEmail: candidateEmail,
     });
-    console.log(candidateData);
+
+    if (!candidateData) {
+      // Candidate not found → end response here
+      return res.status(200).json({ exists: false });
+    }
+
+    // Candidate exists → create token
     const token = jwt.sign({ id: candidateData._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
-    if (candidateData) {
-      return res.status(200).json({ exists: true, candidateData, token });
-    } else {
-      return res.status(200).json({ exists: false });
-    }
+    return res.status(200).json({ exists: true, candidateData, token });
   } catch (err) {
     console.error("Error verifying candidate:", err);
     return res.status(500).json({ error: "Internal Server Error" });
@@ -1311,8 +1313,112 @@ const updateAvailabilityStatus = async (req, res) => {
   }
 };
 
+const deleteAudioRecord = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $unset: { introductionAudio: "" } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json({
+      message: "Introduction audio deleted successfully",
+      employee: updatedEmployee,
+    });
+  } catch (err) {
+    console.error("Error deleting audio record:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+const deleteProfileAudioRecord = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $unset: { profileVideo: "" } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json({
+      message: "Profile video  removed successfully",
+      employee: updatedEmployee,
+    });
+  } catch (err) {
+    console.error("Error profile video:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const deleteCoverLetter = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $unset: { coverLetterFile: "" } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json({
+      message: "Cover letter removed successfully",
+      employee: updatedEmployee,
+    });
+  } catch (err) {
+    console.error("Error in remove cover letter:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const deleteResumeLetter = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $unset: { resume: "" } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json({
+      message: "Resume removed successfully",
+      employee: updatedEmployee,
+    });
+  } catch (err) {
+    console.error("Error in remove resume:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+
+
 //hbh
 module.exports = {
+  deleteResumeLetter,
+  deleteCoverLetter,
+  deleteProfileAudioRecord,
+  deleteAudioRecord,
   addwithouttoeken,
   addJobAlert,
   getDesiredJobAlerts,
