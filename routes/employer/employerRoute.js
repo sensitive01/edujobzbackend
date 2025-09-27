@@ -172,6 +172,8 @@ employerRoute.put('/updateevent/:eventId', eventsController.updateEvent);
 employerRoute.delete('/removeevents/:eventId', eventsController.deleteEvent);
 
 employerRoute.post('/events/:eventId/registerevents', eventsController.registerInEvent);
+employerRoute.post('/events/:eventId/registereventsemployee/:empId', eventsController.registerInEventEmployee);
+
 employerRoute.get('/events/:eventId/geteventspariticapant', eventsController.getEventRegistrations);
 employerRoute.put('/events/:eventId/registrations/:registrationId', eventsController.updateRegistrationStatus);
 employerRoute.put('/events/:eventId/registrations/:participantId/updatestatus', eventsController.updateRegistrationStatus);

@@ -1,12 +1,13 @@
-const OrganizedEvent = require('../../models/events');
+const OrganizedEvent = require("../../models/events");
+const EmpoyeeModel = require("../../models/employeeschema");
 
 // Create a new event
 exports.createsEvent = async (req, res) => {
   try {
-    console.log('---- Create Event Hit ----');
-    console.log('Params:', req.params);
-    console.log('Body:', req.body);
-    console.log('File:', req.file); // Will include `path` and `secure_url`
+    console.log("---- Create Event Hit ----");
+    console.log("Params:", req.params);
+    console.log("Body:", req.body);
+    console.log("File:", req.file); // Will include `path` and `secure_url`
 
     const { organizerId } = req.params;
     const {
@@ -20,7 +21,7 @@ exports.createsEvent = async (req, res) => {
       totalattendes,
       eventendDate,
       entryfee,
-      coordinator
+      coordinator,
     } = req.body;
 
     const bannerImage = req.file?.path || null; // Cloudinary returns URL in `path`
@@ -38,46 +39,65 @@ exports.createsEvent = async (req, res) => {
       bannerImage,
       totalattendes,
       entryfee,
-      eventendDate
+      eventendDate,
     });
 
     await event.save();
-    console.log('✅ Event saved successfully');
+    console.log("✅ Event saved successfully");
     res.status(201).json(event);
   } catch (error) {
-    console.error('❌ Error in createEvent:', error);
+    console.error("❌ Error in createEvent:", error);
     res.status(400).json({ message: error.message });
   }
 };
-
 
 // Get all events for an organizer
 exports.getOrganizerEvents = async (req, res) => {
   try {
     const { organizerId } = req.params;
-    const events = await OrganizedEvent.find({ organizerId }).sort({ eventDate: 1 });
+    const events = await OrganizedEvent.find({ organizerId }).sort({
+      eventDate: 1,
+    });
     res.json(events);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 // Get all events (no organizerId required)
+// exports.getAllEvents = async (req, res) => {
+//   try {
+//     const event = await OrganizedEvent.find().sort({ eventDate: 1 });
+//     res.json(event);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
 exports.getAllEvents = async (req, res) => {
   try {
-    const event = await OrganizedEvent.find().sort({ eventDate: 1 });
-    res.json(event);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let events = await OrganizedEvent.find().sort({ eventDate: 1 });
+
+    // Convert string dates into real Date before filtering
+    events = events.filter((ev) => {
+      const evDate = new Date(ev.eventDate);
+      return evDate >= today;
+    });
+
+    res.json(events);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 // Get single event details
 exports.getEventDetails = async (req, res) => {
   try {
     const event = await OrganizedEvent.findById(req.params.eventId);
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: "Event not found" });
     }
     res.json(event);
   } catch (error) {
@@ -94,7 +114,7 @@ exports.updateEvent = async (req, res) => {
       { new: true, runValidators: true }
     );
     if (!updated) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: "Event not found" });
     }
     res.json(updated);
   } catch (error) {
@@ -107,9 +127,9 @@ exports.deleteEvent = async (req, res) => {
   try {
     const event = await OrganizedEvent.findByIdAndDelete(req.params.eventId);
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: "Event not found" });
     }
-    res.json({ message: 'Event deleted successfully' });
+    res.json({ message: "Event deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -126,12 +146,12 @@ exports.registerInEvent = async (req, res) => {
       contactPhone,
       resumeLink,
       status,
-      profileImage
+      profileImage,
     } = req.body;
 
     const event = await OrganizedEvent.findById(eventId);
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: "Event not found" });
     }
 
     // Fix: Check if participantId exists before calling .toString()
@@ -140,7 +160,9 @@ exports.registerInEvent = async (req, res) => {
     );
 
     if (already) {
-      return res.status(400).json({ message: 'Already registered for this event' });
+      return res
+        .status(400)
+        .json({ message: "Already registered for this event" });
     }
 
     // Add new registration
@@ -151,36 +173,36 @@ exports.registerInEvent = async (req, res) => {
       contactPhone,
       status,
       resumeLink,
-      profileImage
+      profileImage,
     });
 
     event.totalRegistrations = event.registrations.length;
     await event.save();
 
-    res.status(201).json({ message: 'Registered successfully', event });
+    res.status(201).json({ message: "Registered successfully", event });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 };
 
-
 // Get event registrations
 exports.getEventRegistrations = async (req, res) => {
   try {
-    const event = await OrganizedEvent.findById(req.params.eventId)
-      .select('title eventDate venue registrations');
+    const event = await OrganizedEvent.findById(req.params.eventId).select(
+      "title eventDate venue registrations"
+    );
 
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: "Event not found" });
     }
 
     res.json({
       event: {
         title: event.title,
         eventDate: event.eventDate,
-        venue: event.venue
+        venue: event.venue,
       },
-      registrations: event.registrations
+      registrations: event.registrations,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -193,18 +215,18 @@ exports.updateRegistrationStatus = async (req, res) => {
     const { eventId, registrationId } = req.params;
     const { registrationStatus } = req.body;
 
-    if (!['Pending', 'Approved', 'Rejected'].includes(registrationStatus)) {
-      return res.status(400).json({ message: 'Invalid status' });
+    if (!["Pending", "Approved", "Rejected"].includes(registrationStatus)) {
+      return res.status(400).json({ message: "Invalid status" });
     }
 
     const event = await OrganizedEvent.findById(eventId);
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: "Event not found" });
     }
 
     const registration = event.registrations.id(registrationId);
     if (!registration) {
-      return res.status(404).json({ message: 'Registration not found' });
+      return res.status(404).json({ message: "Registration not found" });
     }
 
     registration.registrationStatus = registrationStatus;
@@ -222,7 +244,7 @@ exports.updateRegistrationStatus = async (req, res) => {
 
     const event = await OrganizedEvent.findById(eventId);
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: "Event not found" });
     }
 
     const registration = event.registrations.find(
@@ -230,13 +252,17 @@ exports.updateRegistrationStatus = async (req, res) => {
     );
 
     if (!registration) {
-      return res.status(404).json({ message: 'Participant not registered for this event' });
+      return res
+        .status(404)
+        .json({ message: "Participant not registered for this event" });
     }
 
     registration.status = status;
 
     await event.save();
-    res.status(200).json({ message: 'Status updated successfully', registration });
+    res
+      .status(200)
+      .json({ message: "Status updated successfully", registration });
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -249,18 +275,66 @@ exports.checkRegistrationStatus = async (req, res) => {
 
     const event = await OrganizedEvent.findById(eventId);
     if (!event) {
-      return res.status(404).json({ message: 'Event not found' });
+      return res.status(404).json({ message: "Event not found" });
     }
 
     // Check if participant is registered
-const isRegistered = event.registrations.some(
-  (r) => r.participantId && r.participantId.toString() === participantId
-);
-
+    const isRegistered = event.registrations.some(
+      (r) => r.participantId && r.participantId.toString() === participantId
+    );
 
     res.json({ isRegistered });
   } catch (error) {
-    console.error('❌ Error in checkRegistrationStatus:', error);
+    console.error("❌ Error in checkRegistrationStatus:", error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.registerInEventEmployee = async (req, res) => {
+  try {
+    console.log("check");
+    const { eventId, empId } = req.params;
+    const { mobileNumber, status } = req.body;
+
+    console.log(req.params, req.body);
+
+    const event = await OrganizedEvent.findById(eventId);
+    const empData = await EmpoyeeModel.findOne(
+      { _id: empId },
+      { userName: 1, userEmail: 1, resumeLink: 1, profileImage: 1 }
+    );
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Fix: Check if participantId exists before calling .toString()
+    const already = event.registrations.find(
+      (r) => r.participantId && r.participantId.toString() === empId
+    );
+
+    if (already) {
+      return res
+        .status(201)
+        .json({ message: "Already registered for this event" });
+    }
+
+    // Add new registration
+    event.registrations.push({
+      participantId: empId,
+      participantName: empData.userName,
+      contactEmail: empData.userEmail,
+      contactPhone: mobileNumber,
+      status,
+      resumeLink: empData.resumeLink,
+      profileImage: empData.profileImage,
+    });
+
+    event.totalRegistrations = event.registrations.length;
+    await event.save();
+
+    res.status(201).json({ message: "Event Registered successfully", event });
+  } catch (error) {
+    console.log("error in event reg", error);
+    res.status(400).json({ message: error.message });
   }
 };
