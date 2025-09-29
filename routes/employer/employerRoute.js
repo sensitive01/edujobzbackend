@@ -168,6 +168,8 @@ employerRoute.post('/:organizerId/events', dynamicUploadMiddleware, eventsContro
 employerRoute.get('/organizer/:organizerId/events', eventsController.getOrganizerEvents);
 employerRoute.get('/details/:eventId', eventsController.getEventDetails);
 employerRoute.get('/getallevents', eventsController.getAllEvents);
+employerRoute.get('/getmyevents/:userId', eventsController.getMyEvents);
+
 employerRoute.put('/updateevent/:eventId', eventsController.updateEvent);
 employerRoute.delete('/removeevents/:eventId', eventsController.deleteEvent);
 

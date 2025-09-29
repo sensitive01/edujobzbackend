@@ -92,6 +92,56 @@ exports.getAllEvents = async (req, res) => {
   }
 };
 
+exports.getMyEvents = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // normalize today's date
+
+    // Fetch only events where user is registered
+    let events = await OrganizedEvent.find({
+      "registrations.participantId": userId,
+    }).sort({ eventDate: 1 });
+
+    // Process and filter user-specific registration
+    events = events.map((ev) => {
+      const evDate = new Date(ev.eventDate);
+      let eventStatus = "upcoming";
+
+      if (evDate < today) {
+        eventStatus = "past";
+      } else if (evDate.getTime() === today.getTime()) {
+        eventStatus = "today";
+      }
+
+      // Find only this user's registration
+      const myRegistration = ev.registrations.find(
+        (reg) => reg.participantId === userId
+      );
+
+      return {
+        _id: ev._id,
+        title: ev.title,
+        description: ev.description,
+        category: ev.category,
+        eventDate: ev.eventDate,
+        eventendDate: ev.eventendDate,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+        venue: ev.venue,
+        entryfee: ev.entryfee,
+        bannerImage: ev.bannerImage,
+        eventStatus, // past/today/upcoming
+        myRegistration, // only this participant's data
+      };
+    });
+
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get single event details
 exports.getEventDetails = async (req, res) => {
   try {
