@@ -1,6 +1,10 @@
 const mongoose = require("mongoose");
 
 const eventSchema = new mongoose.Schema({
+  candidateId: {
+    type: String,
+    required: true,
+  },
 
   employerId: {
     type: String,
