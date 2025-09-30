@@ -14,6 +14,7 @@ const appleKeysClient = jwksClient({
   jwksUri: "https://appleid.apple.com/auth/keys",
 });
 const jobModel = require("../../models/jobSchema")
+const EventSchema = require("../../models/calenderschema")
 
 const generateUserUUID = () => uuidv4(); // Define the function
 
@@ -1074,6 +1075,9 @@ const getEmployerDashboardCount = async (req, res) => {
       { isActive: 1, applications: 1 } // only fetch required fields
     );
 
+    const interViewData = await EventSchema.find({employerId},{title:1,location:1,start:1,end:1,createdAt:1})
+    console.log("interViewData",interViewData)
+
     // Initialize counters
     let totalJobs = jobData.length;
     let activeJobs = jobData.filter(job => job.isActive).length;
@@ -1119,9 +1123,8 @@ const getEmployerDashboardCount = async (req, res) => {
       rejectedCount,
       pendingCount,
     };
-    console.log(counts)
 
-    res.status(200).json({ success: true, counts });
+    res.status(200).json({ success: true, counts,interViewData });
   } catch (err) {
     console.log("Error in getting the job data", err);
     res.status(500).json({ success: false, message: "Server error" });
