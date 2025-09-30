@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 
 // Create Event
 const createEvent = async (req, res) => {
-  const { employerId, title, description, location, start, end, color } =
+  console.log("req.body",req.body)
+  const { employerId,candidateId, title, description, location, start, end, color } =
     req.body;
 
   if (!employerId || !title || !start || !end) {
@@ -23,7 +24,7 @@ const createEvent = async (req, res) => {
 
   try {
     // Check if an event exists for this employerId
-    let event = await Event.findOne({ employerId });
+    let event = await Event.findOne({ candidateId });
 
     if (event) {
       // Update existing event
@@ -33,6 +34,7 @@ const createEvent = async (req, res) => {
       event.start = new Date(start);
       event.end = new Date(end);
       event.color = color || event.color || "#6C63FF";
+      event.candidateId = candidateId
 
       await event.save();
     } else {
@@ -45,6 +47,7 @@ const createEvent = async (req, res) => {
         start: new Date(start),
         end: new Date(end),
         color: color || "#6C63FF",
+        candidateId
       });
     }
 
@@ -60,6 +63,7 @@ const createEvent = async (req, res) => {
         end: event.end,
         color: event.color,
         allDay: false,
+        candidateId
       },
     });
   } catch (error) {
