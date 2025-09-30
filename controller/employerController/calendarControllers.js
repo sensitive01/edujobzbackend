@@ -1,30 +1,54 @@
-const Event = require('../../models/calenderschema');
-const mongoose = require('mongoose');
+const Event = require("../../models/calenderschema");
+const mongoose = require("mongoose");
 
 // Create Event
 const createEvent = async (req, res) => {
-  const { employerId, title, description, location, start, end, color } = req.body;
+  const { employerId, title, description, location, start, end, color } =
+    req.body;
 
   if (!employerId || !title || !start || !end) {
-    return res.status(400).json({ success: false, message: 'Employer ID, title, start time, and end time are required' });
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "Employer ID, title, start time, and end time are required",
+      });
   }
 
   if (new Date(start) >= new Date(end)) {
-    return res.status(400).json({ success: false, message: 'End time must be after start time' });
+    return res
+      .status(400)
+      .json({ success: false, message: "End time must be after start time" });
   }
 
   try {
-    const event = await Event.create({
-      employerId,
-      title,
-      location,
-      description,
-      start: new Date(start),
-      end: new Date(end),
-      color: color || '#6C63FF',
-    });
+    // Check if an event exists for this employerId
+    let event = await Event.findOne({ employerId });
 
-    res.status(201).json({
+    if (event) {
+      // Update existing event
+      event.title = title;
+      event.description = description;
+      event.location = location;
+      event.start = new Date(start);
+      event.end = new Date(end);
+      event.color = color || event.color || "#6C63FF";
+
+      await event.save();
+    } else {
+      // Create a new event
+      event = await Event.create({
+        employerId,
+        title,
+        description,
+        location,
+        start: new Date(start),
+        end: new Date(end),
+        color: color || "#6C63FF",
+      });
+    }
+
+    res.status(200).json({
       success: true,
       data: {
         id: event._id,
@@ -39,7 +63,12 @@ const createEvent = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: `Error creating event: ${error.message}` });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: `Error saving event: ${error.message}`,
+      });
   }
 };
 
@@ -48,7 +77,9 @@ const getEvents = async (req, res) => {
   const { employerId, start, end } = req.query;
 
   if (!employerId) {
-    return res.status(400).json({ success: false, message: 'Employer ID is required' });
+    return res
+      .status(400)
+      .json({ success: false, message: "Employer ID is required" });
   }
 
   const query = { employerId };
@@ -64,10 +95,10 @@ const getEvents = async (req, res) => {
     res.status(200).json({
       success: true,
       count: events.length,
-      data: events.map(event => ({
+      data: events.map((event) => ({
         id: event._id,
         title: event.title,
-         location: event.location,
+        location: event.location,
         description: event.description,
         start: event.start,
         end: event.end,
@@ -76,7 +107,12 @@ const getEvents = async (req, res) => {
       })),
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: `Error fetching events: ${error.message}` });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: `Error fetching events: ${error.message}`,
+      });
   }
 };
 
@@ -86,40 +122,62 @@ const updateEvent = async (req, res) => {
   const { employerId, title, description, start, end, color } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, message: 'Invalid event ID' });
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid event ID" });
   }
 
   if (!employerId) {
-    return res.status(400).json({ success: false, message: 'Employer ID is required' });
+    return res
+      .status(400)
+      .json({ success: false, message: "Employer ID is required" });
   }
 
   if (start && end && new Date(start) >= new Date(end)) {
-    return res.status(400).json({ success: false, message: 'End time must be after start time' });
+    return res
+      .status(400)
+      .json({ success: false, message: "End time must be after start time" });
   }
 
   try {
     const event = await Event.findOneAndUpdate(
       { _id: id, employerId },
-      { title, description, start: start ? new Date(start) : undefined, end: end ? new Date(end) : undefined, color },
+      {
+        title,
+        description,
+        start: start ? new Date(start) : undefined,
+        end: end ? new Date(end) : undefined,
+        color,
+      },
       { new: true, runValidators: true }
     );
 
     if (!event) {
-      return res.status(404).json({ success: false, message: 'Event not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Event not found" });
     }
 
-    res.status(200).json({ success: true, data: {
-      id: event._id,
-      employerId: event.employerId,
-      title: event.title,
-      description: event.description,
-      start: event.start,
-      end: event.end,
-      color: event.color,
-      allDay: false,
-    } });
+    res.status(200).json({
+      success: true,
+      data: {
+        id: event._id,
+        employerId: event.employerId,
+        title: event.title,
+        description: event.description,
+        start: event.start,
+        end: event.end,
+        color: event.color,
+        allDay: false,
+      },
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: `Error updating event: ${error.message}` });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: `Error updating event: ${error.message}`,
+      });
   }
 };
 
@@ -129,23 +187,34 @@ const deleteEvent = async (req, res) => {
   const { employerId } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(400).json({ success: false, message: 'Invalid event ID' });
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid event ID" });
   }
 
   if (!employerId) {
-    return res.status(400).json({ success: false, message: 'Employer ID is required' });
+    return res
+      .status(400)
+      .json({ success: false, message: "Employer ID is required" });
   }
 
   try {
     const event = await Event.findOneAndDelete({ _id: id, employerId });
 
     if (!event) {
-      return res.status(404).json({ success: false, message: 'Event not found' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Event not found" });
     }
 
     res.status(200).json({ success: true, data: {} });
   } catch (error) {
-    res.status(500).json({ success: false, message: `Error deleting event: ${error.message}` });
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: `Error deleting event: ${error.message}`,
+      });
   }
 };
 
