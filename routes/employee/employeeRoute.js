@@ -185,6 +185,7 @@ employeeRoute.delete(
   employeeController.deleteResumeLetter
 );
 
+employeeRoute.get("/get-header-categories-count",employeeController.getHeaderCategoriesCount)
 
 
 

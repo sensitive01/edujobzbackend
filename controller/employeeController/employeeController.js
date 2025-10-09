@@ -1337,7 +1337,6 @@ const deleteAudioRecord = async (req, res) => {
   }
 };
 
-
 const deleteProfileAudioRecord = async (req, res) => {
   try {
     const { employeeId } = req.params;
@@ -1410,11 +1409,48 @@ const deleteResumeLetter = async (req, res) => {
   }
 };
 
+const getHeaderCategoriesCount = async (req, res) => {
+  try {
+    // Predefined categories (you can modify this list if needed)
+    const categories = [
+      "Teaching Jobs",
+      "Leadership and Administration",
+      "Support and Student Welfare",
+      "Extracurricular Activities",
+      "Curriculum and Content Development",
+      "EdTech and Digital Learning",
+      "Special Education and Inclusive Learning",
+      "Non-Teaching Staffs",
+      "Training and Development",
+      "Research and Policy Development",
+      "Other Specialized Roles",
+    ];
 
+    const categoryCounts = [];
 
+    for (const category of categories) {
+      const count = await Job.countDocuments({ category });
+      categoryCounts.push({ category, count });
+    }
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      data: categoryCounts,
+    });
+  } catch (err) {
+    console.error("Error in getting category counts:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching category counts",
+      error: err.message,
+    });
+  }
+};
 
 //hbh
 module.exports = {
+  getHeaderCategoriesCount,
   deleteResumeLetter,
   deleteCoverLetter,
   deleteProfileAudioRecord,
