@@ -61,14 +61,14 @@ const createJob = async (req, res) => {
     }
 
     // Check if totaljobpostinglimit is greater than 0
-    if (employer.totaljobpostinglimit <= 0) {
-      return res
-        .status(403)
-        .json({
-          message:
-            "Job posting limit reached. Please upgrade your subscription.",
-        });
-    }
+    // if (employer.totaljobpostinglimit <= 0) {
+    //   return res
+    //     .status(403)
+    //     .json({
+    //       message:
+    //         "Job posting limit reached. Please upgrade your subscription.",
+    //     });
+    // }
 
     // Create the new job
     const newJob = new Job(jobData);
