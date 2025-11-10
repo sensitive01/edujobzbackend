@@ -77,13 +77,30 @@ const createJob = async (req, res) => {
       }
     }
 
-    // Check if totaljobpostinglimit is greater than 0
-    if (employer.totaljobpostinglimit <= 0) {
+    // Check subscription status
+    if (employer.subscription === "false" || !employer.currentSubscription) {
+      return res.status(403).json({
+        success: false,
+        message: "No active subscription. Please subscribe to post jobs.",
+      });
+    }
+
+    // Get allowed job limit from current subscription plan
+    let allowedJobLimit = 0;
+    if (employer.currentSubscription && employer.currentSubscription.planDetails) {
+      allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
+    }
+
+    // Check if totaljobpostinglimit is greater than 0 (backup check)
+    if (allowedJobLimit <= 0 && employer.totaljobpostinglimit <= 0) {
       return res.status(403).json({
         success: false,
         message: "Job posting limit reached. Please upgrade your subscription.",
       });
     }
+
+    // Use the higher value between subscription limit and totaljobpostinglimit
+    const effectiveLimit = Math.max(allowedJobLimit, employer.totaljobpostinglimit);
 
     // Check how many active jobs the employer currently has
     const activeJobsCount = await Job.countDocuments({
@@ -92,10 +109,10 @@ const createJob = async (req, res) => {
     });
 
     // If active jobs count is already at or exceeds the plan limit, don't allow new job posting
-    if (activeJobsCount >= employer.totaljobpostinglimit) {
+    if (activeJobsCount >= effectiveLimit) {
       return res.status(403).json({
         success: false,
-        message: `You have reached your active job limit (${employer.totaljobpostinglimit}). Please closed an existing job before posting a new one.`,
+        message: `You have reached your active job limit (${effectiveLimit}). Please close an existing job before posting a new one.`,
       });
     }
 
@@ -103,9 +120,7 @@ const createJob = async (req, res) => {
     const newJob = new Job(jobData);
     const savedJob = await newJob.save();
 
-    // Decrease the totaljobpostinglimit by 1
-    employer.totaljobpostinglimit -= 1;
-    await employer.save();
+    // DO NOT reduce totaljobpostinglimit - it's a fixed limit based on subscription
 
     // Return the saved job
     res.status(201).json(savedJob);
