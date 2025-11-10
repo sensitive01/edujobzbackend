@@ -213,14 +213,16 @@ cron.schedule("59 23 * * *", async () => {
     });
 
     for (const employer of allEmployers) {
-      // Get the effective job limit
+      // Get the effective job limit - use totaljobpostinglimit as primary, fallback to subscription plan limit
       let allowedJobLimit = 0;
       if (employer.currentSubscription && employer.currentSubscription.planDetails) {
         allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
       }
       
-      // Use the higher value between subscription limit and totaljobpostinglimit
-      const effectiveLimit = Math.max(allowedJobLimit, employer.totaljobpostinglimit);
+      // Use totaljobpostinglimit as primary limit, fallback to subscription plan limit if totaljobpostinglimit is 0
+      const effectiveLimit = employer.totaljobpostinglimit > 0 
+        ? employer.totaljobpostinglimit 
+        : allowedJobLimit;
       
       if (effectiveLimit > 0) {
         // Get all active jobs for this employer

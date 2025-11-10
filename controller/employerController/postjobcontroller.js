@@ -85,22 +85,24 @@ const createJob = async (req, res) => {
       });
     }
 
-    // Get allowed job limit from current subscription plan
+    // Get allowed job limit from current subscription plan (as fallback)
     let allowedJobLimit = 0;
     if (employer.currentSubscription && employer.currentSubscription.planDetails) {
       allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
     }
 
-    // Check if totaljobpostinglimit is greater than 0 (backup check)
-    if (allowedJobLimit <= 0 && employer.totaljobpostinglimit <= 0) {
+    // Use totaljobpostinglimit as primary limit, fallback to subscription plan limit if totaljobpostinglimit is 0
+    const effectiveLimit = employer.totaljobpostinglimit > 0 
+      ? employer.totaljobpostinglimit 
+      : allowedJobLimit;
+
+    // Check if effective limit is valid
+    if (effectiveLimit <= 0) {
       return res.status(403).json({
         success: false,
         message: "Job posting limit reached. Please upgrade your subscription.",
       });
     }
-
-    // Use the higher value between subscription limit and totaljobpostinglimit
-    const effectiveLimit = Math.max(allowedJobLimit, employer.totaljobpostinglimit);
 
     // Check how many active jobs the employer currently has
     const activeJobsCount = await Job.countDocuments({
@@ -1172,12 +1174,14 @@ const updateJobActiveStatus = async (req, res) => {
         });
       }
 
-      // Get effective limit
+      // Get effective limit - use totaljobpostinglimit as primary, fallback to subscription plan limit
       let allowedJobLimit = 0;
       if (employer.currentSubscription && employer.currentSubscription.planDetails) {
         allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
       }
-      const effectiveLimit = Math.max(allowedJobLimit, employer.totaljobpostinglimit);
+      const effectiveLimit = employer.totaljobpostinglimit > 0 
+        ? employer.totaljobpostinglimit 
+        : allowedJobLimit;
 
       // Check if limit is valid
       if (effectiveLimit <= 0) {
