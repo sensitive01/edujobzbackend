@@ -1151,21 +1151,68 @@ const updateJobActiveStatus = async (req, res) => {
       return res.status(400).json({ message: "isActive must be a boolean." });
     }
 
-    const job = await Job.findByIdAndUpdate(
+    // First, find the job to get employer info
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    // If trying to activate, check the limit first
+    if (isActive === true) {
+      const employer = await Employer.findById(job.employid);
+      
+      if (!employer) {
+        return res.status(404).json({ message: "Employer not found" });
+      }
+
+      // Check subscription status
+      if (employer.subscription === "false" || !employer.currentSubscription) {
+        return res.status(403).json({
+          message: "No active subscription. Cannot activate job.",
+        });
+      }
+
+      // Get effective limit
+      let allowedJobLimit = 0;
+      if (employer.currentSubscription && employer.currentSubscription.planDetails) {
+        allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
+      }
+      const effectiveLimit = Math.max(allowedJobLimit, employer.totaljobpostinglimit);
+
+      // Check if limit is valid
+      if (effectiveLimit <= 0) {
+        return res.status(403).json({
+          message: "Job posting limit is 0. Please upgrade your subscription.",
+        });
+      }
+
+      // Count current active jobs (excluding the job being activated)
+      const activeJobsCount = await Job.countDocuments({
+        employid: job.employid,
+        isActive: true,
+        _id: { $ne: jobId } // Exclude current job from count
+      });
+
+      // Check if activating would exceed limit
+      if (activeJobsCount >= effectiveLimit) {
+        return res.status(403).json({
+          message: `Cannot activate job. You have reached your active job limit (${effectiveLimit}). Please deactivate another job first.`,
+        });
+      }
+    }
+
+    // Update the job status (deactivation is always allowed)
+    const updatedJob = await Job.findByIdAndUpdate(
       jobId,
       { isActive, updatedAt: new Date() },
       { new: true }
     );
 
-    if (!job) {
-      return res.status(404).json({ message: "Job not found" });
-    }
-
     res.status(200).json({
       message: `Job has been ${
         isActive ? "activated" : "deactivated"
       } successfully.`,
-      job,
+      job: updatedJob,
     });
   } catch (error) {
     console.error("Error updating job status:", error);
