@@ -60,15 +60,44 @@ const createJob = async (req, res) => {
       return res.status(404).json({ message: "Employer not found" });
     }
 
+    // Check if a job with the same jobTitle already exists for this employer (case-insensitive)
+    if (jobData.jobTitle) {
+      // Escape special regex characters to prevent regex injection
+      const escapedJobTitle = jobData.jobTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const existingJob = await Job.findOne({
+        employid: jobData.employid,
+        jobTitle: { $regex: new RegExp(`^${escapedJobTitle}$`, 'i') },
+      });
+
+      if (existingJob) {
+        return res.status(400).json({
+          success: false,
+          message: "A job with this title already exists. Please use a different job title.",
+        });
+      }
+    }
+
     // Check if totaljobpostinglimit is greater than 0
-    // if (employer.totaljobpostinglimit <= 0) {
-    //   return res
-    //     .status(403)
-    //     .json({
-    //       message:
-    //         "Job posting limit reached. Please upgrade your subscription.",
-    //     });
-    // }
+    if (employer.totaljobpostinglimit <= 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Job posting limit reached. Please upgrade your subscription.",
+      });
+    }
+
+    // Check how many active jobs the employer currently has
+    const activeJobsCount = await Job.countDocuments({
+      employid: jobData.employid,
+      isActive: true,
+    });
+
+    // If active jobs count is already at or exceeds the plan limit, don't allow new job posting
+    if (activeJobsCount >= employer.totaljobpostinglimit) {
+      return res.status(403).json({
+        success: false,
+        message: `You have reached your active job limit (${employer.totaljobpostinglimit}). Please closed an existing job before posting a new one.`,
+      });
+    }
 
     // Create the new job
     const newJob = new Job(jobData);
