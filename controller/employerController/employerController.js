@@ -1131,12 +1131,26 @@ const getEmployerDashboardCount = async (req, res) => {
   }
 };
 
-
+const getEmployerSubscribed = async (req, res) => {
+  try {
+    console.log("req.params",req.params)
+    const { employerId } = req.params;
+    const employer = await userModel.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
+    return res.status(200).json({ success: true, subscribed: employer.subscription });
+  } catch (err) {
+    console.log("Error in getting the employer data", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 
 
 
 
 module.exports = {
+  getEmployerSubscribed,
   getEmployerDashboardCount,
   getJobAndEmployerCount,
   signUp,

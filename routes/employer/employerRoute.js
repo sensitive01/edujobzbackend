@@ -128,6 +128,8 @@ employerRoute.get("/viewallappliedcandi/:employid", jobController.getAllApplican
 
 employerRoute.put('/updaee/:applicationId/:employid', jobController.updateFavStatusforsavecand);
 
+employerRoute.get('/get-is-employer-subscribed/:employerId', employerController.getEmployerSubscribed);
+
 employerRoute.get('/fetchAllJobs', jobController.fetchAllJobs);
 employerRoute.post('/toggleSaveJob', jobController.toggleSaveJob);
 employerRoute.get('/fetchSavedJobs/:employid', jobController.fetchSavedJobslist);
