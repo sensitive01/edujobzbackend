@@ -57,6 +57,8 @@ cron.schedule("59 23 * * *", async () => {
       'currentSubscription.startDate': { $exists: true }
     });
 
+    const Job = require('./models/jobSchema');
+
     for (const employer of trialEmployers) {
       const trialStart = new Date(employer.currentSubscription.startDate);
       const diffDays = Math.floor((today - trialStart) / (1000 * 60 * 60 * 24));
@@ -66,7 +68,36 @@ cron.schedule("59 23 * * *", async () => {
         employer.subscription = "false";
         employer.subscriptionleft = 0;
         employer.currentSubscription = null; // Clear current subscription
-        console.log(`✅ Trial ended for employer: ${employer.schoolName || employer.uuid}`);
+        
+        // Reset all limits to 0 when trial expires
+        employer.totalperdaylimit = 0;
+        employer.totalprofileviews = 0;
+        employer.totaldownloadresume = 0;
+        employer.totaljobpostinglimit = 0;
+        
+        // Update subscription status in subscriptions array
+        if (employer.subscriptions && employer.subscriptions.length > 0) {
+          const activeSub = employer.subscriptions.find(sub => sub.status === 'active');
+          if (activeSub) {
+            activeSub.status = 'expired';
+          }
+        }
+        
+        // Deactivate all active jobs when trial expires
+        const activeJobs = await Job.find({
+          employid: employer._id,
+          isActive: true
+        });
+        
+        if (activeJobs.length > 0) {
+          for (const job of activeJobs) {
+            job.isActive = false;
+            await job.save();
+          }
+          console.log(`🔴 Deactivated ${activeJobs.length} jobs for employer: ${employer.schoolName || employer.uuid} (trial expired)`);
+        }
+        
+        console.log(`✅ Trial ended for employer: ${employer.schoolName || employer.uuid} - All limits reset to 0`);
         await employer.save();
       }
     }
@@ -86,12 +117,133 @@ cron.schedule("59 23 * * *", async () => {
         employer.subscription = "false";
         employer.subscriptionleft = 0; // Ensure no negative values
         employer.currentSubscription = null; // Clear current subscription
-        console.log(`🚫 Subscription expired for employer: ${employer.schoolName || employer.uuid}`);
+        
+        // Reset all limits to 0 when subscription expires
+        employer.totalperdaylimit = 0;
+        employer.totalprofileviews = 0;
+        employer.totaldownloadresume = 0;
+        employer.totaljobpostinglimit = 0;
+        
+        // Update subscription status in subscriptions array
+        if (employer.subscriptions && employer.subscriptions.length > 0) {
+          const activeSub = employer.subscriptions.find(sub => sub.status === 'active');
+          if (activeSub) {
+            activeSub.status = 'expired';
+          }
+        }
+        
+        // Deactivate all active jobs when subscription expires
+        const activeJobs = await Job.find({
+          employid: employer._id,
+          isActive: true
+        });
+        
+        if (activeJobs.length > 0) {
+          for (const job of activeJobs) {
+            job.isActive = false;
+            await job.save();
+          }
+          console.log(`🔴 Deactivated ${activeJobs.length} jobs for employer: ${employer.schoolName || employer.uuid}`);
+        }
+        
+        console.log(`🚫 Subscription expired for employer: ${employer.schoolName || employer.uuid} - All limits reset to 0`);
       } else {
         console.log(`📉 Decremented subscription for: ${employer.schoolName || employer.uuid} (${employer.subscriptionleft} days left)`);
       }
 
       await employer.save();
+    }
+    
+    // 3. CHECK EXPIRED SUBSCRIPTIONS BY END DATE (Additional safety check)
+    const employersWithSubscriptions = await Employer.find({
+      subscription: "true",
+      currentSubscription: { $ne: null }
+    });
+
+    for (const employer of employersWithSubscriptions) {
+      if (employer.currentSubscription && employer.currentSubscription.endDate) {
+        const endDate = new Date(employer.currentSubscription.endDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        endDate.setHours(0, 0, 0, 0);
+
+        // If subscription end date has passed
+        if (endDate < today) {
+          employer.subscription = "false";
+          employer.subscriptionleft = 0;
+          employer.currentSubscription = null;
+          
+          // Reset all limits to 0
+          employer.totalperdaylimit = 0;
+          employer.totalprofileviews = 0;
+          employer.totaldownloadresume = 0;
+          employer.totaljobpostinglimit = 0;
+          
+          // Update subscription status in subscriptions array
+          if (employer.subscriptions && employer.subscriptions.length > 0) {
+            const activeSub = employer.subscriptions.find(sub => sub.status === 'active');
+            if (activeSub) {
+              activeSub.status = 'expired';
+            }
+          }
+          
+          // Deactivate all active jobs
+          const activeJobs = await Job.find({
+            employid: employer._id,
+            isActive: true
+          });
+          
+          if (activeJobs.length > 0) {
+            for (const job of activeJobs) {
+              job.isActive = false;
+              await job.save();
+            }
+            console.log(`🔴 Deactivated ${activeJobs.length} jobs for employer: ${employer.schoolName || employer.uuid} (by end date)`);
+          }
+          
+          await employer.save();
+          console.log(`🚫 Subscription expired (by end date) for employer: ${employer.schoolName || employer.uuid} - All limits reset to 0`);
+        }
+      }
+    }
+
+    // 4. ENFORCE JOB LIMITS: Check all employers and deactivate excess jobs
+    const allEmployers = await Employer.find({
+      subscription: "true"
+    });
+
+    for (const employer of allEmployers) {
+      // Get the effective job limit - use totaljobpostinglimit as primary, fallback to subscription plan limit
+      let allowedJobLimit = 0;
+      if (employer.currentSubscription && employer.currentSubscription.planDetails) {
+        allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
+      }
+      
+      // Use totaljobpostinglimit as primary limit, fallback to subscription plan limit if totaljobpostinglimit is 0
+      const effectiveLimit = employer.totaljobpostinglimit > 0 
+        ? employer.totaljobpostinglimit 
+        : allowedJobLimit;
+      
+      if (effectiveLimit > 0) {
+        // Get all active jobs for this employer
+        const activeJobs = await Job.find({
+          employid: employer._id,
+          isActive: true
+        }).sort({ createdAt: -1 }); // Sort by newest first
+        
+        // If active jobs exceed the limit, deactivate the excess ones (oldest first)
+        if (activeJobs.length > effectiveLimit) {
+          const excessCount = activeJobs.length - effectiveLimit;
+          const jobsToDeactivate = activeJobs.slice(effectiveLimit); // Get excess jobs (oldest)
+          
+          for (const job of jobsToDeactivate) {
+            job.isActive = false;
+            await job.save();
+          }
+          
+          console.log(`🔴 Enforced job limit for employer: ${employer.schoolName || employer.uuid} - Deactivated ${excessCount} excess jobs (limit: ${effectiveLimit}, had: ${activeJobs.length})`);
+        }
+      }
     }
 
     console.log("✅ Daily employer subscription & trial check completed.");

@@ -60,23 +60,69 @@ const createJob = async (req, res) => {
       return res.status(404).json({ message: "Employer not found" });
     }
 
-    // Check if totaljobpostinglimit is greater than 0
-    // if (employer.totaljobpostinglimit <= 0) {
-    //   return res
-    //     .status(403)
-    //     .json({
-    //       message:
-    //         "Job posting limit reached. Please upgrade your subscription.",
-    //     });
-    // }
+    // Check if a job with the same jobTitle already exists for this employer (case-insensitive)
+    if (jobData.jobTitle) {
+      // Escape special regex characters to prevent regex injection
+      const escapedJobTitle = jobData.jobTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const existingJob = await Job.findOne({
+        employid: jobData.employid,
+        jobTitle: { $regex: new RegExp(`^${escapedJobTitle}$`, 'i') },
+      });
+
+      if (existingJob) {
+        return res.status(400).json({
+          success: false,
+          message: "A job with this title already exists. Please use a different job title.",
+        });
+      }
+    }
+
+    // Check subscription status
+    if (employer.subscription === "false" || !employer.currentSubscription) {
+      return res.status(403).json({
+        success: false,
+        message: "No active subscription. Please subscribe to post jobs.",
+      });
+    }
+
+    // Get allowed job limit from current subscription plan (as fallback)
+    let allowedJobLimit = 0;
+    if (employer.currentSubscription && employer.currentSubscription.planDetails) {
+      allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
+    }
+
+    // Use totaljobpostinglimit as primary limit, fallback to subscription plan limit if totaljobpostinglimit is 0
+    const effectiveLimit = employer.totaljobpostinglimit > 0 
+      ? employer.totaljobpostinglimit 
+      : allowedJobLimit;
+
+    // Check if effective limit is valid
+    if (effectiveLimit <= 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Job posting limit reached. Please upgrade your subscription.",
+      });
+    }
+
+    // Check how many active jobs the employer currently has
+    const activeJobsCount = await Job.countDocuments({
+      employid: jobData.employid,
+      isActive: true,
+    });
+
+    // If active jobs count is already at or exceeds the plan limit, don't allow new job posting
+    if (activeJobsCount >= effectiveLimit) {
+      return res.status(403).json({
+        success: false,
+        message: `You have reached your active job limit (${effectiveLimit}). Please close an existing job before posting a new one.`,
+      });
+    }
 
     // Create the new job
     const newJob = new Job(jobData);
     const savedJob = await newJob.save();
 
-    // Decrease the totaljobpostinglimit by 1
-    employer.totaljobpostinglimit -= 1;
-    await employer.save();
+    // DO NOT reduce totaljobpostinglimit - it's a fixed limit based on subscription
 
     // Return the saved job
     res.status(201).json(savedJob);
@@ -1107,21 +1153,70 @@ const updateJobActiveStatus = async (req, res) => {
       return res.status(400).json({ message: "isActive must be a boolean." });
     }
 
-    const job = await Job.findByIdAndUpdate(
+    // First, find the job to get employer info
+    const job = await Job.findById(jobId);
+    if (!job) {
+      return res.status(404).json({ message: "Job not found" });
+    }
+
+    // If trying to activate, check the limit first
+    if (isActive === true) {
+      const employer = await Employer.findById(job.employid);
+      
+      if (!employer) {
+        return res.status(404).json({ message: "Employer not found" });
+      }
+
+      // Check subscription status
+      if (employer.subscription === "false" || !employer.currentSubscription) {
+        return res.status(403).json({
+          message: "No active subscription. Cannot activate job.",
+        });
+      }
+
+      // Get effective limit - use totaljobpostinglimit as primary, fallback to subscription plan limit
+      let allowedJobLimit = 0;
+      if (employer.currentSubscription && employer.currentSubscription.planDetails) {
+        allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
+      }
+      const effectiveLimit = employer.totaljobpostinglimit > 0 
+        ? employer.totaljobpostinglimit 
+        : allowedJobLimit;
+
+      // Check if limit is valid
+      if (effectiveLimit <= 0) {
+        return res.status(403).json({
+          message: "Job posting limit is 0. Please upgrade your subscription.",
+        });
+      }
+
+      // Count current active jobs (excluding the job being activated)
+      const activeJobsCount = await Job.countDocuments({
+        employid: job.employid,
+        isActive: true,
+        _id: { $ne: jobId } // Exclude current job from count
+      });
+
+      // Check if activating would exceed limit
+      if (activeJobsCount >= effectiveLimit) {
+        return res.status(403).json({
+          message: `Cannot activate job. You have reached your active job limit (${effectiveLimit}). Please deactivate another job first.`,
+        });
+      }
+    }
+
+    // Update the job status (deactivation is always allowed)
+    const updatedJob = await Job.findByIdAndUpdate(
       jobId,
       { isActive, updatedAt: new Date() },
       { new: true }
     );
 
-    if (!job) {
-      return res.status(404).json({ message: "Job not found" });
-    }
-
     res.status(200).json({
       message: `Job has been ${
         isActive ? "activated" : "deactivated"
       } successfully.`,
-      job,
+      job: updatedJob,
     });
   } catch (error) {
     console.error("Error updating job status:", error);
