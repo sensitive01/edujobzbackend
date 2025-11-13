@@ -80,6 +80,7 @@ exports.createPlan = async (req, res, next) => {
 // Update plan
 exports.updatePlan = async (req, res, next) => {
   try {
+    console.log(req.body)
     const plan = await Plan.findByIdAndUpdate(
       req.params.id,
       { ...req.body, updatedAt: Date.now() },
