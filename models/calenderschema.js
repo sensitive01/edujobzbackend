@@ -3,16 +3,16 @@ const mongoose = require("mongoose");
 const eventSchema = new mongoose.Schema({
   candidateId: {
     type: String,
-    required: true,
+
   },
 
   employerId: {
     type: String,
-    required: true,
+
   },
   title: {
     type: String,
-    required: true,
+
   },
   description: {
     type: String,
@@ -22,11 +22,11 @@ const eventSchema = new mongoose.Schema({
   },
   start: {
     type: Date,
-    required: true,
+
   },
   end: {
     type: Date,
-    required: true,
+
   },
   color: {
     type: String,
