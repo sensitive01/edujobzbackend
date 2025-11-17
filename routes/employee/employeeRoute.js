@@ -73,6 +73,7 @@ employeeRoute.post("/verifyemailotp", emailverifycontroller.verifyEmailOtp);
 employeeRoute.post("/signup", employeeController.signUp);
 employeeRoute.post("/login", employeeController.login);
 employeeRoute.post("/google", employeeController.googleAuth);
+employeeRoute.post("/google-v2", employeeController.googleAuthV2);
 employeeRoute.post("/apple", employeeController.appleAuth);
 employeeRoute.get("/fetchemployee/:id", employeeController.getEmployeeDetails);
 employeeRoute.put(
