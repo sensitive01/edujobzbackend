@@ -204,12 +204,14 @@ const signUp = async (req, res) => {
 
     // Handle referral code if provided
     let referredBy = null;
+    let referredByName = null;
     if (referralCode) {
       const referringEmployer = await userModel.findOne({ referralCode });
       if (!referringEmployer) {
         return res.status(400).json({ message: "Invalid referral code." });
       }
       referredBy = referringEmployer._id;
+      referredByName = `${referringEmployer.firstName} ${referringEmployer.lastName}`.trim() || referringEmployer.schoolName || 'Unknown';
     }
 
     // Create new employer
@@ -226,6 +228,7 @@ const signUp = async (req, res) => {
       userPassword: hashedPassword,
       emailverifedstatus: true,
       referredBy,
+      referredByName,
     });
 
     // Generate unique referral code
@@ -234,9 +237,21 @@ const signUp = async (req, res) => {
     // Save the new employer
     await newEmployer.save();
 
-    // Update referrer's counts if applicable
+    // Update referrer's counts and add to referrals list if applicable
     if (referredBy) {
+      const referralEntry = {
+        referredEmployerId: newEmployer._id,
+        referredEmployerName: `${newEmployer.firstName} ${newEmployer.lastName}`.trim() || newEmployer.schoolName || 'Unknown',
+        referredEmployerEmail: newEmployer.userEmail,
+        referredEmployerMobile: newEmployer.userMobile,
+        referredDate: new Date(),
+        rewardEarned: 100
+      };
+
       await userModel.findByIdAndUpdate(referredBy, {
+        $push: {
+          referralsList: referralEntry
+        },
         $inc: {
           referralCount: 1,
           referralRewards: 100, // You can adjust this value

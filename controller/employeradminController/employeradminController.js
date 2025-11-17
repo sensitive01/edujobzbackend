@@ -316,12 +316,14 @@ exports.createemployersignUp = async (req, res) => {
 
     // Handle referral logic
     let referredBy = null;
+    let referredByName = null;
     if (referralCode) {
       const referringEmployer = await employerModel.findOne({ referralCode });
       if (!referringEmployer) {
         return res.status(400).json({ message: "Invalid referral code." });
       }
       referredBy = referringEmployer._id;
+      referredByName = `${referringEmployer.firstName} ${referringEmployer.lastName}`.trim() || referringEmployer.schoolName || 'Unknown';
     }
 
     // Create new employer instance
@@ -346,7 +348,8 @@ exports.createemployersignUp = async (req, res) => {
       userPassword: hashedPassword,
       userProfilePic,
       employerType,
-      referredBy
+      referredBy,
+      referredByName
     });
 
     // Generate referral code
@@ -355,9 +358,21 @@ exports.createemployersignUp = async (req, res) => {
     // Save the new employer
     await newEmployer.save();
 
-    // Update referral count and rewards
+    // Update referral count, rewards, and add to referrals list
     if (referredBy) {
+      const referralEntry = {
+        referredEmployerId: newEmployer._id,
+        referredEmployerName: `${newEmployer.firstName} ${newEmployer.lastName}`.trim() || newEmployer.schoolName || 'Unknown',
+        referredEmployerEmail: newEmployer.userEmail,
+        referredEmployerMobile: newEmployer.userMobile,
+        referredDate: new Date(),
+        rewardEarned: 100
+      };
+
       await employerModel.findByIdAndUpdate(referredBy, {
+        $push: {
+          referralsList: referralEntry
+        },
         $inc: {
           referralCount: 1,
           referralRewards: 100, // Customize this value if needed

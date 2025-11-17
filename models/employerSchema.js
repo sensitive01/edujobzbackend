@@ -39,8 +39,18 @@ emailverifedstatus: { type: Boolean, default: true },
   // Referral system fields
   referralCode: { type: String, unique: true, uppercase: true },
   referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employer' },
+  referredByName: { type: String }, // Store the referrer's name
   referralCount: { type: Number, default: 0 },
   referralRewards: { type: Number, default: 0 },
+  // List to store all referrals made by this employer
+  referralsList: [{
+    referredEmployerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employer' },
+    referredEmployerName: { type: String },
+    referredEmployerEmail: { type: String },
+    referredEmployerMobile: { type: String },
+    referredDate: { type: Date, default: Date.now },
+    rewardEarned: { type: Number, default: 100 }
+  }],
   totalperdaylimit: { type: Number, default: 0 },
   totalprofileviews: { type: Number, default: 0 },
   totaldownloadresume: { type: Number, default: 0 },
