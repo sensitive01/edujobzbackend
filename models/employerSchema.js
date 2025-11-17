@@ -5,6 +5,7 @@ const employerSchema = new mongoose.Schema({
   googleId: String,
   appleId: String,
   schoolName: String,
+  sector: String,
   firstName: String,
   lastName: String,
   address: String, 

@@ -47,7 +47,7 @@ const createEvent = async (req, res) => {
         start: new Date(start),
         end: new Date(end),
         color: color || "#6C63FF",
-        candidateId
+        candidateId:candidateId||""
       });
     }
 

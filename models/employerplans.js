@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const planSchema = new mongoose.Schema({
-    employerid: {
+  employerid: {
     type: String,
 
   },
@@ -9,6 +9,10 @@ const planSchema = new mongoose.Schema({
     type: String,
     required: true,
 
+  },
+  planType: {
+    type: String,
+    required: true
   },
   price: {
     type: Number,
@@ -86,7 +90,7 @@ const planSchema = new mongoose.Schema({
 });
 
 // Calculate total price with GST
-planSchema.virtual('totalPrice').get(function() {
+planSchema.virtual('totalPrice').get(function () {
   return this.price + (this.price * this.gstPercentage / 100);
 });
 

@@ -80,10 +80,19 @@ exports.createPlan = async (req, res, next) => {
 // Update plan
 exports.updatePlan = async (req, res, next) => {
   try {
+    console.log(req.body)
     const plan = await Plan.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: Date.now() },
-      { new: true, runValidators: true }
+      {
+        ...req.body,
+        updatedAt: Date.now(),
+      },
+      {
+        new: true,           // return updated doc
+        runValidators: true, // run schema validation
+        upsert: true,        // create the doc if it doesn’t exist
+        setDefaultsOnInsert: true, // apply schema defaults when inserting
+      }
     );
     if (!plan) {
       return next(createError(404, 'Plan not found'));
@@ -133,7 +142,7 @@ exports.activateSubscription = async (req, res) => {
     // Find the employer and plan
     const employer = await Employer.findById(employerId);
     const plan = await Plan.findById(planId);
-    
+
     if (!employer) return res.status(404).json({ success: false, message: 'Employer not found' });
     if (!plan || !plan.isActive) return res.status(404).json({ success: false, message: 'Plan not found or inactive' });
 
@@ -142,9 +151,9 @@ exports.activateSubscription = async (req, res) => {
     let subscriptionEndDate;
 
     // Check for free trial stacking
-    if (isFreeTrial && employer.currentSubscription && 
-        !employer.currentSubscription.isTrial && 
-        new Date(employer.currentSubscription.endDate) > currentDate) {
+    if (isFreeTrial && employer.currentSubscription &&
+      !employer.currentSubscription.isTrial &&
+      new Date(employer.currentSubscription.endDate) > currentDate) {
       return res.status(400).json({
         success: false,
         message: 'Cannot apply a free trial on top of an active paid subscription'
@@ -181,7 +190,7 @@ exports.activateSubscription = async (req, res) => {
     // Update subscription information
     employer.subscriptions.push(subscriptionRecord);
     employer.currentSubscription = subscriptionRecord;
-    
+
     // Maintain backward compatibility
     employer.subscription = "true";
     employer.trial = isFreeTrial ? 'true' : 'false';
