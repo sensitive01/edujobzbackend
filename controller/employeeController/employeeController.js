@@ -225,6 +225,46 @@ const googleAuth = async (req, res) => {
       .json({ message: "Invalid Google token", error: err.message });
   }
 };
+
+// Google Sign-In V2 (Fixed version with uuidv4)
+const googleAuthV2 = async (req, res) => {
+  const { idToken } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    let user = await userModel.findOne({ googleId: payload.sub });
+    if (!user) {
+      user = new userModel({
+        uuid: uuidv4(), // Using uuidv4() instead of generateUserUUID()
+        googleId: payload.sub,
+        userEmail: payload.email,
+        userName: payload.name,
+        userProfilePic: payload.picture,
+        isVerified: true,
+      });
+      await user.save();
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res.json({
+      message: "Google login successful",
+      user,
+      token,
+    });
+  } catch (err) {
+    console.error("Google auth error:", err);
+    res
+      .status(401)
+      .json({ message: "Invalid Google token", error: err.message });
+  }
+};
+
 // Apple Sign-In
 const appleAuth = async (req, res) => {
   const { idToken } = req.body;
@@ -1534,6 +1574,7 @@ module.exports = {
   login,
   getDesiredJobAlertswithouttoken,
   googleAuth,
+  googleAuthV2,
   getEmployeeDetails,
   appleAuth,
   uploadFile,
