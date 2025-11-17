@@ -1161,6 +1161,65 @@ const getEmployerSubscribed = async (req, res) => {
   }
 };
 
+// Get referral list for an employer
+const getReferralList = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    if (!employerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required",
+      });
+    }
+
+    // Get the employer's referral data including the referralsList
+    const employer = await userModel.findById(employerId).select("referralCount referralRewards referralsList");
+    
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found",
+      });
+    }
+
+    const employerReferralCount = employer?.referralCount || 0;
+    const employerReferralRewards = employer?.referralRewards || 0;
+    const referralsList = employer?.referralsList || [];
+
+    // Format the referrals list from the stored array
+    const referralList = referralsList.map((referral) => {
+      // Format date
+      const date = referral.referredDate
+        ? new Date(referral.referredDate).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0];
+
+      return {
+        name: referral.referredEmployerName || "N/A",
+        email: referral.referredEmployerEmail || "N/A",
+        mobile: referral.referredEmployerMobile || "N/A",
+        date: date,
+        rewardEarned: referral.rewardEarned || 100,
+      };
+    }).sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by newest first
+
+    res.status(200).json({
+      success: true,
+      data: referralList,
+      totalReferrals: referralList.length,
+      referralCount: employerReferralCount, // Total referral count from employer profile
+      referralRewards: employerReferralRewards, // Total rewards earned
+    });
+  } catch (err) {
+    console.error("Error in getting referral list:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching referral list",
+      error: err.message,
+    });
+  }
+};
+
 
 
 
@@ -1185,4 +1244,5 @@ module.exports = {
   updateEmployerDetails,
   updateProfilePicture,
   employerChangeMyPassword,
+  getReferralList,
 };

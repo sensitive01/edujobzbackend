@@ -215,7 +215,8 @@ employerRoute.get('/training/:trainingId/employer/:employerId/status', certifica
 
 employerRoute.get('/sendlink/:userId', employerController.getReferralLink);
 
-
+// Employer Referral Routes
+employerRoute.get("/referral-list/:employerId", employerController.getReferralList);
 
 employerRoute.get("/get-job-and-employer-count",employerController.getJobAndEmployerCount)
 employerRoute.get("/get-employer-dashnoard-count/:employerId",employerController.getEmployerDashboardCount)
