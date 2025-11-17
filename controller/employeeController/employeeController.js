@@ -69,25 +69,43 @@ const signUp = async (req, res) => {
     newUser.referralCode = newUser.generateReferralCode();
 
     let referralApplied = false;
+    let referrer = null;
     if (referralCode && referralCode.trim() !== "") {
-      const referrer = await userModel.findOne({
+      referrer = await userModel.findOne({
         referralCode: referralCode.trim(),
       });
 
       if (referrer) {
         newUser.referredBy = referrer._id;
+        newUser.referredByName = referrer.userName || "N/A"; // Store referrer's name
         referralApplied = true;
-
-        await userModel.findByIdAndUpdate(referrer._id, {
-          $inc: {
-            referralCount: 1,
-            referralRewards: 100,
-          },
-        });
       }
     }
 
+    // Save the new user first to get the _id
     await newUser.save();
+
+    // After saving, add to referrer's referrals list if referral code was used
+    if (referralApplied && referrer) {
+      const referralEntry = {
+        referredUserId: newUser._id,
+        referredUserName: newUser.userName,
+        referredUserEmail: newUser.userEmail,
+        referredUserMobile: newUser.userMobile,
+        referredDate: new Date(),
+        rewardEarned: 100
+      };
+
+      await userModel.findByIdAndUpdate(referrer._id, {
+        $push: {
+          referralsList: referralEntry
+        },
+        $inc: {
+          referralCount: 1,
+          referralRewards: 100,
+        },
+      });
+    }
 
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
@@ -1448,6 +1466,57 @@ const getHeaderCategoriesCount = async (req, res) => {
   }
 };
 
+// Get referral list for an employee
+const getReferralList = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    if (!employeeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employee ID is required",
+      });
+    }
+
+    // Get the employee's referral data including the referralsList
+    const employee = await userModel.findById(employeeId).select("referralCount referralRewards referralsList");
+    const employeeReferralCount = employee?.referralCount || 0;
+    const employeeReferralRewards = employee?.referralRewards || 0;
+    const referralsList = employee?.referralsList || [];
+
+    // Format the referrals list from the stored array
+    const referralList = referralsList.map((referral) => {
+      // Format date
+      const date = referral.referredDate
+        ? new Date(referral.referredDate).toISOString().split("T")[0]
+        : new Date().toISOString().split("T")[0];
+
+      return {
+        name: referral.referredUserName || "N/A",
+        email: referral.referredUserEmail || "N/A",
+        mobile: referral.referredUserMobile || "N/A",
+        date: date,
+        rewardEarned: referral.rewardEarned || 100,
+      };
+    }).sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by newest first
+
+    res.status(200).json({
+      success: true,
+      data: referralList,
+      totalReferrals: referralList.length,
+      referralCount: employeeReferralCount, // Total referral count from employee profile
+      referralRewards: employeeReferralRewards, // Total rewards earned
+    });
+  } catch (err) {
+    console.error("Error in getting referral list:", err);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching referral list",
+      error: err.message,
+    });
+  }
+};
+
 //hbh
 module.exports = {
   getHeaderCategoriesCount,
@@ -1483,4 +1552,5 @@ module.exports = {
   candidateChangePassword,
   fetchAvailabilityStatus, // <-- Add this
   updateAvailabilityStatus,
+  getReferralList,
 };

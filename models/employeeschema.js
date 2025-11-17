@@ -91,8 +91,18 @@ resume: {
   currentCity:  String ,
 totalExperience: mongoose.Schema.Types.Mixed,
   referredBy: { type: mongoose.Schema.Types.ObjectId, },
+  referredByName: { type: String }, // Store the referrer's name
   referralCount: { type: Number, default: 0 },
   referralRewards: { type: Number, default: 0 },
+  // List to store all referrals made by this user
+  referralsList: [{
+    referredUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'employee' },
+    referredUserName: { type: String },
+    referredUserEmail: { type: String },
+    referredUserMobile: { type: Number },
+    referredDate: { type: Date, default: Date.now },
+    rewardEarned: { type: Number, default: 100 }
+  }],
     verificationstatus: { type: String, default: 'pending' },
   blockstatus: { type: String, default: 'unblock' },
 });

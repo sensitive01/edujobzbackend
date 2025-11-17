@@ -187,6 +187,9 @@ employeeRoute.delete(
 
 employeeRoute.get("/get-header-categories-count",employeeController.getHeaderCategoriesCount)
 
+// Employee Referral Routes
+employeeRoute.get("/referral-list/:employeeId", employeeController.getReferralList);
+
 // Employee Help Support Routes
 const employeeHelpController = require("../../controller/employeeController/employeehelpController");
 employeeRoute.get("/help-support/:employeeId", employeeHelpController.getOrCreateHelpSession);
