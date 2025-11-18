@@ -4,6 +4,7 @@ const bcrypt = require("bcrypt");
 const Job = require("../../models/jobSchema");
 const userModel = require("../../models/employeeschema");
 const Employee = require("../../models/employeeschema");
+const Employer = require("../../models/employerSchema");
 
 const generateOTP = require("../../utils/generateOTP");
 const jwtDecode = require("jwt-decode");
@@ -1557,6 +1558,611 @@ const getReferralList = async (req, res) => {
   }
 };
 
+// Decrease profile view count when employer views an employee profile
+const decreaseProfileView = async (req, res) => {
+  try {
+    const { employerId, employeeId } = req.params;
+
+    if (!employerId || !employeeId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Employer ID and Employee ID are required" 
+      });
+    }
+
+    const employer = await Employer.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Employer not found" 
+      });
+    }
+
+    // Decrease totalprofileviews if greater than 0
+    if (employer.totalprofileviews > 0) {
+      employer.totalprofileviews -= 1;
+      await employer.save();
+    }
+
+    // Add to viewedEmployees array if not already present
+    const existingView = employer.viewedEmployees.find(
+      view => view.employeeId.toString() === employeeId
+    );
+
+    if (!existingView) {
+      employer.viewedEmployees.push({
+        employeeId: employeeId,
+        viewedAt: new Date()
+      });
+      await employer.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile view decreased",
+      remainingViews: employer.totalprofileviews
+    });
+  } catch (error) {
+    console.error("Error decreasing profile view:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error", 
+      error: error.message 
+    });
+  }
+};
+
+// Decrease resume download count when employer downloads a resume
+const decreaseResumeDownload = async (req, res) => {
+  try {
+    const { employerId, employeeId } = req.params;
+
+    if (!employerId || !employeeId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Employer ID and Employee ID are required" 
+      });
+    }
+
+    const employer = await Employer.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Employer not found" 
+      });
+    }
+
+    // Decrease totaldownloadresume if greater than 0
+    if (employer.totaldownloadresume > 0) {
+      employer.totaldownloadresume -= 1;
+      await employer.save();
+    }
+
+    // Add to resumedownload array if not already present
+    const existingDownload = employer.resumedownload.find(
+      download => download.employeeId.toString() === employeeId
+    );
+
+    if (!existingDownload) {
+      employer.resumedownload.push({
+        employeeId: employeeId,
+        viewedAt: new Date()
+      });
+      await employer.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Resume download decreased",
+      remainingDownloads: employer.totaldownloadresume
+    });
+  } catch (error) {
+    console.error("Error decreasing resume download:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error", 
+      error: error.message 
+    });
+  }
+};
+
+// Get employer details by ID
+const getEmployerDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    const employer = await Employer.findById(id).select("-userPassword");
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: employer
+    });
+  } catch (error) {
+    console.error("Error fetching employer details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Update employer details
+const updateEmployerDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    // Remove password from update data if present (should be updated separately)
+    delete updateData.userPassword;
+
+    const employer = await Employer.findByIdAndUpdate(
+      id,
+      { ...updateData, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    ).select("-userPassword");
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Employer details updated successfully",
+      data: employer
+    });
+  } catch (error) {
+    console.error("Error updating employer details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Update employer profile picture
+const updateProfilePicture = async (req, res) => {
+  try {
+    const { employid } = req.params;
+
+    if (!employid) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    const employer = await Employer.findById(employid);
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    // If file was uploaded, update profile picture URL
+    if (req.file && req.file.path) {
+      employer.userProfilePic = req.file.path;
+      await employer.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile picture updated successfully",
+      data: {
+        userProfilePic: employer.userProfilePic
+      }
+    });
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// List all employees (for employer to view)
+const listAllEmployees = async (req, res) => {
+  try {
+    const employees = await Employee.find().select("-userPassword").sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: employees.length,
+      data: employees
+    });
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Check if employer is subscribed
+const getEmployerSubscribed = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    if (!employerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    const employer = await Employer.findById(employerId).select("subscription subscriptionleft subscriptionenddate currentSubscription");
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      isSubscribed: employer.subscription === "true",
+      subscriptionLeft: employer.subscriptionleft,
+      subscriptionEndDate: employer.subscriptionenddate,
+      currentSubscription: employer.currentSubscription
+    });
+  } catch (error) {
+    console.error("Error checking employer subscription:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Employer forgot password - send OTP
+const employerForgotPassword = async (req, res) => {
+  try {
+    const { userEmail } = req.body;
+
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required"
+      });
+    }
+
+    const employer = await Employer.findOne({ userEmail });
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found with this email"
+      });
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    employer.otp = otp;
+    employer.otpExpires = otpExpires;
+    await employer.save();
+
+    // TODO: Send OTP via email
+    console.log("OTP for employer:", otp);
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent to email",
+      otp: otp // Remove in production
+    });
+  } catch (error) {
+    console.error("Error in employer forgot password:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Verify OTP for employer
+const employerverifyOTP = async (req, res) => {
+  try {
+    const { userEmail, otp } = req.body;
+
+    if (!userEmail || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required"
+      });
+    }
+
+    const employer = await Employer.findOne({ userEmail });
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    if (!employer.otp || employer.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP"
+      });
+    }
+
+    if (employer.otpExpires && new Date() > employer.otpExpires) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired"
+      });
+    }
+
+    // Clear OTP after verification
+    employer.otp = undefined;
+    employer.otpExpires = undefined;
+    await employer.save();
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully"
+    });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Employer change password (after OTP verification)
+const employerChangePassword = async (req, res) => {
+  try {
+    const { userEmail, newPassword, confirmPassword } = req.body;
+
+    if (!userEmail || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, new password, and confirm password are required"
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match"
+      });
+    }
+
+    const employer = await Employer.findOne({ userEmail });
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    employer.userPassword = hashedPassword;
+    await employer.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully"
+    });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Employer change my password (when logged in)
+const employerChangeMyPassword = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password, new password, and confirm password are required"
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New passwords do not match"
+      });
+    }
+
+    const employer = await Employer.findById(employerId);
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, employer.userPassword);
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect"
+      });
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    employer.userPassword = hashedPassword;
+    await employer.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully"
+    });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Get referral link for employer
+const getReferralLink = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const employer = await Employer.findById(userId);
+
+    if (!employer || !employer.referralCode) {
+      return res.status(404).json({
+        success: false,
+        message: "Referral code not found for this employer"
+      });
+    }
+
+    const referralUrl = `https://edprofio.com/signup?ref=${employer.referralCode}`;
+
+    res.status(200).json({
+      success: true,
+      referralCode: employer.referralCode,
+      referralUrl: referralUrl
+    });
+  } catch (error) {
+    console.error("Error getting referral link:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Get job and employer count
+const getJobAndEmployerCount = async (req, res) => {
+  try {
+    const jobCount = await Job.countDocuments({ isActive: true });
+    const employerCount = await Employer.countDocuments({ subscription: "true" });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        activeJobs: jobCount,
+        subscribedEmployers: employerCount
+      }
+    });
+  } catch (error) {
+    console.error("Error getting counts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Get employer dashboard count
+const getEmployerDashboardCount = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    if (!employerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    const employer = await Employer.findById(employerId);
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    // Count active jobs
+    const activeJobsCount = await Job.countDocuments({
+      employid: employerId,
+      isActive: true
+    });
+
+    // Count total applications
+    const jobs = await Job.find({ employid: employerId });
+    const totalApplications = jobs.reduce((sum, job) => sum + (job.applications?.length || 0), 0);
+
+    // Count pending applications
+    const pendingApplications = jobs.reduce((sum, job) => {
+      const pending = job.applications?.filter(app => app.employapplicantstatus === "Pending") || [];
+      return sum + pending.length;
+    }, 0);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        activeJobs: activeJobsCount,
+        totalApplications: totalApplications,
+        pendingApplications: pendingApplications,
+        totalProfileViews: employer.totalprofileviews || 0,
+        totalResumeDownloads: employer.totaldownloadresume || 0,
+        subscriptionStatus: employer.subscription === "true",
+        subscriptionLeft: employer.subscriptionleft || 0
+      }
+    });
+  } catch (error) {
+    console.error("Error getting employer dashboard count:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
 //hbh
 module.exports = {
   getHeaderCategoriesCount,
@@ -1594,4 +2200,18 @@ module.exports = {
   fetchAvailabilityStatus, // <-- Add this
   updateAvailabilityStatus,
   getReferralList,
+  decreaseProfileView,
+  decreaseResumeDownload,
+  getEmployerDetails,
+  updateEmployerDetails,
+  updateProfilePicture,
+  listAllEmployees,
+  getEmployerSubscribed,
+  employerForgotPassword,
+  employerverifyOTP,
+  employerChangePassword,
+  employerChangeMyPassword,
+  getReferralLink,
+  getJobAndEmployerCount,
+  getEmployerDashboardCount,
 };
