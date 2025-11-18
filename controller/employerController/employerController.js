@@ -1672,32 +1672,22 @@ const getEmployerDetails = async (req, res) => {
     const { id } = req.params;
 
     if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Employer ID is required"
-      });
+      return res.status(400).json({ message: "Employer ID is required" });
     }
 
     const employer = await Employer.findById(id).select("-userPassword");
 
     if (!employer) {
-      return res.status(404).json({
-        success: false,
-        message: "Employer not found"
-      });
+      return res.status(404).json({ message: "Employer not found" });
     }
 
-    res.status(200).json({
-      success: true,
-      data: employer
-    });
+    res.json(employer);
   } catch (error) {
     console.error("Error fetching employer details:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message
-    });
+    if (error.kind === "ObjectId") {
+      return res.status(400).json({ message: "Invalid employer ID format" });
+    }
+    res.status(500).json({ message: "Server error" });
   }
 };
 
