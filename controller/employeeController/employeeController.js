@@ -199,15 +199,36 @@ const googleAuth = async (req, res) => {
 
     let user = await userModel.findOne({ googleId: payload.sub });
     if (!user) {
-      user = new userModel({
-        uuid: generateUserUUID(),
-        googleId: payload.sub,
-        userEmail: payload.email,
-        userName: payload.name,
-        userProfilePic: payload.picture,
-        isVerified: true,
-      });
-      await user.save();
+      // Check if user exists with this email
+      if (payload.email) {
+        user = await userModel.findOne({ userEmail: payload.email });
+        
+        if (user) {
+          // Update existing user with googleId
+          user.googleId = payload.sub;
+          if (payload.picture && !user.userProfilePic) {
+            user.userProfilePic = payload.picture;
+          }
+          await user.save();
+        }
+      }
+      
+      // If still no user, create new one
+      if (!user) {
+        user = new userModel({
+          uuid: uuidv4(),
+          googleId: payload.sub,
+          userEmail: payload.email,
+          userName: payload.name,
+          userProfilePic: payload.picture,
+          isVerified: true,
+        });
+        // Generate referral code before saving (pre-save hook will also handle this, but explicit is safer)
+        if (!user.referralCode) {
+          user.referralCode = user.generateReferralCode();
+        }
+        await user.save();
+      }
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -225,6 +246,82 @@ const googleAuth = async (req, res) => {
       .json({ message: "Invalid Google token", error: err.message });
   }
 };
+
+// Google Sign-In V2 (Fixed version with uuidv4)
+const googleAuthV2 = async (req, res) => {
+  const { idToken } = req.body;
+  try {
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: "ID token is required"
+      });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    // Check if user exists with googleId
+    let user = await userModel.findOne({ googleId: payload.sub });
+    
+    if (!user) {
+      // Check if user exists with this email
+      if (payload.email) {
+        user = await userModel.findOne({ userEmail: payload.email });
+        
+        if (user) {
+          // Update existing user with googleId
+          user.googleId = payload.sub;
+          if (payload.picture && !user.userProfilePic) {
+            user.userProfilePic = payload.picture;
+          }
+          await user.save();
+        }
+      }
+      
+      // If still no user, create new one
+      if (!user) {
+        user = new userModel({
+          uuid: uuidv4(),
+          googleId: payload.sub,
+          userEmail: payload.email,
+          userName: payload.name,
+          userProfilePic: payload.picture,
+          isVerified: true,
+        });
+        // Generate referral code before saving (pre-save hook will also handle this, but explicit is safer)
+        if (!user.referralCode) {
+          user.referralCode = user.generateReferralCode();
+        }
+        await user.save();
+      }
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    const { userPassword: _, ...safeUser } = user._doc;
+
+    res.json({
+      success: true,
+      message: "Google login successful",
+      user: safeUser,
+      token,
+    });
+  } catch (err) {
+    console.error("Google auth error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Google authentication failed",
+      error: err.message
+    });
+  }
+};
+
 // Apple Sign-In
 const appleAuth = async (req, res) => {
   const { idToken } = req.body;
@@ -233,14 +330,32 @@ const appleAuth = async (req, res) => {
     let user = await userModel.findOne({ appleId: decoded.sub });
 
     if (!user) {
-      user = new userModel({
-        uuid: uuidv4(),
-        appleId: decoded.sub,
-        userEmail: decoded.email,
-        userName: "Apple User",
-        isVerified: true,
-      });
-      await user.save();
+      // Check if user exists with this email
+      if (decoded.email) {
+        user = await userModel.findOne({ userEmail: decoded.email });
+        
+        if (user) {
+          // Update existing user with appleId
+          user.appleId = decoded.sub;
+          await user.save();
+        }
+      }
+      
+      // If still no user, create new one
+      if (!user) {
+        user = new userModel({
+          uuid: uuidv4(),
+          appleId: decoded.sub,
+          userEmail: decoded.email,
+          userName: "Apple User",
+          isVerified: true,
+        });
+        // Generate referral code before saving (pre-save hook will also handle this, but explicit is safer)
+        if (!user.referralCode) {
+          user.referralCode = user.generateReferralCode();
+        }
+        await user.save();
+      }
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -1535,6 +1650,7 @@ module.exports = {
   login,
   getDesiredJobAlertswithouttoken,
   googleAuth,
+  googleAuthV2,
   getEmployeeDetails,
   appleAuth,
   uploadFile,
