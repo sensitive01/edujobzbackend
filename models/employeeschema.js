@@ -15,6 +15,7 @@ const workExperienceSchema = new mongoose.Schema({
   startDate: { type: String, required: true }, // MM/YYYY format
   endDate: { type: String }, // MM/YYYY format (optional)
   description: { type: String },
+  isCurrentlyWorking: { type: Boolean, default: false },
 });
 const mediaSchema = new mongoose.Schema({
   name: { type: String },

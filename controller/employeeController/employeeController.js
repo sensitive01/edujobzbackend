@@ -1292,6 +1292,7 @@ const updateAvailabilityStatus = async (req, res) => {
   try {
     const employeeId = req.params.employeeId;
     const { isAvailable } = req.body;
+    console.log("isAvailable", isAvailable);
 
     if (!mongoose.Types.ObjectId.isValid(employeeId)) {
       return res.status(400).json({ message: "Invalid employee ID" });
