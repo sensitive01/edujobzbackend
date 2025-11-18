@@ -126,4 +126,12 @@ employeeschema.methods.generateReferralCode = function () {
   return result;
 };
 
+// Generate referral code before saving
+employeeschema.pre('save', function(next) {
+  if (!this.referralCode) {
+    this.referralCode = this.generateReferralCode();
+  }
+  next();
+});
+
 module.exports = mongoose.model('employee', employeeschema);

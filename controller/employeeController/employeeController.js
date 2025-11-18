@@ -199,15 +199,36 @@ const googleAuth = async (req, res) => {
 
     let user = await userModel.findOne({ googleId: payload.sub });
     if (!user) {
-      user = new userModel({
-        uuid: generateUserUUID(),
-        googleId: payload.sub,
-        userEmail: payload.email,
-        userName: payload.name,
-        userProfilePic: payload.picture,
-        isVerified: true,
-      });
-      await user.save();
+      // Check if user exists with this email
+      if (payload.email) {
+        user = await userModel.findOne({ userEmail: payload.email });
+        
+        if (user) {
+          // Update existing user with googleId
+          user.googleId = payload.sub;
+          if (payload.picture && !user.userProfilePic) {
+            user.userProfilePic = payload.picture;
+          }
+          await user.save();
+        }
+      }
+      
+      // If still no user, create new one
+      if (!user) {
+        user = new userModel({
+          uuid: uuidv4(),
+          googleId: payload.sub,
+          userEmail: payload.email,
+          userName: payload.name,
+          userProfilePic: payload.picture,
+          isVerified: true,
+        });
+        // Generate referral code before saving (pre-save hook will also handle this, but explicit is safer)
+        if (!user.referralCode) {
+          user.referralCode = user.generateReferralCode();
+        }
+        await user.save();
+      }
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -271,6 +292,10 @@ const googleAuthV2 = async (req, res) => {
           userProfilePic: payload.picture,
           isVerified: true,
         });
+        // Generate referral code before saving (pre-save hook will also handle this, but explicit is safer)
+        if (!user.referralCode) {
+          user.referralCode = user.generateReferralCode();
+        }
         await user.save();
       }
     }
@@ -305,14 +330,32 @@ const appleAuth = async (req, res) => {
     let user = await userModel.findOne({ appleId: decoded.sub });
 
     if (!user) {
-      user = new userModel({
-        uuid: uuidv4(),
-        appleId: decoded.sub,
-        userEmail: decoded.email,
-        userName: "Apple User",
-        isVerified: true,
-      });
-      await user.save();
+      // Check if user exists with this email
+      if (decoded.email) {
+        user = await userModel.findOne({ userEmail: decoded.email });
+        
+        if (user) {
+          // Update existing user with appleId
+          user.appleId = decoded.sub;
+          await user.save();
+        }
+      }
+      
+      // If still no user, create new one
+      if (!user) {
+        user = new userModel({
+          uuid: uuidv4(),
+          appleId: decoded.sub,
+          userEmail: decoded.email,
+          userName: "Apple User",
+          isVerified: true,
+        });
+        // Generate referral code before saving (pre-save hook will also handle this, but explicit is safer)
+        if (!user.referralCode) {
+          user.referralCode = user.generateReferralCode();
+        }
+        await user.save();
+      }
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
