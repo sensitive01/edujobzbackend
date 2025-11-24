@@ -1678,7 +1678,9 @@ const getEmployerDetails = async (req, res) => {
     }
 
     // Find the employee and exclude the password
-    const employer = await Employer.findById(id).select("-userPassword");
+    const employee = await userModel
+      .findById(employeeId)
+      .select("-userPassword");
 
     if (!employee) {
       return res.status(404).json({ message: "Employer not found" });
@@ -1692,8 +1694,8 @@ const getEmployerDetails = async (req, res) => {
       return res.status(400).json({ message: "Invalid employer ID format" });
     }
 
-    res.status(500).json({ message: "Server error" });
-  }
+    res.status(500).json({ message: "Server error" });
+  }
 };
 // Update employer details
 const updateEmployerDetails = async (req, res) => {
