@@ -33,7 +33,7 @@ const signUp = async (req, res) => {
       req.body;
     const mobile = parseInt(userMobile);
 
-    const existUser = await userModel.findOne({
+    const existUser = await Employer.findOne({
       $or: [{ userMobile: mobile }, { userEmail }],
     });
 
@@ -55,7 +55,7 @@ const signUp = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    const newUser = new userModel({
+    const newUser = new Employer({
       uuid: uuidv4(),
       userName,
       userMobile: mobile,
@@ -72,7 +72,7 @@ const signUp = async (req, res) => {
     let referralApplied = false;
     let referrer = null;
     if (referralCode && referralCode.trim() !== "") {
-      referrer = await userModel.findOne({
+      referrer = await Employer.findOne({
         referralCode: referralCode.trim(),
       });
 
@@ -97,7 +97,7 @@ const signUp = async (req, res) => {
         rewardEarned: 100
       };
 
-      await userModel.findByIdAndUpdate(referrer._id, {
+      await Employer.findByIdAndUpdate(referrer._id, {
         $push: {
           referralsList: referralEntry
         },
@@ -125,7 +125,7 @@ const signUp = async (req, res) => {
 
 const getAllEmployees = async (req, res) => {
   try {
-    const employees = await userModel.find(); // You can add `.select()` to limit fields
+    const employees = await Employer.find(); // You can add `.select()` to limit fields
     res.status(200).json(employees);
   } catch (error) {
     console.error("Error fetching employees:", error);
@@ -150,7 +150,7 @@ const login = async (req, res) => {
     if (mobile) conditions.push({ userMobile: mobile });
     if (userEmail) conditions.push({ userEmail });
 
-    const user = await userModel.findOne({ $or: conditions });
+    const user = await Employer.findOne({ $or: conditions });
 
     if (!user) {
       return res
@@ -211,9 +211,9 @@ const googleAuth = async (req, res) => {
     });
     const payload = ticket.getPayload();
 
-    let user = await userModel.findOne({ googleId: payload.sub });
+    let user = await Employer.findOne({ googleId: payload.sub });
     if (!user) {
-      user = new userModel({
+      user = new Employer({
         uuid: generateUserUUID(),
         googleId: payload.sub,
         userEmail: payload.email,
@@ -250,9 +250,9 @@ const googleAuthV2 = async (req, res) => {
     });
     const payload = ticket.getPayload();
 
-    let user = await userModel.findOne({ googleId: payload.sub });
+    let user = await Employer.findOne({ googleId: payload.sub });
     if (!user) {
-      user = new userModel({
+      user = new Employer({
         uuid: uuidv4(), // Using uuidv4() instead of generateUserUUID()
         googleId: payload.sub,
         userEmail: payload.email,
@@ -284,10 +284,10 @@ const appleAuth = async (req, res) => {
   const { idToken } = req.body;
   try {
     const decoded = jwtDecode(idToken);
-    let user = await userModel.findOne({ appleId: decoded.sub });
+    let user = await Employer.findOne({ appleId: decoded.sub });
 
     if (!user) {
-      user = new userModel({
+      user = new Employer({
         uuid: uuidv4(),
         appleId: decoded.sub,
         userEmail: decoded.email,
@@ -319,7 +319,7 @@ const getEmployeeDetails = async (req, res) => {
       return res.status(400).json({ message: "Employee ID is required" });
     }
 
-    const employee = await userModel
+    const employee = await Employer
       .findById(employeeId)
       .select("-userPassword");
 
@@ -482,7 +482,7 @@ const uploadFile = async (req, res) => {
     const fileUrl = result.secure_url || result.url || result.path;
 
     // First, get the current employee to check for existing files
-    const currentEmployee = await userModel.findById(employid);
+    const currentEmployee = await Employer.findById(employid);
     if (!currentEmployee) {
       return res.status(404).json({ message: "Employee not found" });
     }
@@ -557,7 +557,7 @@ const uploadFile = async (req, res) => {
     }
 
     // Update employee document
-    const updatedEmployee = await userModel.findByIdAndUpdate(
+    const updatedEmployee = await Employer.findByIdAndUpdate(
       employid,
       { $set: updateField },
       { new: true, runValidators: true }
@@ -588,7 +588,7 @@ const updateProfile = async (req, res) => {
     const profileData = req.body;
 
     // Update employee profile
-    const updatedEmployee = await userModel.findByIdAndUpdate(
+    const updatedEmployee = await Employer.findByIdAndUpdate(
       employid,
       { $set: profileData },
       { new: true }
@@ -751,7 +751,7 @@ const calculateProfileCompletion = (employee) => {
 
 const getProfileCompletion = async (req, res) => {
   try {
-    const employee = await userModel.findById(req.params.id);
+    const employee = await Employer.findById(req.params.id);
     if (!employee)
       return res.status(404).json({ message: "Employee not found" });
 
@@ -766,7 +766,7 @@ const userForgotPassword = async (req, res) => {
   try {
     const { userMobile } = req.body;
 
-    const existUser = await userModel.findOne({ userMobile: userMobile });
+    const existUser = await Employer.findOne({ userMobile: userMobile });
 
     if (!existUser) {
       return res.status(404).json({
@@ -844,7 +844,7 @@ const userChangePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Find the user by contact number
-    const user = await userModel.findOne({ userMobile: userMobile });
+    const user = await Employer.findOne({ userMobile: userMobile });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -875,7 +875,7 @@ const candidateChangePassword = async (req, res) => {
     }
 
     // Find candidate
-    const candidate = await userModel.findById(candidateId);
+    const candidate = await Employer.findById(candidateId);
     if (!candidate) {
       return res.status(404).json({ message: "Candidate not found" });
     }
@@ -933,7 +933,7 @@ const uploadProfileVideo = async (req, res) => {
       thumbnail: `${file.path}-thumbnail`, // Adjust if you're generating real thumbnails
     };
 
-    const updatedEmployee = await userModel.findByIdAndUpdate(
+    const updatedEmployee = await Employer.findByIdAndUpdate(
       employeeId,
       { profileVideo: fileInfo },
       { new: true } // returns updated document (optional)
@@ -968,7 +968,7 @@ const uploadIntroAudio = async (req, res) => {
         .json({ success: false, message: "No file uploaded" });
     }
 
-    const updatedEmployee = await userModel.findByIdAndUpdate(
+    const updatedEmployee = await Employer.findByIdAndUpdate(
       employeeId,
       {
         introductionAudio: {
@@ -990,11 +990,11 @@ const sendOtpToEmail = async (req, res) => {
 
   try {
     // Find existing user or create new
-    let employer = await userModel.findOne({ userEmail });
+    let employer = await Employer.findOne({ userEmail });
 
     if (!employer) {
       // If not found, create a new user with just the email
-      employer = new userModel({ userEmail });
+      employer = new Employer({ userEmail });
     }
 
     // Generate 6-digit OTP
@@ -1030,7 +1030,7 @@ const verifyEmailOtp = async (req, res) => {
   const { userEmail, otp } = req.body;
 
   try {
-    const employer = await userModel.findOne({ userEmail });
+    const employer = await Employer.findOne({ userEmail });
 
     if (!employer) {
       return res.status(404).json({ message: "User not found" });
@@ -1065,7 +1065,7 @@ const verifyTheCandidateRegisterOrNot = async (req, res) => {
   try {
     const { candidateEmail } = req.params;
 
-    const candidateData = await userModel.findOne({
+    const candidateData = await Employer.findOne({
       userEmail: candidateEmail,
     });
 
@@ -1533,7 +1533,7 @@ const getReferralList = async (req, res) => {
     }
 
     // Get the employee's referral data including the referralsList
-    const employee = await userModel.findById(employeeId).select("referralCount referralRewards referralsList");
+    const employee = await Employer.findById(employeeId).select("referralCount referralRewards referralsList");
     const employeeReferralCount = employee?.referralCount || 0;
     const employeeReferralRewards = employee?.referralRewards || 0;
     const referralsList = employee?.referralsList || [];
@@ -1691,7 +1691,7 @@ const getEmployerDetails = async (req, res) => {
     }
 
     // Find the employee and exclude the password
-    const employee = await userModel
+    const employee = await Employer
       .findById(employeeId)
       .select("-userPassword");
 
