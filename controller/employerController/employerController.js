@@ -1678,9 +1678,7 @@ const getEmployerDetails = async (req, res) => {
     }
 
     // Find the employee and exclude the password
-    const employee = await userModel
-      .findById(employeeId)
-      .select("-userPassword");
+    const employer = await Employer.findById(id).select("-userPassword");
 
     if (!employee) {
       return res.status(404).json({ message: "Employer not found" });
