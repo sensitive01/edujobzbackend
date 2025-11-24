@@ -449,10 +449,43 @@ const applyForJob = async (req, res) => {
       });
     }
 
+    const newApplication = updatedJob.applications.slice(-1)[0];
+    const applicationId = newApplication._id.toString();
+
+    // Get employer and employee info for notifications
+    const Employer = require('../models/employerSchema');
+    const Employee = require('../models/employeeschema');
+    const notificationService = require('../../utils/notificationService');
+    
+    const employer = await Employer.findById(updatedJob.employid);
+    const employee = await Employee.findById(applicantId);
+    
+    // Notify employer of new application
+    if (employer && updatedJob.jobTitle) {
+      await notificationService.notifyEmployerNewApplication(
+        updatedJob.employid,
+        jobId,
+        applicationId,
+        firstName,
+        updatedJob.jobTitle
+      );
+    }
+
+    // Notify employee of successful application submission
+    if (employee && employer && updatedJob.jobTitle) {
+      const employerName = `${employer.firstName || ''} ${employer.lastName || ''}`.trim() || employer.companyName || 'Employer';
+      await notificationService.notifyEmployeeApplicationSubmitted(
+        applicantId,
+        jobId,
+        updatedJob.jobTitle,
+        employerName
+      );
+    }
+
     res.status(201).json({
       success: true,
       message: "Application submitted successfully",
-      data: updatedJob.applications.slice(-1)[0],
+      data: newApplication,
     });
   } catch (error) {
     console.error("Error submitting application:", error);

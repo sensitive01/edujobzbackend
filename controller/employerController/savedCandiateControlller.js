@@ -34,6 +34,20 @@ exports.toggleSaveCandidate = async (req, res) => {
       // Add employeeId
       saved.employeeIds.push(employeeId);
       await saved.save();
+      
+      // Notify employer of candidate saved
+      const Employee = require('../../models/employeeschema');
+      const notificationService = require('../../utils/notificationService');
+      const employee = await Employee.findById(employeeId);
+      if (employee) {
+        const candidateName = employee.userName || employee.firstName || 'Candidate';
+        await notificationService.notifyEmployerCandidateSaved(
+          employerId,
+          employeeId,
+          candidateName
+        );
+      }
+      
       return res.status(200).json({ success: true, message: "Candidate saved", data: saved });
     }
 

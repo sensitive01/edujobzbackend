@@ -255,6 +255,10 @@ cron.schedule("59 23 * * *", async () => {
 });
 console.log('Cron job scheduled.'); // To confirm that the job is scheduled
 
+// Initialize scheduled notifications
+const { initializeScheduledNotifications } = require('./utils/scheduledNotifications');
+initializeScheduledNotifications();
+
 // Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

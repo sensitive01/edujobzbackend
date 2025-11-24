@@ -91,6 +91,33 @@ exports.sendMessage = async (req, res) => {
       { upsert: true, new: true }
     );
 
+    // Send notifications based on sender
+    const notificationService = require('../../utils/notificationService');
+    const Job = require('../../models/jobSchema');
+    const job = await Job.findById(jobId);
+    const jobTitle = job ? job.jobTitle : 'the job';
+    const messagePreview = message ? (message.length > 50 ? message.substring(0, 50) + '...' : message) : '';
+
+    if (sender === 'employee') {
+      // Notify employer of new message from employee
+      await notificationService.notifyEmployerNewMessage(
+        employerId,
+        employeeId,
+        employeeName || 'Employee',
+        jobTitle,
+        messagePreview
+      );
+    } else if (sender === 'employer') {
+      // Notify employee of new message from employer
+      await notificationService.notifyEmployeeNewMessage(
+        employeeId,
+        employerId,
+        employerName || 'Employer',
+        jobTitle,
+        messagePreview
+      );
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Message sent successfully',

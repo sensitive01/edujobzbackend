@@ -44,6 +44,11 @@ exports.createsEvent = async (req, res) => {
 
     await event.save();
     console.log("✅ Event saved successfully");
+    
+    // Notify all employees of new event (optional - can be limited to matching profiles)
+    // For now, we'll skip bulk notifications to avoid spam
+    // This can be implemented with a scheduled job or targeted notifications
+    
     res.status(201).json(event);
   } catch (error) {
     console.error("❌ Error in createEvent:", error);
@@ -229,6 +234,29 @@ exports.registerInEvent = async (req, res) => {
     event.totalRegistrations = event.registrations.length;
     await event.save();
 
+    // Notify employer of event registration
+    const Employee = require('../../models/employeeschema');
+    const notificationService = require('../../utils/notificationService');
+    const employee = await Employee.findById(participantId);
+    if (employee && event.organizerId) {
+      const participantName = employee.userName || employee.firstName || participantName || 'Participant';
+      await notificationService.notifyEmployerEventRegistration(
+        event.organizerId,
+        eventId,
+        event.title,
+        participantName
+      );
+    }
+
+    // Notify employee of event registration confirmation
+    if (employee) {
+      await notificationService.notifyEmployeeEventRegistrationConfirmed(
+        participantId,
+        eventId,
+        event.title
+      );
+    }
+
     res.status(201).json({ message: "Registered successfully", event });
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -381,6 +409,25 @@ exports.registerInEventEmployee = async (req, res) => {
 
     event.totalRegistrations = event.registrations.length;
     await event.save();
+
+    // Notify employer of event registration
+    const notificationService = require('../../utils/notificationService');
+    if (event.organizerId) {
+      const participantName = empData.userName || 'Participant';
+      await notificationService.notifyEmployerEventRegistration(
+        event.organizerId,
+        eventId,
+        event.title,
+        participantName
+      );
+    }
+
+    // Notify employee of event registration confirmation
+    await notificationService.notifyEmployeeEventRegistrationConfirmed(
+      empId,
+      eventId,
+      event.title
+    );
 
     res.status(201).json({ message: "Event Registered successfully", event });
   } catch (error) {

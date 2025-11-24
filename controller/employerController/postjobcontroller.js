@@ -124,6 +124,14 @@ const createJob = async (req, res) => {
 
     // DO NOT reduce totaljobpostinglimit - it's a fixed limit based on subscription
 
+    // Notify employer of successful job posting
+    const notificationService = require('../../utils/notificationService');
+    await notificationService.notifyEmployerJobPosted(
+      jobData.employid,
+      savedJob._id.toString(),
+      savedJob.jobTitle
+    );
+
     // Return the saved job
     res.status(201).json(savedJob);
   } catch (error) {
@@ -457,6 +465,27 @@ const updateApplicantStatus = async (req, res) => {
     // ✅ Fix: define `now`
     const now = new Date();
 
+    // Find the job and application first to get details for notifications
+    const job = await Job.findOne({
+      "applications._id": applicationId,
+      "applications.applicantId": applicantId,
+    });
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found",
+      });
+    }
+
+    const application = job.applications.id(applicationId);
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found",
+      });
+    }
+
     const result = await Job.updateOne(
       {
         "applications._id": applicationId,
@@ -493,6 +522,91 @@ const updateApplicantStatus = async (req, res) => {
         success: false,
         message: "Application not found or not updated",
       });
+    }
+
+    // Send notifications based on status
+    const notificationService = require('../../utils/notificationService');
+    const Employee = require('../../models/employeeschema');
+    const Employer = require('../../models/employerSchema');
+    
+    const employee = await Employee.findById(applicantId);
+    const employer = await Employer.findById(job.employid);
+    const employerName = employer ? `${employer.firstName || ''} ${employer.lastName || ''}`.trim() || employer.companyName || 'Employer' : 'Employer';
+    const applicantName = application.firstName || 'Applicant';
+
+    // Notify employee based on status
+    if (employee) {
+      if (status === 'Shortlisted') {
+        await notificationService.notifyEmployeeApplicationShortlisted(
+          applicantId,
+          job._id.toString(),
+          job.jobTitle,
+          employerName
+        );
+      } else if (status === 'Accepted') {
+        await notificationService.notifyEmployeeApplicationAccepted(
+          applicantId,
+          job._id.toString(),
+          job.jobTitle,
+          employerName
+        );
+        // Also notify employer
+        if (employer) {
+          await notificationService.notifyEmployerApplicationAccepted(
+            job.employid,
+            applicationId,
+            applicantName,
+            job.jobTitle
+          );
+        }
+      } else if (status === 'Rejected') {
+        await notificationService.notifyEmployeeApplicationRejected(
+          applicantId,
+          job._id.toString(),
+          job.jobTitle,
+          employerName
+        );
+        // Also notify employer
+        if (employer) {
+          await notificationService.notifyEmployerApplicationRejected(
+            job.employid,
+            applicationId,
+            applicantName,
+            job.jobTitle
+          );
+        }
+      } else if (status === 'Interview Scheduled') {
+        await notificationService.notifyEmployeeInterviewScheduled(
+          applicantId,
+          job._id.toString(),
+          job.jobTitle,
+          employerName,
+          interviewdate,
+          interviewtime,
+          interviewtype,
+          interviewlink,
+          interviewvenue
+        );
+        // Also notify employer
+        if (employer) {
+          await notificationService.notifyEmployerInterviewScheduled(
+            job.employid,
+            applicationId,
+            applicantName,
+            interviewdate,
+            interviewtime
+          );
+        }
+      } else {
+        // Generic status change
+        await notificationService.notifyEmployeeApplicationStatusChanged(
+          applicantId,
+          job._id.toString(),
+          job.jobTitle,
+          employerName,
+          status
+        );
+      }
     }
 
     return res.status(200).json({
@@ -638,6 +752,21 @@ const toggleSaveJob = async (req, res) => {
       job.saved.push({ applicantId, saved: true });
       await job.save();
       console.log("[TOGGLE-SAVE-JOB] job saved");
+      
+      // Notify employee of job saved
+      const Employer = require('../../models/employerSchema');
+      const notificationService = require('../../utils/notificationService');
+      const employer = await Employer.findById(job.employid);
+      if (employer) {
+        const employerName = `${employer.firstName || ''} ${employer.lastName || ''}`.trim() || employer.companyName || 'Employer';
+        await notificationService.notifyEmployeeJobSaved(
+          applicantId,
+          jobId,
+          job.jobTitle,
+          employerName
+        );
+      }
+      
       return res
         .status(201)
         .json({ message: "Job saved successfully", isSaved: true });
@@ -1210,6 +1339,15 @@ const updateJobActiveStatus = async (req, res) => {
       jobId,
       { isActive, updatedAt: new Date() },
       { new: true }
+    );
+
+    // Notify employer of job status change
+    const notificationService = require('../../utils/notificationService');
+    await notificationService.notifyEmployerJobStatusChanged(
+      job.employid,
+      jobId,
+      job.jobTitle,
+      isActive
     );
 
     res.status(200).json({
