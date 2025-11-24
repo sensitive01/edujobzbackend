@@ -137,51 +137,64 @@ const login = async (req, res) => {
   try {
     const { userMobile, userEmail, userPassword, fcmToken } = req.body;
 
+    // ---------- Input Validation ----------
     if (!userMobile && !userEmail) {
       return res.status(400).json({ message: "Mobile or email is required." });
     }
 
-    const user = await userModel.findOne({
-      $or: [
-        ...(userMobile ? [{ userMobile: userMobile.toString() }] : []),
-        ...(userEmail ? [{ userEmail }] : []),
-      ],
-    });
+    // Normalize mobile number
+    const mobile = userMobile ? userMobile.toString() : null;
+
+    // ---------- Build OR Conditions ----------
+    const conditions = [];
+    if (mobile) conditions.push({ userMobile: mobile });
+    if (userEmail) conditions.push({ userEmail });
+
+    const user = await userModel.findOne({ $or: conditions });
 
     if (!user) {
       return res
         .status(400)
-        .json({ message: "Please check your email and password." });
+        .json({ message: "User not found. Please check your credentials." });
     }
 
+    // ---------- Password Check ----------
     const match = await bcrypt.compare(userPassword, user.userPassword);
     if (!match) {
       return res
         .status(400)
-        .json({ message: "Please check your email and password." });
+        .json({ message: "Invalid password. Try again." });
     }
 
-    // ✅ Optional FCM token saving logic
-    if (
-      fcmToken &&
-      typeof fcmToken === "string" &&
-      !user.employeefcmtoken.includes(fcmToken)
-    ) {
-      user.employeefcmtoken.push(fcmToken);
-      await user.save(); // only if token is new
+    // ---------- FCM Token Save ----------
+    if (fcmToken && typeof fcmToken === "string") {
+      if (!Array.isArray(user.employeefcmtoken)) {
+        user.employeefcmtoken = [];
+      }
+
+      if (!user.employeefcmtoken.includes(fcmToken)) {
+        user.employeefcmtoken.push(fcmToken);
+        await user.save();
+      }
     }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    // ---------- Generate JWT ----------
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    const { userPassword: _, ...safeUser } = user._doc;
+    // ---------- Remove Password ----------
+    const safeUser = user.toObject();
+    delete safeUser.userPassword;
 
-    res.json({
+    return res.json({
       message: "Login successful",
       user: safeUser,
       token,
     });
+
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Internal server error." });
