@@ -1669,28 +1669,34 @@ const decreaseResumeDownload = async (req, res) => {
 // Get employer details by ID
 const getEmployerDetails = async (req, res) => {
   try {
-    const { id } = req.params;
+    // Get the employee ID from the authenticated user (from JWT)
+    // OR from request params if you want to allow fetching by ID
+    const employeeId = req.userId || req.params.id;
 
-    if (!id) {
+    if (!employeeId) {
       return res.status(400).json({ message: "Employer ID is required" });
     }
 
-    const employer = await Employer.findById(id).select("-userPassword");
+    // Find the employee and exclude the password
+    const employee = await userModel
+      .findById(employeeId)
+      .select("-userPassword");
 
-    if (!employer) {
+    if (!employee) {
       return res.status(404).json({ message: "Employer not found" });
     }
 
-    res.json(employer);
-  } catch (error) {
-    console.error("Error fetching employer details:", error);
-    if (error.kind === "ObjectId") {
+    res.json(employee);
+  } catch (err) {
+    console.error("Error fetching employer details:", err);
+
+    if (err.kind === "ObjectId") {
       return res.status(400).json({ message: "Invalid employer ID format" });
     }
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
+    res.status(500).json({ message: "Server error" });
+  }
+};
 // Update employer details
 const updateEmployerDetails = async (req, res) => {
   try {
