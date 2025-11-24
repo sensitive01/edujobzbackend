@@ -1689,6 +1689,7 @@ const decreaseResumeDownload = async (req, res) => {
 };
 
 // Get employer details by ID
+// Get employer details by ID
 const getEmployerDetails = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1705,15 +1706,18 @@ const getEmployerDetails = async (req, res) => {
       });
     }
 
-    // Find the employer and exclude the password
+    // Find the employer and exclude only the password
+    // Use .lean() to get plain JavaScript object with all fields
     const employer = await Employer
       .findById(id)
-      .select("-userPassword");
+      .select("-userPassword")
+      .lean();
 
     if (!employer) {
       return res.status(404).json({ message: "Employer not found" });
     }
 
+    // Return all fields
     res.json(employer);
   } catch (err) {
     console.error("Error fetching employer details:", err);
