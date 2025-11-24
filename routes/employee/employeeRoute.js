@@ -198,4 +198,10 @@ employeeRoute.post("/help-support/save-message", employeeHelpController.saveMess
 employeeRoute.get("/help-support/messages/:sessionId", employeeHelpController.getMessages);
 employeeRoute.put("/help-support/close/:sessionId", employeeHelpController.closeSession);
 
+// Employee Notification Routes
+const employeeNotificationController = require("../../controller/employeeController/notificationController");
+employeeRoute.get("/notifications/:employeeId", employeeNotificationController.getEmployeeNotifications);
+employeeRoute.put("/notifications/:notificationId/read", employeeNotificationController.markNotificationAsRead);
+employeeRoute.get("/notifications/:employeeId/unread-count", employeeNotificationController.getUnreadCount);
+
 module.exports = employeeRoute;

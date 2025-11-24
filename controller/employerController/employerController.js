@@ -1,190 +1,45 @@
 const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
-const sendEmail = require("../../utils/sendEmail");
 const bcrypt = require("bcrypt");
-const generateOTP = require("../../utils/generateOTP");
 const Job = require("../../models/jobSchema");
-const userModel = require("../../models/employerSchema");
+const userModel = require("../../models/employeeschema");
+const Employee = require("../../models/employeeschema");
+const Employer = require("../../models/employerSchema");
+
+const generateOTP = require("../../utils/generateOTP");
 const jwtDecode = require("jwt-decode");
 const jwksClient = require("jwks-rsa");
-const { v4: uuidv4 } = require("uuid"); // Import uuid
-const mongoose = require("mongoose"); // <-- Add this line
+const sendEmail = require("../../utils/sendEmail");
+const { v4: uuidv4 } = require("uuid");
+const {
+  cloudinary,
+  profileImageStorage,
+  resumeStorage,
+  coverLetterStorage,
+  profileVideoStorage,
+} = require("../../config/cloudinary");
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const appleKeysClient = jwksClient({
   jwksUri: "https://appleid.apple.com/auth/keys",
 });
-const jobModel = require("../../models/jobSchema")
-const EventSchema = require("../../models/calenderschema")
-const { cloudinary } = require('../../config/cloudinary');
+const mongoose = require("mongoose");
+const JobFilter = require("../../models/jobAlertModal");
 
-const generateUserUUID = () => uuidv4(); // Define the function
-
-// const signUp = async (req, res) => {
-//   try {
-//     let {
-//       employerType,
-//       schoolName,
-//       userMobile,
-//       lastName,
-//       firstName,
-//       userEmail,
-//       userPassword,
-//       referralCode = ""
-//     } = req.body;
-
-//     // Trim all inputs
-//     employerType = employerType?.trim();
-//     schoolName = schoolName?.trim();
-//     userMobile = userMobile?.trim();
-//     lastName = lastName?.trim();
-//     firstName = firstName?.trim();
-//     userEmail = userEmail?.trim();
-//     userPassword = userPassword?.trim();
-//     referralCode = referralCode.trim();
-
-//     // Validation
-//     if (!userEmail && !userMobile) {
-//       return res.status(400).json({ message: "Email or mobile is required." });
-//     }
-
-//     // Check if user already exists
-//     const existUser = await userModel.findOne({
-//       $or: [{ userMobile }, { userEmail }]
-//     });
-
-//     if (existUser) {
-//       return res.status(400).json({ message: "Employer already registered." });
-//     }
-
-//     // Hash password
-//     const hashedPassword = await bcrypt.hash(userPassword, 10);
-
-//     // Handle referral code if provided
-//     let referredBy = null;
-//     if (referralCode) {
-//       const referringEmployer = await userModel.findOne({ referralCode });
-//       if (!referringEmployer) {
-//         return res.status(400).json({ message: "Invalid referral code." });
-//       }
-//       referredBy = referringEmployer._id;
-//     }
-
-//     // Create new employer
-//     const newEmployer = new userModel({
-//       uuid: uuidv4(),
-//       employerType,
-//       schoolName,
-//       userMobile,
-//       lastName,
-//       firstName,
-//       userEmail,
-//         verificationstatus: 'pending',
-//             blockstatus: 'unblock',
-//       userPassword: hashedPassword,
-//       emailverifedstatus: true ,
-//       referredBy
-//     });
-
-//     // Generate unique referral code
-//     newEmployer.referralCode = newEmployer.generateReferralCode();
-
-//     // Save the new employer
-//     await newEmployer.save();
-
-//     // Update referrer's counts if applicable
-//     if (referredBy) {
-//       await userModel.findByIdAndUpdate(referredBy, {
-//         $inc: {
-//           referralCount: 1,
-//           referralRewards: 100 // You can adjust this value
-//         }
-//       });
-//     }
-
-//     // Create JWT token
-//     const token = jwt.sign(
-//       { id: newEmployer._id },
-//       process.env.JWT_SECRET,
-//       { expiresIn: '7d' }
-//     );
-
-//     // Return success response
-//     res.status(201).json({
-//       success: true,
-//       message: "Employer registered successfully",
-//       data: {
-//         id: newEmployer._id,
-//         uuid: newEmployer.uuid,
-//         firstName: newEmployer.firstName,
-//         lastName: newEmployer.lastName,
-//         userEmail: newEmployer.userEmail,
-//         userMobile: newEmployer.userMobile,
-//         referralCode: newEmployer.referralCode,
-//            verificationstatus: newEmployer.verificationstatus,
-//            blockstatus: newEmployer.blockstatus,
-//            emailverifedstatus: newEmployer.emailverifedstatus,
-
-//         referredBy: referredBy
-//       },
-//       token
-//     });
-
-//   } catch (err) {
-//     console.error("Error in employer registration:", err.message);
-//     console.error(err.stack);
-
-//     // Handle duplicate key errors (like duplicate referral code)
-//     if (err.code === 11000) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Registration failed due to duplicate data",
-//         error: err.message
-//       });
-//     }
-
-//     res.status(500).json({
-//       success: false,
-//       message: "Server error during registration",
-//       error: err.message
-//     });
-//   }
-// };
-// Email/Mobile Login
-
+// Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    let {
-      employerType,
-      schoolName,
-      userMobile,
-      lastName,
-      firstName,
-      userEmail,
-      userPassword,
-      referralCode = "",
-    } = req.body;
+    console.log("req.body", req.body);
+    const { userName, userMobile, userEmail, userPassword, referralCode } =
+      req.body;
+    const mobile = parseInt(userMobile);
 
-    // Trim all inputs
-    employerType = employerType?.trim();
-    schoolName = schoolName?.trim();
-    userMobile = userMobile?.trim();
-    lastName = lastName?.trim();
-    firstName = firstName?.trim();
-    userEmail = userEmail?.trim();
-    userPassword = userPassword?.trim();
-    referralCode = referralCode.trim();
-
-    // Validation
-    if (!userEmail && !userMobile) {
-      return res.status(400).json({ message: "Email or mobile is required." });
-    }
-
-    // Check if user already exists
     const existUser = await userModel.findOne({
-      $or: [{ userMobile }, { userEmail }],
+      $or: [{ userMobile: mobile }, { userEmail }],
     });
 
-     if (existUser?.userEmail === userEmail && existUser?.userMobile == userMobile) {
+    console.log("existUser", existUser);
+
+    if (existUser?.userEmail === userEmail && existUser?.userMobile == mobile) {
       return res.status(400).json({
         message: "Employee email and mobile number is already registered.",
       });
@@ -192,163 +47,95 @@ const signUp = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Employee email is already registered." });
-    } else if (existUser?.userMobile == userMobile) {
+    } else if (existUser?.userMobile == mobile) {
       return res.status(400).json({
         message: "Employee mobile number is already registered.",
       });
     }
 
-
-  
-    // Hash password
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    // Handle referral code if provided
-    let referredBy = null;
-    let referredByName = null;
-    if (referralCode) {
-      const referringEmployer = await userModel.findOne({ referralCode });
-      if (!referringEmployer) {
-        return res.status(400).json({ message: "Invalid referral code." });
-      }
-      referredBy = referringEmployer._id;
-      referredByName = `${referringEmployer.firstName} ${referringEmployer.lastName}`.trim() || referringEmployer.schoolName || 'Unknown';
-    }
-
-    // Create new employer
-    const newEmployer = new userModel({
+    const newUser = new userModel({
       uuid: uuidv4(),
-      employerType,
-      schoolName,
-      userMobile,
-      lastName,
-      firstName,
+      userName,
+      userMobile: mobile,
       userEmail,
+      userPassword: hashedPassword,
       verificationstatus: "pending",
       blockstatus: "unblock",
-      userPassword: hashedPassword,
       emailverifedstatus: true,
-      referredBy,
-      referredByName,
     });
 
-    // Generate unique referral code
-    newEmployer.referralCode = newEmployer.generateReferralCode();
+    // Generate and assign referral code
+    newUser.referralCode = newUser.generateReferralCode();
 
-    // Save the new employer
-    await newEmployer.save();
+    let referralApplied = false;
+    let referrer = null;
+    if (referralCode && referralCode.trim() !== "") {
+      referrer = await userModel.findOne({
+        referralCode: referralCode.trim(),
+      });
 
-    // Update referrer's counts and add to referrals list if applicable
-    if (referredBy) {
+      if (referrer) {
+        newUser.referredBy = referrer._id;
+        newUser.referredByName = referrer.userName || "N/A"; // Store referrer's name
+        referralApplied = true;
+      }
+    }
+
+    // Save the new user first to get the _id
+    await newUser.save();
+
+    // After saving, add to referrer's referrals list if referral code was used
+    if (referralApplied && referrer) {
       const referralEntry = {
-        referredEmployerId: newEmployer._id,
-        referredEmployerName: `${newEmployer.firstName} ${newEmployer.lastName}`.trim() || newEmployer.schoolName || 'Unknown',
-        referredEmployerEmail: newEmployer.userEmail,
-        referredEmployerMobile: newEmployer.userMobile,
+        referredUserId: newUser._id,
+        referredUserName: newUser.userName,
+        referredUserEmail: newUser.userEmail,
+        referredUserMobile: newUser.userMobile,
         referredDate: new Date(),
         rewardEarned: 100
       };
 
-      await userModel.findByIdAndUpdate(referredBy, {
+      await userModel.findByIdAndUpdate(referrer._id, {
         $push: {
           referralsList: referralEntry
         },
         $inc: {
           referralCount: 1,
-          referralRewards: 100, // You can adjust this value
+          referralRewards: 100,
         },
       });
     }
 
-    // ✅ Send email with login details
-    const loginLink = "https://gregarious-empanada-38a625.netlify.app/employer/login";
-    const logoUrl = "../../assets/logo (1).png"; // put your actual EdProfio logo URL here
-
-    let extraNote = "";
-    if (userPassword === "defaultPassword123") {
-      extraNote = `<p style="color:#d9534f;font-weight:bold;">⚠️ Please change your password after logging in for security reasons.</p>`;
-    }
-
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; padding:20px; max-width:600px; margin:auto; border:1px solid #eee; border-radius:10px;">
-        <div style="text-align:center;">
-          <img src="${logoUrl}" alt="EdProfio Logo" style="max-height:80px; margin-bottom:20px;" />
-          <h2 style="color:#333;">Welcome to EdProfio!</h2>
-        </div>
-        <p>Hi <b> ${lastName}</b>,</p>
-        <p>Your employer account has been successfully created.</p>
-
-        <p><b>Login Credentials:</b></p>
-        <ul>
-          <li>Email: <b>${userEmail}</b></li>
-          <li>Password: <b>${userPassword}</b></li>
-        </ul>
-
-        ${extraNote}
-
-        <div style="text-align:center; margin:30px 0;">
-          <a href="${loginLink}" style="background:#007bff; color:white; padding:12px 25px; text-decoration:none; border-radius:6px; font-weight:bold;">Login to Your Account</a>
-        </div>
-
-        <p>If you have any questions, feel free to reach out to our support team.</p>
-        <p style="margin-top:30px;">Best regards,<br/>The <b>EdProfio</b> Team</p>
-      </div>
-    `;
-
-    await sendEmail(
-      userEmail,
-      "Welcome to EdProfio - Your Employer Account Details",
-      "", // plain text fallback
-      emailHtml // pass HTML
-    );
-
-    // Create JWT token
-    const token = jwt.sign({ id: newEmployer._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
-    // Return success response
     res.status(201).json({
-      success: true,
-      message: "Employer registered successfully",
-      data: {
-        id: newEmployer._id,
-        uuid: newEmployer.uuid,
-        firstName: newEmployer.firstName,
-        lastName: newEmployer.lastName,
-        userEmail: newEmployer.userEmail,
-        userMobile: newEmployer.userMobile,
-        referralCode: newEmployer.referralCode,
-        verificationstatus: newEmployer.verificationstatus,
-        blockstatus: newEmployer.blockstatus,
-        emailverifedstatus: newEmployer.emailverifedstatus,
-        referredBy: referredBy,
-      },
+      message: "Employee registered successfully.",
+      user: newUser,
       token,
     });
   } catch (err) {
-    console.error("Error in employer registration:", err.message);
-    console.error(err.stack);
-
-    if (err.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: "Registration failed due to duplicate data",
-        error: err.message,
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Server error during registration",
-      error: err.message,
-    });
+    console.error("Error in registration:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
+const getAllEmployees = async (req, res) => {
+  try {
+    const employees = await userModel.find(); // You can add `.select()` to limit fields
+    res.status(200).json(employees);
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ message: "Failed to fetch employees" });
+  }
+};
+// Email/Mobile Login
 const login = async (req, res) => {
   try {
-    const { userMobile, userEmail, userPassword } = req.body;
+    const { userMobile, userEmail, userPassword, fcmToken } = req.body;
 
     if (!userMobile && !userEmail) {
       return res.status(400).json({ message: "Mobile or email is required." });
@@ -356,8 +143,8 @@ const login = async (req, res) => {
 
     const user = await userModel.findOne({
       $or: [
-        { userMobile: userMobile ? parseInt(userMobile) : null },
-        { userEmail: userEmail || "" },
+        ...(userMobile ? [{ userMobile: userMobile.toString() }] : []),
+        ...(userEmail ? [{ userEmail }] : []),
       ],
     });
 
@@ -371,15 +158,28 @@ const login = async (req, res) => {
     if (!match) {
       return res
         .status(400)
-        .json({ message: "Please check your email and password" });
+        .json({ message: "Please check your email and password." });
+    }
+
+    // ✅ Optional FCM token saving logic
+    if (
+      fcmToken &&
+      typeof fcmToken === "string" &&
+      !user.employeefcmtoken.includes(fcmToken)
+    ) {
+      user.employeefcmtoken.push(fcmToken);
+      await user.save(); // only if token is new
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
+
+    const { userPassword: _, ...safeUser } = user._doc;
+
     res.json({
       message: "Login successful",
-      user,
+      user: safeUser,
       token,
     });
   } catch (err) {
@@ -421,7 +221,48 @@ const googleAuth = async (req, res) => {
     });
   } catch (err) {
     console.error("Google auth error:", err);
-    res.status(401).json({ message: "Invalid Google token" });
+    res
+      .status(401)
+      .json({ message: "Invalid Google token", error: err.message });
+  }
+};
+
+// Google Sign-In V2 (Fixed version with uuidv4)
+const googleAuthV2 = async (req, res) => {
+  const { idToken } = req.body;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+
+    let user = await userModel.findOne({ googleId: payload.sub });
+    if (!user) {
+      user = new userModel({
+        uuid: uuidv4(), // Using uuidv4() instead of generateUserUUID()
+        googleId: payload.sub,
+        userEmail: payload.email,
+        userName: payload.name,
+        userProfilePic: payload.picture,
+        isVerified: true,
+      });
+      await user.save();
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    res.json({
+      message: "Google login successful",
+      user,
+      token,
+    });
+  } catch (err) {
+    console.error("Google auth error:", err);
+    res
+      .status(401)
+      .json({ message: "Invalid Google token", error: err.message });
   }
 };
 
@@ -434,7 +275,7 @@ const appleAuth = async (req, res) => {
 
     if (!user) {
       user = new userModel({
-        uuid: generateUserUUID(),
+        uuid: uuidv4(),
         appleId: decoded.sub,
         userEmail: decoded.email,
         userName: "Apple User",
@@ -456,156 +297,459 @@ const appleAuth = async (req, res) => {
     res.status(401).json({ message: "Invalid Apple token" });
   }
 };
-const getEmployerDetails = async (req, res) => {
+
+const getEmployeeDetails = async (req, res) => {
   try {
-    // Get the employee ID from the authenticated user (from JWT)
-    // OR from request params if you want to allow fetching by ID
     const employeeId = req.userId || req.params.id;
 
     if (!employeeId) {
-      return res.status(400).json({ message: "Employer ID is required" });
+      return res.status(400).json({ message: "Employee ID is required" });
     }
 
-    // Find the employee and exclude the password
     const employee = await userModel
       .findById(employeeId)
       .select("-userPassword");
 
     if (!employee) {
-      return res.status(404).json({ message: "Employer not found" });
+      return res.status(404).json({ message: "Employee not found" });
     }
 
     res.json(employee);
   } catch (err) {
-    console.error("Error fetching employer details:", err);
-
+    console.error("Error fetching employee details:", err);
     if (err.kind === "ObjectId") {
-      return res.status(400).json({ message: "Invalid employer ID format" });
+      return res.status(400).json({ message: "Invalid employee ID format" });
     }
-
     res.status(500).json({ message: "Server error" });
   }
 };
-
-const listAllEmployees = async (req, res) => {
+const applyForJob = async (req, res) => {
   try {
-    // Fetch all employees, excluding the password field
-    const employees = await userModel.find().select("-userPassword");
+    const { jobId } = req.params;
+    const {
+      applicantId,
+      firstName,
+      email,
+      phone,
+      resume,
+      experience,
+      jobrole,
+      currentcity,
+      profileurl, // <-- Extract profileurl from body
+    } = req.body;
 
-    // Check if any employees exist
-    if (!employees || employees.length === 0) {
-      return res.status(404).json({ message: "No employees found" });
-    }
+    // Optionally validate required fields
+    // if (!applicantId || !firstName) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: 'Missing required fields'
+    //   });
+    // }
 
-    // Return the list of employees
-    res.json(employees);
-  } catch (err) {
-    console.error("Error fetching employees:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-const updateEmployerDetails = async (req, res) => {
-  try {
-    console.log("Update request body:", req.body); // ✅ Log incoming data
-    const updatedEmployer = await userModel.findByIdAndUpdate(
-      req.params.id,
-      {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        userEmail: req.body.userEmail,
-        userMobile: req.body.userMobile,
-        address: req.body.address,
-        state: req.body.state,
-        pincode: req.body.pincode,
-        city: req.body.city,
-        schoolName: req.body.schoolName,
-        website: req.body.website,
-        board: req.body.board,
-        institutionType: req.body.institutionType,
+    const application = {
+      applicantId,
+      firstName,
+      email,
+      phone,
+      jobrole,
+      experience,
+      currentcity,
+      resume: {
+        name: resume?.name || "resume.pdf",
+        url: resume?.url || "",
       },
+      profileurl, // <-- Add profileurl to application
+      status: "Applied",
+    };
+
+    const updatedJob = await Job.findByIdAndUpdate(
+      jobId,
+      { $push: { applications: application } },
       { new: true }
     );
 
-    if (!updatedEmployer) {
-      return res.status(404).json({ message: "Employer not found" });
+    if (!updatedJob) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
     }
 
-    res.json(updatedEmployer);
-  } catch (err) {
-    console.error("Error updating employer details:", err); // 👈 this error should reveal the issue
-    res.status(500).json({ message: "Server error" });
+    res.status(201).json({
+      success: true,
+      message: "Application submitted successfully",
+      data: updatedJob.applications.slice(-1)[0],
+    });
+  } catch (error) {
+    console.error("Error submitting application:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
-const updateProfilePicture = async (req, res) => {
-  try {
-    const { employid } = req.params;
 
-    // Validate employee ID
+const getApplicationStatus = async (req, res) => {
+  try {
+    const { jobId, applicantId } = req.params;
+
+    const job = await Job.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
+    }
+
+    const application = job.applications.find(
+      (app) => app.applicantId === applicantId
+    );
+
+    if (!application) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found for this applicant",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Application status fetched successfully",
+      status: application.status,
+      application,
+    });
+  } catch (error) {
+    console.error("Error fetching application status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// employeeController.js
+
+const uploadFile = async (req, res) => {
+  try {
+    console.log("Inside controller");
+    const { employid } = req.params;
+    const fileType = req.query.fileType || req.body.fileType;
+
+    // Validate inputs
     if (!employid || !mongoose.isValidObjectId(employid)) {
       return res.status(400).json({ message: "Valid employee ID is required" });
     }
 
-    // Check if file is uploaded
+    if (!fileType) {
+      return res
+        .status(400)
+        .json({ message: "File type (fileType) is required" });
+    }
+
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
     const result = req.file;
 
-    // Get file URL
-    const fileUrl = result.secure_url || result.url || result.path;
-    if (!fileUrl) {
-      return res
-        .status(500)
-        .json({
-          message: "Cloudinary upload failed: No URL returned",
-          details: result,
-        });
+    // Check if we have a valid URL in the result
+    if (!result.secure_url && !result.url && !result.path) {
+      return res.status(500).json({
+        message: "Cloudinary upload failed: No URL returned",
+        details: result,
+      });
     }
 
-    // Find current employee
+    console.log("response in upload", result);
+
+    // Use secure_url if available, otherwise fall back to url or path
+    const fileUrl = result.secure_url || result.url || result.path;
+
+    // First, get the current employee to check for existing files
     const currentEmployee = await userModel.findById(employid);
     if (!currentEmployee) {
       return res.status(404).json({ message: "Employee not found" });
     }
 
-    // Delete old profile picture if exists
-    if (currentEmployee.userProfilePic) {
-      try {
-        const publicId = currentEmployee.userProfilePic
-          .split("/")
-          .slice(-2)
-          .join("/")
-          .split(".")[0];
-        await cloudinary.uploader.destroy(publicId);
-      } catch (err) {
-        console.error("Failed to delete old profile picture:", err);
+    // Delete old file from Cloudinary if it exists
+    try {
+      switch (fileType) {
+        case "profileImage":
+          if (currentEmployee.userProfilePic) {
+            const publicId = currentEmployee.userProfilePic
+              .split("/")
+              .slice(-2)
+              .join("/")
+              .split(".")[0];
+            await cloudinary.uploader.destroy(publicId);
+          }
+          break;
+        case "resume":
+          if (currentEmployee.resume?.url) {
+            const publicId = currentEmployee.resume.url
+              .split("/")
+              .slice(-2)
+              .join("/")
+              .split(".")[0];
+            await cloudinary.uploader.destroy(publicId, {
+              resource_type: "raw",
+            });
+          }
+          break;
+        case "coverLetter":
+          if (currentEmployee.coverLetterFile?.url) {
+            const publicId = currentEmployee.coverLetterFile.url
+              .split("/")
+              .slice(-2)
+              .join("/")
+              .split(".")[0];
+            await cloudinary.uploader.destroy(publicId, {
+              resource_type: "raw",
+            });
+          }
+          break;
       }
+    } catch (deleteError) {
+      console.error("Error deleting old file:", deleteError);
+      // Continue with the update even if deletion fails
     }
 
-    // Update with new profile picture
-    currentEmployee.userProfilePic = fileUrl;
-    await currentEmployee.save();
+    // Prepare field update
+    let updateField;
+    switch (fileType) {
+      case "profileImage":
+        updateField = { userProfilePic: fileUrl };
+        break;
+      case "resume":
+        updateField = {
+          resume: {
+            name: result.originalname || result.filename || "Unnamed",
+            url: fileUrl,
+          },
+        };
+        break;
+      case "coverLetter":
+        updateField = {
+          coverLetterFile: {
+            name: result.originalname || result.filename || "Unnamed",
+            url: fileUrl,
+          },
+        };
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid file type provided" });
+    }
+
+    // Update employee document
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+      employid,
+      { $set: updateField },
+      { new: true, runValidators: true }
+    );
 
     res.status(200).json({
       success: true,
-      message: "Profile picture updated successfully",
+      fileType,
       file: {
         name: result.originalname || result.filename || "Unnamed",
         url: fileUrl,
       },
+      message: "File uploaded and saved successfully",
     });
   } catch (error) {
-    console.error("Error updating profile picture:", error);
+    console.error("Error uploading file:", error);
     res.status(500).json({
       success: false,
-      message: "Internal server error while updating profile picture",
+      message: "Internal server error during file upload",
       error: error.message,
     });
   }
 };
 
-const employerForgotPassword = async (req, res) => {
+const updateProfile = async (req, res) => {
+  try {
+    const { employid } = req.params;
+    const profileData = req.body;
+
+    // Update employee profile
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+      employid,
+      { $set: profileData },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: updatedEmployee,
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating profile",
+      error: error.message,
+    });
+  }
+};
+
+const appliedjobsfetch = async (req, res) => {
+  const { applicantId } = req.params;
+
+  try {
+    const jobs = await Job.aggregate([
+      {
+        $match: {
+          "applications.applicantId": applicantId,
+        },
+      },
+      {
+        $addFields: {
+          employidObject: { $toObjectId: "$employid" },
+        },
+      },
+      {
+        $lookup: {
+          from: "employers",
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo",
+        },
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          employerProfilePic: "$employerInfo.userProfilePic",
+          employerName: {
+            $concat: ["$employerInfo.firstName", " ", "$employerInfo.lastName"],
+          },
+        },
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          employidObject: 0,
+        },
+      },
+    ]);
+
+    if (!jobs || jobs.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "No jobs found for this applicant." });
+    }
+
+    res.status(200).json(jobs);
+  } catch (error) {
+    console.error("Error fetching jobs by applicant:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const calculateProfileCompletion = (employee) => {
+  let score = 0;
+  const report = {
+    basicInfo: 0,
+    address: 0,
+    education: 0,
+    workExperience: 0,
+    profileDetails: 0,
+    documents: 0,
+    socialLinks: 0,
+    jobPreferences: 0,
+    total: 0,
+  };
+
+  // Basic Info (20%)
+  if (employee.userName) report.basicInfo += 3.33;
+  if (employee.userEmail) report.basicInfo += 3.33;
+  if (employee.userMobile) report.basicInfo += 3.33;
+  if (employee.dob) report.basicInfo += 3.33;
+  if (employee.gender) report.basicInfo += 3.33;
+  if (employee.maritalStatus) report.basicInfo += 3.33;
+
+  // Address (10%)
+  if (employee.addressLine1) report.address += 2.5;
+  if (employee.city) report.address += 2.5;
+  if (employee.state) report.address += 2.5;
+  if (employee.pincode) report.address += 2.5;
+
+  // Education (15%)
+  if (employee.education && employee.education.length > 0)
+    report.education += 15;
+
+  // Work Experience (15%)
+  if (
+    employee.totalExperience === "Fresher" ||
+    (employee.workExperience && employee.workExperience.length > 0)
+  )
+    report.workExperience += 15;
+
+  // Profile Details (15%)
+  if (employee.userProfilePic) report.profileDetails += 3.75;
+  if (employee.profilesummary) report.profileDetails += 3.75;
+  if (employee.skills) report.profileDetails += 3.75;
+  if (employee.languages) report.profileDetails += 3.75;
+
+  // Documents (10%)
+  if (employee.resume?.url) report.documents += 10;
+
+  // Social/Online Links (5%)
+  if (employee.github) report.socialLinks += 1.66;
+  if (employee.linkedin) report.socialLinks += 1.66;
+  if (employee.portfolio) report.socialLinks += 1.66;
+
+  // Job Preferences (10%)
+  // if (employee.preferredLocation) report.jobPreferences += 2;
+  if (employee.expectedSalary) report.jobPreferences += 2;
+  if (employee.currentCity) report.jobPreferences += 4;
+
+  if (employee.gradeLevels) report.jobPreferences += 4;
+
+  // Calculate Total
+  report.total = Math.round(
+    report.basicInfo +
+      report.address +
+      report.education +
+      report.workExperience +
+      report.profileDetails +
+      report.documents +
+      report.socialLinks +
+      report.jobPreferences
+  );
+
+  return report;
+};
+
+const getProfileCompletion = async (req, res) => {
+  try {
+    const employee = await userModel.findById(req.params.id);
+    if (!employee)
+      return res.status(404).json({ message: "Employee not found" });
+
+    const percentageReport = calculateProfileCompletion(employee);
+    res.json({ total: percentageReport.total }); // Return only the total
+  } catch (err) {
+    res.status(500).json({ message: "Server Error", error: err.message });
+  }
+};
+
+const userForgotPassword = async (req, res) => {
   try {
     const { userMobile } = req.body;
 
@@ -636,7 +780,7 @@ const employerForgotPassword = async (req, res) => {
   }
 };
 
-const employerverifyOTP = async (req, res) => {
+const verifyOTP = async (req, res) => {
   try {
     const { otp } = req.body;
 
@@ -667,14 +811,14 @@ const employerverifyOTP = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-const employerChangePassword = async (req, res) => {
+const userChangePassword = async (req, res) => {
   try {
     console.log("Welcome to user change password");
 
-    const { userEmail, password, confirmPassword } = req.body;
+    const { userMobile, password, confirmPassword } = req.body;
 
     // Validate inputs
-    if (!userEmail || !password || !confirmPassword) {
+    if (!userMobile || !password || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -687,7 +831,7 @@ const employerChangePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Find the user by contact number
-    const user = await userModel.findOne({ userEmail: userEmail });
+    const user = await userModel.findOne({ userMobile: userMobile });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -707,38 +851,35 @@ const employerChangePassword = async (req, res) => {
   }
 };
 
-const employerChangeMyPassword = async (req, res) => {
+const candidateChangePassword = async (req, res) => {
   try {
-    const { employerId } = req.params;
+    const { candidateId } = req.params;
     const { currentPassword, newPassword } = req.body;
-    console.log("req.body",req.body)
 
     // Validate inputs
-    if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ message: "Current and new password are required" });
+    if (!candidateId || !currentPassword || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Find employer
-    const employer = await userModel.findById(employerId);
-    if (!employer) {
-      return res.status(404).json({ message: "Employer not found" });
+    // Find candidate
+    const candidate = await userModel.findById(candidateId);
+    if (!candidate) {
+      return res.status(404).json({ message: "Candidate not found" });
     }
 
     // Verify current password
     const isMatch = await bcrypt.compare(
       currentPassword,
-      employer.userPassword
+      candidate.userPassword
     );
     if (!isMatch) {
       return res.status(400).json({ message: "Current password is incorrect" });
     }
 
-    // Prevent reusing same password
+    // Prevent reusing old password
     const isSamePassword = await bcrypt.compare(
       newPassword,
-      employer.userPassword
+      candidate.userPassword
     );
     if (isSamePassword) {
       return res
@@ -749,79 +890,88 @@ const employerChangeMyPassword = async (req, res) => {
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password
-    employer.userPassword = hashedPassword;
-    await employer.save();
+    // Update candidate's password
+    candidate.userPassword = hashedPassword;
+    await candidate.save();
 
     res.status(200).json({ message: "Password updated successfully" });
   } catch (err) {
-    console.error("Error in employerChangeMyPassword:", err);
+    console.error("Error in candidateChangePassword:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-// GET /api/referral-link/:userId
-const getReferralLink = async (req, res) => {
+const uploadProfileVideo = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { employeeId } = req.params;
+    const file = req.file;
 
-    const user = await userModel.findById(userId);
-    if (!user || !user.referralCode) {
-      return res.status(404).json({ message: "Referral code not found." });
+    console.log("Received file:", file);
+
+    if (!file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
     }
 
-    // This can be dynamic based on your frontend deployment
-    const referralUrl = `https://yourapp.com/signup?ref=${user.referralCode}`;
+    const fileInfo = {
+      name: file.originalname,
+      url: file.path,
+      thumbnail: `${file.path}-thumbnail`, // Adjust if you're generating real thumbnails
+    };
 
-    res.json({ referralUrl });
-  } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+      employeeId,
+      { profileVideo: fileInfo },
+      { new: true } // returns updated document (optional)
+    );
+
+    if (!updatedEmployee) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile video uploaded successfully",
+      file: fileInfo,
+    });
+  } catch (error) {
+    console.error("Upload error:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// const sendOtpToEmail = async (req, res) => {
-//   const { userEmail } = req.body;
+// PUT: Upload intro audio for an employee
+const uploadIntroAudio = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+    const file = req.file;
 
-//   try {
-//     // Find existing user or create new
-//     let employer = await userModel.findOne({ userEmail });
+    if (!file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No file uploaded" });
+    }
 
-//     if (!employer) {
-//       // If not found, create a new user with just the email
-//       employer = new userModel({ userEmail });
-//     }
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+      employeeId,
+      {
+        introductionAudio: {
+          name: file.originalname,
+          url: file.path,
+          duration: req.body.duration || 0,
+        },
+      },
+      { new: true }
+    );
 
-//     // Generate 6-digit OTP
-//     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-//     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
-
-//     // Update OTP fields
-//     employer.otp = otp;
-//     employer.otpExpires = otpExpires;
-
-//     await employer.save();
-//     console.log(`OTP generated: ${otp} for email: ${userEmail}`);
-
-//     // Send email
-//     try {
-//       await sendEmail(userEmail, "Your OTP Code", `Your OTP is: ${otp}`);
-//       console.log("OTP email sent successfully");
-//     } catch (emailErr) {
-//       console.error("Failed to send OTP email:", emailErr);
-//       return res
-//         .status(500)
-//         .json({ message: "Failed to send OTP email", error: emailErr });
-//     }
-
-//     return res.status(200).json({ message: "OTP sent successfully" });
-//   } catch (error) {
-//     console.error("Error in sendOtpToEmail:", error);
-//     return res.status(500).json({ message: "Error sending OTP", error });
-//   }
-// };
-
-
-
+    res.status(200).json({ success: true, employee: updatedEmployee });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 const sendOtpToEmail = async (req, res) => {
   const { userEmail } = req.body;
 
@@ -845,45 +995,9 @@ const sendOtpToEmail = async (req, res) => {
     await employer.save();
     console.log(`OTP generated: ${otp} for email: ${userEmail}`);
 
-    // Email template
-    const emailTemplate = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f4; }
-            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; overflow: hidden; }
-            .header { background: #4A90E2; color: white; text-align: center; padding: 20px; }
-            .content { padding: 30px; text-align: center; }
-            .otp-box { background: #f8f9fa; border: 2px solid #4A90E2; border-radius: 8px; padding: 20px; margin: 20px 0; }
-            .otp { font-size: 28px; font-weight: bold; color: #4A90E2; letter-spacing: 4px; }
-            .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">
-                <h1>EdProfio</h1>
-            </div>
-            <div class="content">
-                <h2>Your OTP Code</h2>
-                <p>Please use the following OTP to verify your email address:</p>
-                <div class="otp-box">
-                    <div class="otp">${otp}</div>
-                </div>
-                <p><strong>Valid for 10 minutes only</strong></p>
-                <p>If you didn't request this, please ignore this email.</p>
-            </div>
-            <div class="footer">
-                <p>© EdProfio - Your Education Platform</p>
-            </div>
-        </div>
-    </body>
-    </html>`;
-
     // Send email
     try {
-      await sendEmail(userEmail, "Your OTP Code - EdProfio", emailTemplate);
+      await sendEmail(userEmail, "Your OTP Code", `Your OTP is: ${otp}`);
       console.log("OTP email sent successfully");
     } catch (emailErr) {
       console.error("Failed to send OTP email:", emailErr);
@@ -898,7 +1012,6 @@ const sendOtpToEmail = async (req, res) => {
     return res.status(500).json({ message: "Error sending OTP", error });
   }
 };
-
 
 const verifyEmailOtp = async (req, res) => {
   const { userEmail, otp } = req.body;
@@ -935,258 +1048,482 @@ const verifyEmailOtp = async (req, res) => {
   }
 };
 
-const decreaseResumeDownload = async (req, res) => {
+const verifyTheCandidateRegisterOrNot = async (req, res) => {
   try {
-    const { employerId, employeeId } = req.params;
+    const { candidateEmail } = req.params;
 
-    // Find employer by ID
-    const employer = await userModel.findById(employerId);
-    if (!employer) {
-      return res.status(404).json({ message: "Employer not found" });
-    }
-
-    // Check if this employee's resume has already been downloaded
-    const alreadyDownloaded = employer.resumedownload.some(
-      (item) => item.employeeId.toString() === employeeId
-    );
-
-    if (alreadyDownloaded) {
-      return res.status(200).json({
-        message: "Resume already downloaded, count not decreased",
-        totalRemaining: employer.totaldownloadresume,
-      });
-    }
-
-    // If first time downloading, check if downloads are available
-    if (employer.totaldownloadresume <= 0) {
-      return res.status(400).json({ message: "No resume downloads remaining" });
-    }
-
-    // Decrease totaldownloadresume
-    employer.totaldownloadresume -= 1;
-
-    // Add the new resume download record
-    employer.resumedownload.push({
-      employeeId,
-      viewedAt: new Date(),
+    const candidateData = await userModel.findOne({
+      userEmail: candidateEmail,
     });
 
-    // Mark modified paths for Mongoose
-    employer.markModified("totaldownloadresume");
-    employer.markModified("resumedownload");
+    if (!candidateData) {
+      // Candidate not found → end response here
+      return res.status(200).json({ exists: false });
+    }
 
-    // Save the updated employer document
-    await employer.save();
-
-    return res.status(200).json({
-      message: "Resume download count decreased successfully",
-      totalRemaining: employer.totaldownloadresume,
+    // Candidate exists → create token
+    const token = jwt.sign({ id: candidateData._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
     });
-  } catch (error) {
-    console.error("❌ Error:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
+
+    return res.status(200).json({ exists: true, candidateData, token });
+  } catch (err) {
+    console.error("Error verifying candidate:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
 
-const decreaseProfileView = async (req, res) => {
+const addJobAlert = async (req, res) => {
   try {
-    const { employerId, employeeId } = req.params;
+    console.log("submitData", req.body);
 
-    // Find employer
-    const employer = await userModel.findById(employerId);
-    if (!employer) {
-      return res.status(404).json({ message: "Employer not found" });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
     }
 
-    // Check if already viewed (no decrement if already viewed)
-    const alreadyViewed = employer.viewedEmployees.some(
-      (view) => view.employeeId.toString() === employeeId
+    const token = authHeader.split(" ")[1];
+    console.log("token", token);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const userId = decoded.id; // make sure your token payload has `id`
+
+    const {
+      salaryFrom,
+      salaryTo,
+      location,
+      workType,
+      experience,
+      jobCategories,
+    } = req.body;
+
+    // ✅ Find by userId and update, or create new if not exists
+    const updatedJobAlert = await JobFilter.findOneAndUpdate(
+      { userId },
+      {
+        salaryFrom,
+        salaryTo,
+        location,
+        workType,
+        experience,
+        jobCategories,
+        userId,
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
     );
 
-    if (alreadyViewed) {
-      return res.status(200).json({
-        message: "Employee already viewed",
-        totalRemaining: employer.totalprofileviews,
-        firstView: false,
-      });
-    }
-
-    // Check global total profile views
-    if (employer.totalprofileviews <= 0) {
-      return res.status(400).json({ message: "No profile views remaining" });
-    }
-
-    // ---- Check daily limit ----
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Midnight today
-
-    // Count how many profiles have been viewed today
-    const todayViews = employer.viewedEmployees.filter((view) => {
-      const viewedDate = new Date(view.viewedAt);
-      viewedDate.setHours(0, 0, 0, 0);
-      return viewedDate.getTime() === today.getTime();
-    }).length;
-
-    if (todayViews >= employer.totalperdaylimit) {
-      return res
-        .status(400)
-        .json({ message: "Daily profile view limit reached" });
-    }
-
-    // ---- Decrease global count and record today's view ----
-    employer.totalprofileviews -= 1;
-    employer.viewedEmployees.push({
-      employeeId,
-      viewedAt: new Date(),
-    });
-
-    await employer.save();
-
-    return res.status(200).json({
-      message: "Profile view count decreased successfully",
-      totalRemaining: employer.totalprofileviews,
-      firstView: true,
-    });
-  } catch (error) {
-    console.error("❌ Error:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
-  }
-};
-
-
-
-const getJobAndEmployerCount = async (req, res) => {
-  try {
-    const employerCount = await userModel.countDocuments();  
-    const jobCount = await jobModel.countDocuments();       
-
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      employerCount,
-      jobCount,
+      data: updatedJobAlert,
+      message: "Job alert saved successfully",
     });
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({
+    console.error("Error in addJobAlert:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const getDesiredJobAlerts = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+    const token = authHeader.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = decoded.id;
+
+    const userJobPreference = await JobFilter.findOne({ userId });
+    if (!userJobPreference) {
+      return res.status(404).json({ message: "No job preference found" });
+    }
+
+    const query = {
+      $or: [],
+    };
+
+    if (userJobPreference.salaryFrom && userJobPreference.salaryTo) {
+      query.$or.push({
+        $and: [
+          { salaryFrom: { $lte: userJobPreference.salaryTo } },
+          { salaryTo: { $gte: userJobPreference.salaryFrom } },
+        ],
+      });
+    }
+
+    if (userJobPreference.location) {
+      query.$or.push({ location: userJobPreference.location });
+    }
+
+    if (userJobPreference.workType) {
+      query.$or.push({ jobType: userJobPreference.workType });
+    }
+
+    if (userJobPreference.experience) {
+      query.$or.push({ experienceLevel: userJobPreference.experience });
+    }
+
+    if (userJobPreference.jobCategories?.length > 0) {
+      query.$or.push({ category: { $in: userJobPreference.jobCategories } });
+    }
+
+    if (query.$or.length === 0) {
+      return res.status(200).json({ jobAlerts: [] });
+    }
+
+    const jobAlerts = await Job.find(query);
+
+    return res.status(200).json({ jobAlerts, userJobPreference });
+  } catch (err) {
+    console.error("Error getting desired job alerts:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+const getDesiredJobAlertswithouttoken = async (req, res) => {
+  try {
+    const { userId } = req.query; // ✅ Change from req.body to req.query
+
+    // Validate userId presence
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    const userJobPreference = await JobFilter.findOne({ userId });
+    if (!userJobPreference) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No job preference found" });
+    }
+
+    const query = {
+      $or: [],
+    };
+
+    // Match salary range
+    if (userJobPreference.salaryFrom && userJobPreference.salaryTo) {
+      query.$or.push({
+        $and: [
+          { salaryFrom: { $lte: userJobPreference.salaryTo } },
+          { salaryTo: { $gte: userJobPreference.salaryFrom } },
+        ],
+      });
+    }
+
+    // Match location
+    if (userJobPreference.location) {
+      query.$or.push({ location: userJobPreference.location });
+    }
+
+    // Match work type
+    if (userJobPreference.workType) {
+      query.$or.push({ jobType: userJobPreference.workType });
+    }
+
+    // Match experience level
+    if (userJobPreference.experience) {
+      query.$or.push({ experienceLevel: userJobPreference.experience });
+    }
+
+    // Match categories
+    if (userJobPreference.jobCategories?.length > 0) {
+      query.$or.push({ category: { $in: userJobPreference.jobCategories } });
+    }
+
+    // If no filters available
+    if (query.$or.length === 0) {
+      return res
+        .status(200)
+        .json({ success: true, jobAlerts: [], userJobPreference });
+    }
+
+    const jobAlerts = await Job.find(query);
+
+    return res
+      .status(200)
+      .json({ success: true, jobAlerts, userJobPreference });
+  } catch (err) {
+    console.error("Error getting desired job alerts:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const addwithouttoeken = async (req, res) => {
+  try {
+    console.log("submitData", req.body);
+
+    const {
+      userId,
+      salaryFrom,
+      salaryTo,
+      location,
+      workType,
+      experience,
+      jobCategories,
+    } = req.body;
+
+    // Validate userId presence
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "User ID is required" });
+    }
+
+    // Find by userId and update, or create new if not exists
+    const updatedJobAlert = await JobFilter.findOneAndUpdate(
+      { userId },
+      {
+        salaryFrom,
+        salaryTo,
+        location,
+        workType,
+        experience,
+        jobCategories,
+        userId,
+      },
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: updatedJobAlert,
+      message: "Job alert saved successfully",
+    });
+  } catch (err) {
+    console.error("Error in addJobAlert:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const fetchAvailabilityStatus = async (req, res) => {
+  try {
+    const employeeId = req.params.employeeId;
+
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return res.status(400).json({ message: "Invalid employee ID" });
+    }
+
+    const employee = await Employee.findById(employeeId).select("isAvailable");
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.status(200).json({
+      message: "Availability status fetched successfully",
+      isAvailable: employee.isAvailable || false,
+    });
+  } catch (error) {
+    console.error("Error fetching availability status:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const updateAvailabilityStatus = async (req, res) => {
+  try {
+    const employeeId = req.params.employeeId;
+    const { isAvailable } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return res.status(400).json({ message: "Invalid employee ID" });
+    }
+
+    if (typeof isAvailable !== "boolean") {
+      return res
+        .status(400)
+        .json({ message: "isAvailable must be a boolean value" });
+    }
+
+    const employee = await Employee.findByIdAndUpdate(
+      employeeId,
+      {
+        isAvailable,
+        updatedAt: Date.now(),
+      },
+      { new: true, runValidators: true }
+    ).select("isAvailable userName userEmail");
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    res.status(200).json({
+      message: "Availability status updated successfully",
+      employee: {
+        id: employee._id,
+        userName: employee.userName,
+        userEmail: employee.userEmail,
+        isAvailable: employee.isAvailable,
+      },
+    });
+  } catch (error) {
+    console.error("Error updating availability status:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const deleteAudioRecord = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $unset: { introductionAudio: "" } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json({
+      message: "Introduction audio deleted successfully",
+      employee: updatedEmployee,
+    });
+  } catch (err) {
+    console.error("Error deleting audio record:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const deleteProfileAudioRecord = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $unset: { profileVideo: "" } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json({
+      message: "Profile video  removed successfully",
+      employee: updatedEmployee,
+    });
+  } catch (err) {
+    console.error("Error profile video:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const deleteCoverLetter = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $unset: { coverLetterFile: "" } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json({
+      message: "Cover letter removed successfully",
+      employee: updatedEmployee,
+    });
+  } catch (err) {
+    console.error("Error in remove cover letter:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const deleteResumeLetter = async (req, res) => {
+  try {
+    const { employeeId } = req.params;
+
+    const updatedEmployee = await Employee.findByIdAndUpdate(
+      employeeId,
+      { $unset: { resume: "" } },
+      { new: true }
+    );
+
+    if (!updatedEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+    return res.status(200).json({
+      message: "Resume removed successfully",
+      employee: updatedEmployee,
+    });
+  } catch (err) {
+    console.error("Error in remove resume:", err);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const getHeaderCategoriesCount = async (req, res) => {
+  try {
+    // Predefined categories (you can modify this list if needed)
+    const categories = [
+      "Teaching Jobs",
+      "Leadership and Administration",
+      "Support and Student Welfare",
+      "Extracurricular Activities",
+      "Curriculum and Content Development",
+      "EdTech and Digital Learning",
+      "Special Education and Inclusive Learning",
+      "Non-Teaching Staffs",
+      "Training and Development",
+      "Research and Policy Development",
+      "Other Specialized Roles",
+    ];
+
+    const categoryCounts = [];
+
+    for (const category of categories) {
+      const count = await Job.countDocuments({ category });
+      categoryCounts.push({ category, count });
+    }
+
+    // Send response
+    res.status(200).json({
+      success: true,
+      data: categoryCounts,
+    });
+  } catch (err) {
+    console.error("Error in getting category counts:", err);
+    res.status(500).json({
       success: false,
-      message: "Something went wrong",
+      message: "Error fetching category counts",
       error: err.message,
     });
   }
 };
 
-
-
-const getEmployerDashboardCount = async (req, res) => {
-  try {
-    const { employerId } = req.params;
-
-    // Get all jobs for this employer
-    const jobData = await jobModel.find(
-      { employid: employerId },
-      { isActive: 1, applications: 1 } // only fetch required fields
-    );
-
-    const interViewData = await EventSchema.find({employerId},{title:1,location:1,start:1,end:1,createdAt:1})
-    console.log("interViewData",interViewData)
-
-    // Initialize counters
-    let totalJobs = jobData.length;
-    let activeJobs = jobData.filter(job => job.isActive).length;
-
-    let appliedCount = 0;
-    let interviewScheduledCount = 0;
-    let shortlistedCount = 0; // "In Progress"
-    let rejectedCount = 0;
-    let pendingCount = 0;
-
-    // Loop through jobs & applications
-    jobData.forEach(job => {
-      job.applications.forEach(app => {
-        appliedCount++; // every application is an "applied candidate"
-        console.log(app.employapplicantstatus)
-
-        switch (app.employapplicantstatus) {
-          case "Interview Scheduled":
-            interviewScheduledCount++;
-            break;
-          case "In Progress":
-            shortlistedCount++;
-            break;
-          case "Rejected":
-            rejectedCount++;
-            break;
-          case "Pending":
-            pendingCount++;
-            break;
-          default:
-            break;
-        }
-      });
-    });
-
-    // Build response object
-    const counts = {
-      totalJobs,
-      activeJobs,
-      appliedCount,
-      interviewScheduledCount,
-      shortlistedCount,
-      rejectedCount,
-      pendingCount,
-    };
-
-    res.status(200).json({ success: true, counts,interViewData });
-  } catch (err) {
-    console.log("Error in getting the job data", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-const getEmployerSubscribed = async (req, res) => {
-  try {
-    console.log("req.params",req.params)
-    const { employerId } = req.params;
-    const employer = await userModel.findById(employerId);
-    if (!employer) {
-      return res.status(404).json({ message: "Employer not found" });
-    }
-    return res.status(200).json({ success: true, subscribed: employer.subscription });
-  } catch (err) {
-    console.log("Error in getting the employer data", err);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-};
-
-// Get referral list for an employer
+// Get referral list for an employee
 const getReferralList = async (req, res) => {
   try {
-    const { employerId } = req.params;
+    const { employeeId } = req.params;
 
-    if (!employerId) {
+    if (!employeeId) {
       return res.status(400).json({
         success: false,
-        message: "Employer ID is required",
+        message: "Employee ID is required",
       });
     }
 
-    // Get the employer's referral data including the referralsList
-    const employer = await userModel.findById(employerId).select("referralCount referralRewards referralsList");
-    
-    if (!employer) {
-      return res.status(404).json({
-        success: false,
-        message: "Employer not found",
-      });
-    }
-
-    const employerReferralCount = employer?.referralCount || 0;
-    const employerReferralRewards = employer?.referralRewards || 0;
-    const referralsList = employer?.referralsList || [];
+    // Get the employee's referral data including the referralsList
+    const employee = await userModel.findById(employeeId).select("referralCount referralRewards referralsList");
+    const employeeReferralCount = employee?.referralCount || 0;
+    const employeeReferralRewards = employee?.referralRewards || 0;
+    const referralsList = employee?.referralsList || [];
 
     // Format the referrals list from the stored array
     const referralList = referralsList.map((referral) => {
@@ -1196,9 +1533,9 @@ const getReferralList = async (req, res) => {
         : new Date().toISOString().split("T")[0];
 
       return {
-        name: referral.referredEmployerName || "N/A",
-        email: referral.referredEmployerEmail || "N/A",
-        mobile: referral.referredEmployerMobile || "N/A",
+        name: referral.referredUserName || "N/A",
+        email: referral.referredUserEmail || "N/A",
+        mobile: referral.referredUserMobile || "N/A",
         date: date,
         rewardEarned: referral.rewardEarned || 100,
       };
@@ -1208,8 +1545,8 @@ const getReferralList = async (req, res) => {
       success: true,
       data: referralList,
       totalReferrals: referralList.length,
-      referralCount: employerReferralCount, // Total referral count from employer profile
-      referralRewards: employerReferralRewards, // Total rewards earned
+      referralCount: employeeReferralCount, // Total referral count from employee profile
+      referralRewards: employeeReferralRewards, // Total rewards earned
     });
   } catch (err) {
     console.error("Error in getting referral list:", err);
@@ -1221,29 +1558,650 @@ const getReferralList = async (req, res) => {
   }
 };
 
+// Decrease profile view count when employer views an employee profile
+const decreaseProfileView = async (req, res) => {
+  try {
+    const { employerId, employeeId } = req.params;
 
+    if (!employerId || !employeeId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Employer ID and Employee ID are required" 
+      });
+    }
 
+    const employer = await Employer.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Employer not found" 
+      });
+    }
 
+    // Decrease totalprofileviews if greater than 0
+    if (employer.totalprofileviews > 0) {
+      employer.totalprofileviews -= 1;
+      await employer.save();
+    }
+
+    // Add to viewedEmployees array if not already present
+    const existingView = employer.viewedEmployees.find(
+      view => view.employeeId.toString() === employeeId
+    );
+
+    if (!existingView) {
+      employer.viewedEmployees.push({
+        employeeId: employeeId,
+        viewedAt: new Date()
+      });
+      await employer.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile view decreased",
+      remainingViews: employer.totalprofileviews
+    });
+  } catch (error) {
+    console.error("Error decreasing profile view:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error", 
+      error: error.message 
+    });
+  }
+};
+
+// Decrease resume download count when employer downloads a resume
+const decreaseResumeDownload = async (req, res) => {
+  try {
+    const { employerId, employeeId } = req.params;
+
+    if (!employerId || !employeeId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Employer ID and Employee ID are required" 
+      });
+    }
+
+    const employer = await Employer.findById(employerId);
+    if (!employer) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Employer not found" 
+      });
+    }
+
+    // Decrease totaldownloadresume if greater than 0
+    if (employer.totaldownloadresume > 0) {
+      employer.totaldownloadresume -= 1;
+      await employer.save();
+    }
+
+    // Add to resumedownload array if not already present
+    const existingDownload = employer.resumedownload.find(
+      download => download.employeeId.toString() === employeeId
+    );
+
+    if (!existingDownload) {
+      employer.resumedownload.push({
+        employeeId: employeeId,
+        viewedAt: new Date()
+      });
+      await employer.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Resume download decreased",
+      remainingDownloads: employer.totaldownloadresume
+    });
+  } catch (error) {
+    console.error("Error decreasing resume download:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Server error", 
+      error: error.message 
+    });
+  }
+};
+
+// Get employer details by ID
+const getEmployerDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ message: "Employer ID is required" });
+    }
+
+    const employer = await Employer.findById(id).select("-userPassword");
+
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
+
+    res.json(employer);
+  } catch (error) {
+    console.error("Error fetching employer details:", error);
+    if (error.kind === "ObjectId") {
+      return res.status(400).json({ message: "Invalid employer ID format" });
+    }
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update employer details
+const updateEmployerDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    // Remove password from update data if present (should be updated separately)
+    delete updateData.userPassword;
+
+    const employer = await Employer.findByIdAndUpdate(
+      id,
+      { ...updateData, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    ).select("-userPassword");
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Employer details updated successfully",
+      data: employer
+    });
+  } catch (error) {
+    console.error("Error updating employer details:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Update employer profile picture
+const updateProfilePicture = async (req, res) => {
+  try {
+    const { employid } = req.params;
+
+    if (!employid) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    const employer = await Employer.findById(employid);
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    // If file was uploaded, update profile picture URL
+    if (req.file && req.file.path) {
+      employer.userProfilePic = req.file.path;
+      await employer.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile picture updated successfully",
+      data: {
+        userProfilePic: employer.userProfilePic
+      }
+    });
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// List all employees (for employer to view)
+const listAllEmployees = async (req, res) => {
+  try {
+    const employees = await Employee.find().select("-userPassword").sort({ createdAt: -1 });
+    res.status(200).json({
+      success: true,
+      count: employees.length,
+      data: employees
+    });
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Check if employer is subscribed
+const getEmployerSubscribed = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    if (!employerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    const employer = await Employer.findById(employerId).select("subscription subscriptionleft subscriptionenddate currentSubscription");
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      isSubscribed: employer.subscription === "true",
+      subscriptionLeft: employer.subscriptionleft,
+      subscriptionEndDate: employer.subscriptionenddate,
+      currentSubscription: employer.currentSubscription
+    });
+  } catch (error) {
+    console.error("Error checking employer subscription:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Employer forgot password - send OTP
+const employerForgotPassword = async (req, res) => {
+  try {
+    const { userEmail } = req.body;
+
+    if (!userEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required"
+      });
+    }
+
+    const employer = await Employer.findOne({ userEmail });
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found with this email"
+      });
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    employer.otp = otp;
+    employer.otpExpires = otpExpires;
+    await employer.save();
+
+    // TODO: Send OTP via email
+    console.log("OTP for employer:", otp);
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent to email",
+      otp: otp // Remove in production
+    });
+  } catch (error) {
+    console.error("Error in employer forgot password:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Verify OTP for employer
+const employerverifyOTP = async (req, res) => {
+  try {
+    const { userEmail, otp } = req.body;
+
+    if (!userEmail || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required"
+      });
+    }
+
+    const employer = await Employer.findOne({ userEmail });
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    if (!employer.otp || employer.otp !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP"
+      });
+    }
+
+    if (employer.otpExpires && new Date() > employer.otpExpires) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP has expired"
+      });
+    }
+
+    // Clear OTP after verification
+    employer.otp = undefined;
+    employer.otpExpires = undefined;
+    await employer.save();
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified successfully"
+    });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Employer change password (after OTP verification)
+const employerChangePassword = async (req, res) => {
+  try {
+    const { userEmail, newPassword, confirmPassword } = req.body;
+
+    if (!userEmail || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, new password, and confirm password are required"
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match"
+      });
+    }
+
+    const employer = await Employer.findOne({ userEmail });
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    employer.userPassword = hashedPassword;
+    await employer.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully"
+    });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Employer change my password (when logged in)
+const employerChangeMyPassword = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password, new password, and confirm password are required"
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New passwords do not match"
+      });
+    }
+
+    const employer = await Employer.findById(employerId);
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, employer.userPassword);
+    if (!isPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Current password is incorrect"
+      });
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    employer.userPassword = hashedPassword;
+    await employer.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password changed successfully"
+    });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Get referral link for employer
+const getReferralLink = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const employer = await Employer.findById(userId);
+
+    if (!employer || !employer.referralCode) {
+      return res.status(404).json({
+        success: false,
+        message: "Referral code not found for this employer"
+      });
+    }
+
+    const referralUrl = `https://edprofio.com/signup?ref=${employer.referralCode}`;
+
+    res.status(200).json({
+      success: true,
+      referralCode: employer.referralCode,
+      referralUrl: referralUrl
+    });
+  } catch (error) {
+    console.error("Error getting referral link:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Get job and employer count
+const getJobAndEmployerCount = async (req, res) => {
+  try {
+    const jobCount = await Job.countDocuments({ isActive: true });
+    const employerCount = await Employer.countDocuments({ subscription: "true" });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        activeJobs: jobCount,
+        subscribedEmployers: employerCount
+      }
+    });
+  } catch (error) {
+    console.error("Error getting counts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// Get employer dashboard count
+const getEmployerDashboardCount = async (req, res) => {
+  try {
+    const { employerId } = req.params;
+
+    if (!employerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Employer ID is required"
+      });
+    }
+
+    const employer = await Employer.findById(employerId);
+
+    if (!employer) {
+      return res.status(404).json({
+        success: false,
+        message: "Employer not found"
+      });
+    }
+
+    // Count active jobs
+    const activeJobsCount = await Job.countDocuments({
+      employid: employerId,
+      isActive: true
+    });
+
+    // Count total applications
+    const jobs = await Job.find({ employid: employerId });
+    const totalApplications = jobs.reduce((sum, job) => sum + (job.applications?.length || 0), 0);
+
+    // Count pending applications
+    const pendingApplications = jobs.reduce((sum, job) => {
+      const pending = job.applications?.filter(app => app.employapplicantstatus === "Pending") || [];
+      return sum + pending.length;
+    }, 0);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        activeJobs: activeJobsCount,
+        totalApplications: totalApplications,
+        pendingApplications: pendingApplications,
+        totalProfileViews: employer.totalprofileviews || 0,
+        totalResumeDownloads: employer.totaldownloadresume || 0,
+        subscriptionStatus: employer.subscription === "true",
+        subscriptionLeft: employer.subscriptionleft || 0
+      }
+    });
+  } catch (error) {
+    console.error("Error getting employer dashboard count:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+//hbh
 module.exports = {
-  getEmployerSubscribed,
-  getEmployerDashboardCount,
-  getJobAndEmployerCount,
-  signUp,
-  decreaseProfileView,
-  decreaseResumeDownload,
-  employerForgotPassword,
-  employerverifyOTP,
-  employerChangePassword,
-  login,
-  googleAuth,
-  getReferralLink,
-  appleAuth,
+  getHeaderCategoriesCount,
+  deleteResumeLetter,
+  deleteCoverLetter,
+  deleteProfileAudioRecord,
+  deleteAudioRecord,
+  addwithouttoeken,
+  addJobAlert,
+  getDesiredJobAlerts,
+  verifyTheCandidateRegisterOrNot,
   sendOtpToEmail,
   verifyEmailOtp,
-  listAllEmployees,
+  signUp,
+  login,
+  getDesiredJobAlertswithouttoken,
+  googleAuth,
+  googleAuthV2,
+  getEmployeeDetails,
+  appleAuth,
+  uploadFile,
+  uploadProfileVideo,
+  applyForJob,
+  uploadIntroAudio,
+  userChangePassword,
+  userForgotPassword,
+  verifyOTP,
+  getAllEmployees,
+  getProfileCompletion,
+  calculateProfileCompletion,
+  getApplicationStatus,
+  appliedjobsfetch,
+  updateProfile,
+  candidateChangePassword,
+  fetchAvailabilityStatus, // <-- Add this
+  updateAvailabilityStatus,
+  getReferralList,
+  decreaseProfileView,
+  decreaseResumeDownload,
   getEmployerDetails,
   updateEmployerDetails,
   updateProfilePicture,
+  listAllEmployees,
+  getEmployerSubscribed,
+  employerForgotPassword,
+  employerverifyOTP,
+  employerChangePassword,
   employerChangeMyPassword,
-  getReferralList,
+  getReferralLink,
+  getJobAndEmployerCount,
+  getEmployerDashboardCount,
 };

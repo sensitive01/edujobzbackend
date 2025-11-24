@@ -221,6 +221,12 @@ employerRoute.get("/referral-list/:employerId", employerController.getReferralLi
 employerRoute.get("/get-job-and-employer-count",employerController.getJobAndEmployerCount)
 employerRoute.get("/get-employer-dashnoard-count/:employerId",employerController.getEmployerDashboardCount)
 
+// Employer Notification Routes
+const employerNotificationController = require("../../controller/employerController/notificationController");
+employerRoute.get("/notifications/:employerId", employerNotificationController.getEmployerNotifications);
+employerRoute.put("/notifications/:notificationId/read", employerNotificationController.markNotificationAsRead);
+employerRoute.get("/notifications/:employerId/unread-count", employerNotificationController.getUnreadCount);
+
 
 
 
