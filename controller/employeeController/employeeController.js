@@ -2,8 +2,10 @@ const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Job = require("../../models/jobSchema");
-const userModel = require("../../models/employeeschema");
+// Models: Use Employee for employee operations
 const Employee = require("../../models/employeeschema");
+// Note: userModel is kept for backward compatibility but should use Employee instead
+const userModel = Employee; // Alias for Employee model
 
 const generateOTP = require("../../utils/generateOTP");
 const jwtDecode = require("jwt-decode");
@@ -1083,12 +1085,12 @@ const sendOtpToEmail = async (req, res) => {
   const { userEmail } = req.body;
 
   try {
-    // Find existing user or create new
-    let employer = await userModel.findOne({ userEmail });
+    // Find existing employee or create new
+    let employee = await Employee.findOne({ userEmail });
 
-    if (!employer) {
-      // If not found, create a new user with just the email
-      employer = new userModel({ userEmail });
+    if (!employee) {
+      // If not found, create a new employee with just the email
+      employee = new Employee({ userEmail });
     }
 
     // Generate 6-digit OTP
@@ -1096,10 +1098,10 @@ const sendOtpToEmail = async (req, res) => {
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
 
     // Update OTP fields
-    employer.otp = otp;
-    employer.otpExpires = otpExpires;
+    employee.otp = otp;
+    employee.otpExpires = otpExpires;
 
-    await employer.save();
+    await employee.save();
     console.log(`OTP generated: ${otp} for email: ${userEmail}`);
 
     // Send email
@@ -1124,30 +1126,30 @@ const verifyEmailOtp = async (req, res) => {
   const { userEmail, otp } = req.body;
 
   try {
-    const employer = await userModel.findOne({ userEmail });
+    const employee = await Employee.findOne({ userEmail });
 
-    if (!employer) {
-      return res.status(404).json({ message: "User not found" });
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
     }
 
     // Check OTP and expiry
-    const isOtpValid = employer.otp === otp;
-    const isOtpExpired = new Date() > new Date(employer.otpExpires);
+    const isOtpValid = employee.otp === otp;
+    const isOtpExpired = new Date() > new Date(employee.otpExpires);
 
     if (!isOtpValid || isOtpExpired) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
     // Mark email as verified
-    employer.emailverifedstatus = true;
-    employer.otp = undefined;
-    employer.otpExpires = undefined;
+    employee.emailverifedstatus = true;
+    employee.otp = undefined;
+    employee.otpExpires = undefined;
 
-    await employer.save();
+    await employee.save();
 
     return res.status(200).json({
       message: "Email verified successfully",
-      emailverifedstatus: employer.emailverifedstatus,
+      emailverifedstatus: employee.emailverifedstatus,
     });
   } catch (error) {
     console.error("OTP verification error:", error);

@@ -2,9 +2,11 @@ const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Job = require("../../models/jobSchema");
-const userModel = require("../../models/employeeschema");
+// Models: Use Employee for employee operations, Employer for employer operations
 const Employee = require("../../models/employeeschema");
 const Employer = require("../../models/employerSchema");
+// Note: userModel is kept for backward compatibility but should use Employee instead
+const userModel = Employee; // Alias for Employee model
 
 const generateOTP = require("../../utils/generateOTP");
 const jwtDecode = require("jwt-decode");
@@ -41,15 +43,15 @@ const signUp = async (req, res) => {
 
     if (existUser?.userEmail === userEmail && existUser?.userMobile == mobile) {
       return res.status(400).json({
-        message: "Employee email and mobile number is already registered.",
+        message: "Employer email and mobile number is already registered.",
       });
     } else if (existUser?.userEmail === userEmail) {
       return res
         .status(400)
-        .json({ message: "Employee email is already registered." });
+        .json({ message: "Employer email is already registered." });
     } else if (existUser?.userMobile == mobile) {
       return res.status(400).json({
-        message: "Employee mobile number is already registered.",
+        message: "Employer mobile number is already registered.",
       });
     }
 
@@ -113,7 +115,7 @@ const signUp = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "Employee registered successfully.",
+      message: "Employer registered successfully.",
       user: newUser,
       token,
     });
@@ -123,13 +125,13 @@ const signUp = async (req, res) => {
   }
 };
 
-const getAllEmployees = async (req, res) => {
+const getAllEmployers = async (req, res) => {
   try {
-    const employees = await Employer.find(); // You can add `.select()` to limit fields
-    res.status(200).json(employees);
+    const employers = await Employer.find().select("-userPassword"); // Exclude password
+    res.status(200).json(employers);
   } catch (error) {
-    console.error("Error fetching employees:", error);
-    res.status(500).json({ message: "Failed to fetch employees" });
+    console.error("Error fetching employers:", error);
+    res.status(500).json({ message: "Failed to fetch employers" });
   }
 };
 // Email/Mobile Login
@@ -311,27 +313,30 @@ const appleAuth = async (req, res) => {
   }
 };
 
+// Note: This function seems to be a duplicate or incorrectly named
+// It's using Employer model, so it should probably be removed or renamed
+// Keeping it for backward compatibility but it should use getEmployerDetails instead
 const getEmployeeDetails = async (req, res) => {
   try {
-    const employeeId = req.userId || req.params.id;
+    const employerId = req.userId || req.params.id;
 
-    if (!employeeId) {
-      return res.status(400).json({ message: "Employee ID is required" });
+    if (!employerId) {
+      return res.status(400).json({ message: "Employer ID is required" });
     }
 
-    const employee = await Employer
-      .findById(employeeId)
+    const employer = await Employer
+      .findById(employerId)
       .select("-userPassword");
 
-    if (!employee) {
-      return res.status(404).json({ message: "Employee not found" });
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found" });
     }
 
-    res.json(employee);
+    res.json(employer);
   } catch (err) {
-    console.error("Error fetching employee details:", err);
+    console.error("Error fetching employer details:", err);
     if (err.kind === "ObjectId") {
-      return res.status(400).json({ message: "Invalid employee ID format" });
+      return res.status(400).json({ message: "Invalid employer ID format" });
     }
     res.status(500).json({ message: "Server error" });
   }
@@ -481,18 +486,18 @@ const uploadFile = async (req, res) => {
     // Use secure_url if available, otherwise fall back to url or path
     const fileUrl = result.secure_url || result.url || result.path;
 
-    // First, get the current employee to check for existing files
-    const currentEmployee = await Employer.findById(employid);
-    if (!currentEmployee) {
-      return res.status(404).json({ message: "Employee not found" });
+    // First, get the current employer to check for existing files
+    const currentEmployer = await Employer.findById(employid);
+    if (!currentEmployer) {
+      return res.status(404).json({ message: "Employer not found" });
     }
 
     // Delete old file from Cloudinary if it exists
     try {
       switch (fileType) {
         case "profileImage":
-          if (currentEmployee.userProfilePic) {
-            const publicId = currentEmployee.userProfilePic
+          if (currentEmployer.userProfilePic) {
+            const publicId = currentEmployer.userProfilePic
               .split("/")
               .slice(-2)
               .join("/")
@@ -501,8 +506,8 @@ const uploadFile = async (req, res) => {
           }
           break;
         case "resume":
-          if (currentEmployee.resume?.url) {
-            const publicId = currentEmployee.resume.url
+          if (currentEmployer.resume?.url) {
+            const publicId = currentEmployer.resume.url
               .split("/")
               .slice(-2)
               .join("/")
@@ -513,8 +518,8 @@ const uploadFile = async (req, res) => {
           }
           break;
         case "coverLetter":
-          if (currentEmployee.coverLetterFile?.url) {
-            const publicId = currentEmployee.coverLetterFile.url
+          if (currentEmployer.coverLetterFile?.url) {
+            const publicId = currentEmployer.coverLetterFile.url
               .split("/")
               .slice(-2)
               .join("/")
@@ -556,12 +561,16 @@ const uploadFile = async (req, res) => {
         return res.status(400).json({ message: "Invalid file type provided" });
     }
 
-    // Update employee document
-    const updatedEmployee = await Employer.findByIdAndUpdate(
+    // Update employer document
+    const updatedEmployer = await Employer.findByIdAndUpdate(
       employid,
       { $set: updateField },
       { new: true, runValidators: true }
     );
+
+    if (!updatedEmployer) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
 
     res.status(200).json({
       success: true,
@@ -587,23 +596,23 @@ const updateProfile = async (req, res) => {
     const { employid } = req.params;
     const profileData = req.body;
 
-    // Update employee profile
-    const updatedEmployee = await Employer.findByIdAndUpdate(
+    // Update employer profile
+    const updatedEmployer = await Employer.findByIdAndUpdate(
       employid,
       { $set: profileData },
       { new: true }
     );
 
-    if (!updatedEmployee) {
+    if (!updatedEmployer) {
       return res.status(404).json({
         success: false,
-        message: "Employee not found",
+        message: "Employer not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: updatedEmployee,
+      data: updatedEmployer,
       message: "Profile updated successfully",
     });
   } catch (error) {
@@ -751,11 +760,11 @@ const calculateProfileCompletion = (employee) => {
 
 const getProfileCompletion = async (req, res) => {
   try {
-    const employee = await Employer.findById(req.params.id);
-    if (!employee)
-      return res.status(404).json({ message: "Employee not found" });
+    const employer = await Employer.findById(req.params.id);
+    if (!employer)
+      return res.status(404).json({ message: "Employer not found" });
 
-    const percentageReport = calculateProfileCompletion(employee);
+    const percentageReport = calculateProfileCompletion(employer);
     res.json({ total: percentageReport.total }); // Return only the total
   } catch (err) {
     res.status(500).json({ message: "Server Error", error: err.message });
@@ -933,16 +942,16 @@ const uploadProfileVideo = async (req, res) => {
       thumbnail: `${file.path}-thumbnail`, // Adjust if you're generating real thumbnails
     };
 
-    const updatedEmployee = await Employer.findByIdAndUpdate(
+    const updatedEmployer = await Employer.findByIdAndUpdate(
       employeeId,
       { profileVideo: fileInfo },
       { new: true } // returns updated document (optional)
     );
 
-    if (!updatedEmployee) {
+    if (!updatedEmployer) {
       return res
         .status(404)
-        .json({ success: false, message: "Employee not found" });
+        .json({ success: false, message: "Employer not found" });
     }
 
     res.status(200).json({
@@ -968,7 +977,7 @@ const uploadIntroAudio = async (req, res) => {
         .json({ success: false, message: "No file uploaded" });
     }
 
-    const updatedEmployee = await Employer.findByIdAndUpdate(
+    const updatedEmployer = await Employer.findByIdAndUpdate(
       employeeId,
       {
         introductionAudio: {
@@ -980,7 +989,7 @@ const uploadIntroAudio = async (req, res) => {
       { new: true }
     );
 
-    res.status(200).json({ success: true, employee: updatedEmployee });
+    res.status(200).json({ success: true, employer: updatedEmployer });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1532,11 +1541,11 @@ const getReferralList = async (req, res) => {
       });
     }
 
-    // Get the employee's referral data including the referralsList
-    const employee = await Employer.findById(employeeId).select("referralCount referralRewards referralsList");
-    const employeeReferralCount = employee?.referralCount || 0;
-    const employeeReferralRewards = employee?.referralRewards || 0;
-    const referralsList = employee?.referralsList || [];
+    // Get the employer's referral data including the referralsList
+    const employer = await Employer.findById(employeeId).select("referralCount referralRewards referralsList");
+    const employerReferralCount = employer?.referralCount || 0;
+    const employerReferralRewards = employer?.referralRewards || 0;
+    const referralsList = employer?.referralsList || [];
 
     // Format the referrals list from the stored array
     const referralList = referralsList.map((referral) => {
@@ -1558,8 +1567,8 @@ const getReferralList = async (req, res) => {
       success: true,
       data: referralList,
       totalReferrals: referralList.length,
-      referralCount: employeeReferralCount, // Total referral count from employee profile
-      referralRewards: employeeReferralRewards, // Total rewards earned
+      referralCount: employerReferralCount, // Total referral count from employer profile
+      referralRewards: employerReferralRewards, // Total rewards earned
     });
   } catch (err) {
     console.error("Error in getting referral list:", err);
@@ -1682,28 +1691,34 @@ const decreaseResumeDownload = async (req, res) => {
 // Get employer details by ID
 const getEmployerDetails = async (req, res) => {
   try {
-    // Get the employee ID from the authenticated user (from JWT)
-    // OR from request params if you want to allow fetching by ID
-    const employeeId = req.userId || req.params.id;
+    const { id } = req.params;
 
-    if (!employeeId) {
+    if (!id) {
       return res.status(400).json({ message: "Employer ID is required" });
     }
 
-    // Find the employee and exclude the password
-    const employee = await Employer
-      .findById(employeeId)
+    // Check if ID is a valid MongoDB ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        message: "Invalid employer ID format",
+        providedId: id
+      });
+    }
+
+    // Find the employer and exclude the password
+    const employer = await Employer
+      .findById(id)
       .select("-userPassword");
 
-    if (!employee) {
+    if (!employer) {
       return res.status(404).json({ message: "Employer not found" });
     }
 
-    res.json(employee);
+    res.json(employer);
   } catch (err) {
     console.error("Error fetching employer details:", err);
 
-    if (err.kind === "ObjectId") {
+    if (err.kind === "ObjectId" || err.name === "CastError") {
       return res.status(400).json({ message: "Invalid employer ID format" });
     }
 
@@ -2199,7 +2214,7 @@ module.exports = {
   userChangePassword,
   userForgotPassword,
   verifyOTP,
-  getAllEmployees,
+  getAllEmployers,
   getProfileCompletion,
   calculateProfileCompletion,
   getApplicationStatus,
