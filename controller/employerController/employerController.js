@@ -30,18 +30,38 @@ const JobFilter = require("../../models/jobAlertModal");
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    console.log("req.body", req.body);
-    const { userName, userMobile, userEmail, userPassword, referralCode } =
-      req.body;
-    const mobile = parseInt(userMobile);
+    let {
+      employerType,
+      schoolName,
+      userMobile,
+      lastName,
+      firstName,
+      userEmail,
+      userPassword,
+      referralCode = "",
+    } = req.body;
 
+    // Trim all inputs
+    employerType = employerType?.trim();
+    schoolName = schoolName?.trim();
+    userMobile = userMobile?.trim();
+    lastName = lastName?.trim();
+    firstName = firstName?.trim();
+    userEmail = userEmail?.trim();
+    userPassword = userPassword?.trim();
+    referralCode = referralCode.trim();
+
+    // Validation
+    if (!userEmail && !userMobile) {
+      return res.status(400).json({ message: "Email or mobile is required." });
+    }
+
+    // Check if user already exists
     const existUser = await Employer.findOne({
-      $or: [{ userMobile: mobile }, { userEmail }],
+      $or: [{ userMobile }, { userEmail }],
     });
 
-    console.log("existUser", existUser);
-
-    if (existUser?.userEmail === userEmail && existUser?.userMobile == mobile) {
+     if (existUser?.userEmail === userEmail && existUser?.userMobile == userMobile) {
       return res.status(400).json({
         message: "Employer email and mobile number is already registered.",
       });
@@ -49,79 +69,159 @@ const signUp = async (req, res) => {
       return res
         .status(400)
         .json({ message: "Employer email is already registered." });
-    } else if (existUser?.userMobile == mobile) {
+    } else if (existUser?.userMobile == userMobile) {
       return res.status(400).json({
         message: "Employer mobile number is already registered.",
       });
     }
 
+
+  
+    // Hash password
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
-    const newUser = new Employer({
-      uuid: uuidv4(),
-      userName,
-      userMobile: mobile,
-      userEmail,
-      userPassword: hashedPassword,
-      verificationstatus: "pending",
-      blockstatus: "unblock",
-      emailverifedstatus: true,
-    });
-
-    // Generate and assign referral code
-    newUser.referralCode = newUser.generateReferralCode();
-
-    let referralApplied = false;
-    let referrer = null;
-    if (referralCode && referralCode.trim() !== "") {
-      referrer = await Employer.findOne({
-        referralCode: referralCode.trim(),
-      });
-
-      if (referrer) {
-        newUser.referredBy = referrer._id;
-        newUser.referredByName = referrer.userName || "N/A"; // Store referrer's name
-        referralApplied = true;
+    // Handle referral code if provided
+    let referredBy = null;
+    let referredByName = null;
+    if (referralCode) {
+      const referringEmployer = await Employer.findOne({ referralCode });
+      if (!referringEmployer) {
+        return res.status(400).json({ message: "Invalid referral code." });
       }
+      referredBy = referringEmployer._id;
+      const referringName = `${referringEmployer.firstName || ''} ${referringEmployer.lastName || ''}`.trim();
+      referredByName = referringName || referringEmployer.schoolName || 'Unknown';
     }
 
-    // Save the new user first to get the _id
-    await newUser.save();
+    // Create new employer
+    const newEmployer = new Employer({
+      uuid: uuidv4(),
+      employerType,
+      schoolName,
+      userMobile,
+      lastName,
+      firstName,
+      userEmail,
+      verificationstatus: "pending",
+      blockstatus: "unblock",
+      userPassword: hashedPassword,
+      emailverifedstatus: true,
+      referredBy,
+      referredByName,
+    });
 
-    // After saving, add to referrer's referrals list if referral code was used
-    if (referralApplied && referrer) {
+    // Generate unique referral code
+    newEmployer.referralCode = newEmployer.generateReferralCode();
+
+    // Save the new employer
+    await newEmployer.save();
+
+    // Update referrer's counts and add to referrals list if applicable
+    if (referredBy) {
+      const newEmployerName = `${newEmployer.firstName || ''} ${newEmployer.lastName || ''}`.trim();
       const referralEntry = {
-        referredUserId: newUser._id,
-        referredUserName: newUser.userName,
-        referredUserEmail: newUser.userEmail,
-        referredUserMobile: newUser.userMobile,
+        referredEmployerId: newEmployer._id,
+        referredEmployerName: newEmployerName || newEmployer.schoolName || 'Unknown',
+        referredEmployerEmail: newEmployer.userEmail,
+        referredEmployerMobile: newEmployer.userMobile,
         referredDate: new Date(),
         rewardEarned: 100
       };
 
-      await Employer.findByIdAndUpdate(referrer._id, {
+      await Employer.findByIdAndUpdate(referredBy, {
         $push: {
           referralsList: referralEntry
         },
         $inc: {
           referralCount: 1,
-          referralRewards: 100,
+          referralRewards: 100, // You can adjust this value
         },
       });
     }
 
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+    // ✅ Send email with login details
+    const loginLink = "https://gregarious-empanada-38a625.netlify.app/employer/login";
+    const logoUrl = "../../assets/logo (1).png"; // put your actual EdProfio logo URL here
+
+    let extraNote = "";
+    if (userPassword === "defaultPassword123") {
+      extraNote = '<p style="color:#d9534f;font-weight:bold;">⚠ Please change your password after logging in for security reasons.</p>';
+    }
+
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; padding:20px; max-width:600px; margin:auto; border:1px solid #eee; border-radius:10px;">
+        <div style="text-align:center;">
+          <img src="${logoUrl}" alt="EdProfio Logo" style="max-height:80px; margin-bottom:20px;" />
+          <h2 style="color:#333;">Welcome to EdProfio!</h2>
+        </div>
+        <p>Hi <b> ${lastName}</b>,</p>
+        <p>Your employer account has been successfully created.</p>
+
+        <p><b>Login Credentials:</b></p>
+        <ul>
+          <li>Email: <b>${userEmail}</b></li>
+          <li>Password: <b>${userPassword}</b></li>
+        </ul>
+
+        ${extraNote}
+
+        <div style="text-align:center; margin:30px 0;">
+          <a href="${loginLink}" style="background:#007bff; color:white; padding:12px 25px; text-decoration:none; border-radius:6px; font-weight:bold;">Login to Your Account</a>
+        </div>
+
+        <p>If you have any questions, feel free to reach out to our support team.</p>
+        <p style="margin-top:30px;">Best regards,<br/>The <b>EdProfio</b> Team</p>
+      </div>
+    `;
+
+    await sendEmail(
+      userEmail,
+      "Welcome to EdProfio - Your Employer Account Details",
+      "", // plain text fallback
+      emailHtml // pass HTML
+    );
+
+    // Create JWT token
+    const token = jwt.sign({ id: newEmployer._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
+    // Return success response
     res.status(201).json({
-      message: "Employer registered successfully.",
-      user: newUser,
+      success: true,
+      message: "Employer registered successfully",
+      data: {
+        id: newEmployer._id,
+        uuid: newEmployer.uuid,
+        firstName: newEmployer.firstName,
+        lastName: newEmployer.lastName,
+        userEmail: newEmployer.userEmail,
+        userMobile: newEmployer.userMobile,
+        referralCode: newEmployer.referralCode,
+        verificationstatus: newEmployer.verificationstatus,
+        blockstatus: newEmployer.blockstatus,
+        emailverifedstatus: newEmployer.emailverifedstatus,
+        referredBy: referredBy,
+      },
       token,
     });
   } catch (err) {
-    console.error("Error in registration:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error in employer registration:", err.message);
+    console.error(err.stack);
+
+    if (err.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "Registration failed due to duplicate data",
+        error: err.message,
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Server error during registration",
+      error: err.message,
+    });
   }
 };
 
@@ -170,12 +270,12 @@ const login = async (req, res) => {
 
     // ---------- FCM Token Save ----------
     if (fcmToken && typeof fcmToken === "string") {
-      if (!Array.isArray(user.employeefcmtoken)) {
-        user.employeefcmtoken = [];
+      if (!Array.isArray(user.employerfcmtoken)) {
+        user.employerfcmtoken = [];
       }
 
-      if (!user.employeefcmtoken.includes(fcmToken)) {
-        user.employeefcmtoken.push(fcmToken);
+      if (!user.employerfcmtoken.includes(fcmToken)) {
+        user.employerfcmtoken.push(fcmToken);
         await user.save();
       }
     }
