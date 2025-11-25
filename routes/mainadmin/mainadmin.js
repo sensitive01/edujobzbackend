@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const planController = require('../../controller/employerController/employerplanController');
+const employeePlanController = require('../../controller/employeeController/employeeplanController');
 const adminfunction = require('../../controller/adminController/adminfunction');
 const banercontroller = require('../../controller/adminController/eventbannerController');
 const employeebanner = require('../../controller/adminController/employeebanner');
@@ -43,6 +44,13 @@ mainadminRoute.get('/fetchallemployeradmin', adminlogincontroller.getAllEmployer
 mainadminRoute.post('/adminlogin', adminlogincontroller.adminLogin);
 mainadminRoute.post("/createemployeebanner", upload.fields([{ name: 'image', maxCount: 1 }]), employeebanner.employeecreatebanner);
 mainadminRoute.get('/fetchemployeebanner', employeebanner.getemployeeBanners);
+
+// Employee Plan Routes (Test/Admin)
+mainadminRoute.post('/createemployeeplan', employeePlanController.createPlan);
+mainadminRoute.get('/getemployeeplans', employeePlanController.getAllPlans);
+mainadminRoute.get('/getemployeeplan/:id', employeePlanController.getPlanById);
+mainadminRoute.put('/updateemployeeplan/:id', employeePlanController.updatePlan);
+mainadminRoute.delete('/deleteemployeeplan/:id', employeePlanController.deletePlan);
 
 // employeradminRoute.get();
 module.exports = mainadminRoute;
