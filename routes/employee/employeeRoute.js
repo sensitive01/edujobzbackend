@@ -9,6 +9,7 @@ const {
 } = require("../../config/cloudinary");
 const jobController = require("../../controller/employerController/postjobcontroller");
 const feedbackController = require("../../controller/employeeController/feedbackreview");
+const employeePlanController = require("../../controller/employeeController/employeeplanController");
 const employeeRoute = express.Router();
 const multer = require("multer");
 const emailverifycontroller = require("../../controller/employerController/emailverfycontoller");
@@ -203,5 +204,11 @@ const employeeNotificationController = require("../../controller/employeeControl
 employeeRoute.get("/notifications/:employeeId", employeeNotificationController.getEmployeeNotifications);
 employeeRoute.put("/notifications/:notificationId/read", employeeNotificationController.markNotificationAsRead);
 employeeRoute.get("/notifications/:employeeId/unread-count", employeeNotificationController.getUnreadCount);
+
+// Employee Plan Routes
+employeeRoute.get("/plans", employeePlanController.getAllPlans);
+employeeRoute.get("/plans/:id", employeePlanController.getPlanById);
+employeeRoute.post("/plans/activate", employeePlanController.activateVerifiedBadge);
+employeeRoute.get("/verification-status/:employeeId", employeePlanController.getEmployeeVerificationStatus);
 
 module.exports = employeeRoute;
