@@ -455,8 +455,7 @@ const applyForJob = async (req, res) => {
     const applicationId = newApplication._id.toString();
 
     // Get employer and employee info for notifications
-    const Employer = require('../models/employerSchema');
-    const Employee = require('../models/employeeschema');
+    const Employer = require('../../models/employerSchema');
     const notificationService = require('../../utils/notificationService');
     
     const employer = await Employer.findById(updatedJob.employid);
