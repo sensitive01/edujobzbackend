@@ -5,7 +5,27 @@ const Employee = require('../../models/employeeschema.js');
 // Get all active employee plans
 exports.getAllPlans = async (req, res, next) => {
   try {
-    const plans = await EmployeePlan.find({ isActive: true }).sort({ price: 1 });
+    const { employeeId } = req.query; // Get employeeId from query params
+    
+    let plans = await EmployeePlan.find({ isActive: true }).sort({ price: 1 });
+    
+    // If employeeId is provided, check if they've already activated a free plan
+    if (employeeId) {
+      const employee = await Employee.findById(employeeId);
+      if (employee && employee.subscriptions && employee.subscriptions.length > 0) {
+        // Check if employee has any free plan in their history
+        const hasUsedFreePlan = employee.subscriptions.some(sub => {
+          const planDetails = sub.planDetails || {};
+          return planDetails.price === 0 || planDetails.price === null || planDetails.price === undefined;
+        });
+        
+        // Filter out free plans if employee has already used one
+        if (hasUsedFreePlan) {
+          plans = plans.filter(plan => plan.price > 0);
+        }
+      }
+    }
+    
     // Return plans with base price (without GST) - GST will be calculated on frontend if needed
     const plansData = plans.map(plan => {
       const planObj = plan.toObject();
