@@ -106,6 +106,34 @@ totalExperience: mongoose.Schema.Types.Mixed,
   }],
     verificationstatus: { type: String, default: 'pending' },
   blockstatus: { type: String, default: 'unblock' },
+  // Subscription fields
+  subscriptions: {
+    type: [{
+      planId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeePlan' },
+      planDetails: { type: Object }, // Stores the full plan snapshot
+      isTrial: Boolean,
+      startDate: Date,
+      endDate: Date,
+      daysLeft: { type: Number, default: 0 },
+      status: { type: String, enum: ['active', 'expired'], default: 'active' }
+    }],
+    default: []
+  },
+  currentSubscription: {
+    type: {
+      planId: { type: mongoose.Schema.Types.ObjectId, ref: 'EmployeePlan' },
+      planDetails: { type: Object },
+      isTrial: Boolean,
+      startDate: Date,
+      endDate: Date,
+      daysLeft: { type: Number, default: 0 }
+    },
+    default: null
+  },
+  subscriptionleft: { type: Number, default: 0 },
+  subscription: { type: String, default: "false" },
+  trial: { type: String, default: "false" },
+  subscriptionenddate: { type: String },
 });
 employeeschema.methods.generateReferralCode = function () {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

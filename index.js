@@ -259,6 +259,67 @@ console.log('Cron job scheduled.'); // To confirm that the job is scheduled
 const { initializeScheduledNotifications } = require('./utils/scheduledNotifications');
 initializeScheduledNotifications();
 
+// Daily employee subscription days decrease job
+cron.schedule("0 0 * * *", async () => {
+  console.log("⏰ Running daily employee subscription days decrease...");
+  
+  try {
+    const Employee = require('./models/employeeschema');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Find all employees with active subscriptions
+    const employeesWithSubscriptions = await Employee.find({
+      'currentSubscription': { $ne: null },
+      'subscription': 'true'
+    });
+    
+    for (const employee of employeesWithSubscriptions) {
+      if (employee.currentSubscription && employee.currentSubscription.endDate) {
+        const endDate = new Date(employee.currentSubscription.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        
+        const diffTime = endDate - today;
+        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Update days left
+        if (employee.currentSubscription.daysLeft !== undefined) {
+          employee.currentSubscription.daysLeft = daysLeft > 0 ? daysLeft : 0;
+        }
+        employee.subscriptionleft = daysLeft > 0 ? daysLeft : 0;
+        
+        // If subscription expired, update status
+        if (daysLeft <= 0) {
+          employee.isVerified = false;
+          employee.verificationstatus = 'pending';
+          employee.subscription = "false";
+          employee.currentSubscription = null;
+          
+          // Update subscription history
+          if (employee.subscriptions && employee.subscriptions.length > 0) {
+            const activeSub = employee.subscriptions.find(sub => sub.status === 'active');
+            if (activeSub) {
+              activeSub.status = 'expired';
+              activeSub.daysLeft = 0;
+            }
+          }
+          
+          console.log(`🔴 Subscription expired for employee: ${employee.userName || employee.userEmail}`);
+        }
+        
+        await employee.save();
+      }
+    }
+    
+    console.log("✅ Daily employee subscription days decrease completed.");
+  } catch (error) {
+    console.error("❌ Error in employee subscription cron job:", error);
+  }
+}, {
+  timezone: "Asia/Kolkata"
+});
+console.log('Employee subscription cron job scheduled.');
+
 // Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

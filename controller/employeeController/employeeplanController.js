@@ -6,10 +6,20 @@ const Employee = require('../../models/employeeschema.js');
 exports.getAllPlans = async (req, res, next) => {
   try {
     const plans = await EmployeePlan.find({ isActive: true }).sort({ price: 1 });
+    // Return plans with base price (without GST) - GST will be calculated on frontend if needed
+    const plansData = plans.map(plan => {
+      const planObj = plan.toObject();
+      // Ensure price is the base price without GST
+      return {
+        ...planObj,
+        basePrice: planObj.price, // Base price without GST
+        price: planObj.price, // Keep price as base price
+      };
+    });
     res.json({
       success: true,
-      data: plans,
-      count: plans.length
+      data: plansData,
+      count: plansData.length
     });
   } catch (error) {
     next(createError(500, `Error fetching employee plans: ${error.message}`));
@@ -142,9 +152,30 @@ exports.activateVerifiedBadge = async (req, res) => {
     subscriptionEndDate = new Date();
     subscriptionEndDate.setDate(subscriptionEndDate.getDate() + plan.validityDays);
 
-    // Update employee with verified badge
+    // Create subscription record
+    const subscriptionRecord = {
+      planId: plan._id,
+      planDetails: plan.toObject(), // Store complete plan details
+      isTrial: isFreeTrial,
+      startDate: currentDate,
+      endDate: subscriptionEndDate,
+      daysLeft: plan.validityDays,
+      status: 'active'
+    };
+
+    // Update employee with verified badge and subscription
     employee.isVerified = true;
     employee.verificationstatus = 'verified';
+    
+    // Add to subscriptions history
+    employee.subscriptions.push(subscriptionRecord);
+    employee.currentSubscription = subscriptionRecord;
+
+    // Maintain backward compatibility
+    employee.subscription = "true";
+    employee.trial = isFreeTrial ? 'true' : 'false';
+    employee.subscriptionenddate = subscriptionEndDate.toISOString();
+    employee.subscriptionleft = plan.validityDays;
     
     await employee.save();
 
@@ -188,12 +219,37 @@ exports.getEmployeeVerificationStatus = async (req, res, next) => {
       return next(createError(404, 'Employee not found'));
     }
 
+    // Calculate days left from current subscription
+    let daysLeft = 0;
+    let subscriptionStatus = 'inactive';
+    
+    if (employee.currentSubscription && employee.currentSubscription.endDate) {
+      const endDate = new Date(employee.currentSubscription.endDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = endDate - today;
+      daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (daysLeft > 0) {
+        subscriptionStatus = 'active';
+      } else {
+        subscriptionStatus = 'expired';
+        daysLeft = 0;
+      }
+    }
+
     res.json({
       success: true,
       data: {
         employeeId: employee._id,
         isVerified: employee.isVerified || false,
-        verificationstatus: employee.verificationstatus || 'pending'
+        verificationstatus: employee.verificationstatus || 'pending',
+        currentSubscription: employee.currentSubscription,
+        subscriptions: employee.subscriptions || [],
+        daysLeft: daysLeft,
+        subscriptionStatus: subscriptionStatus
       }
     });
   } catch (error) {
