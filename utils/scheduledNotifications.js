@@ -322,6 +322,77 @@ const sendRecommendedJobs = async () => {
 };
 
 /**
+ * Send subscription expiry reminders (5 days before expiry)
+ * Runs daily at 9 AM
+ */
+const sendSubscriptionExpiryReminders = async () => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const fiveDaysLater = new Date(today);
+    fiveDaysLater.setDate(fiveDaysLater.getDate() + 5);
+
+    // Check employer subscriptions
+    const Employer = require('../models/employerSchema');
+    const employers = await Employer.find({
+      'currentSubscription': { $ne: null },
+      'subscription': 'true'
+    });
+
+    for (const employer of employers) {
+      try {
+        if (employer.currentSubscription && employer.currentSubscription.endDate) {
+          const endDate = new Date(employer.currentSubscription.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          
+          // Check if expires in exactly 5 days
+          if (endDate.getTime() === fiveDaysLater.getTime()) {
+            const planName = employer.currentSubscription.planDetails?.name || 'Subscription Plan';
+            await notificationService.notifyEmployerPlanExpiringSoon(
+              employer._id.toString(),
+              planName,
+              5
+            );
+          }
+        }
+      } catch (err) {
+        console.error(`Error processing subscription reminder for employer ${employer._id}:`, err);
+      }
+    }
+
+    // Check employee subscriptions
+    const Employee = require('../models/employeeschema');
+    const employees = await Employee.find({
+      'currentSubscription': { $ne: null },
+      'subscription': 'true'
+    });
+
+    for (const employee of employees) {
+      try {
+        if (employee.currentSubscription && employee.currentSubscription.endDate) {
+          const endDate = new Date(employee.currentSubscription.endDate);
+          endDate.setHours(0, 0, 0, 0);
+          
+          // Check if expires in exactly 5 days
+          if (endDate.getTime() === fiveDaysLater.getTime()) {
+            const planName = employee.currentSubscription.planDetails?.name || 'Verified Badge Plan';
+            await notificationService.notifyEmployeePlanExpiringSoon(
+              employee._id.toString(),
+              planName,
+              5
+            );
+          }
+        }
+      } catch (err) {
+        console.error(`Error processing subscription reminder for employee ${employee._id}:`, err);
+      }
+    }
+  } catch (error) {
+    console.error('Error in sendSubscriptionExpiryReminders:', error);
+  }
+};
+
+/**
  * Initialize scheduled jobs
  * Call this from your main server file (index.js)
  */
@@ -341,6 +412,9 @@ const initializeScheduledNotifications = () => {
   // Recommended jobs - daily at 9 AM
   cron.schedule('0 9 * * *', sendRecommendedJobs);
 
+  // Subscription expiry reminders - daily at 9 AM
+  cron.schedule('0 9 * * *', sendSubscriptionExpiryReminders);
+
   console.log('✅ Scheduled notifications initialized');
 };
 
@@ -351,5 +425,6 @@ module.exports = {
   sendEventReminders,
   sendApplicationSummaries,
   sendRecommendedJobs,
+  sendSubscriptionExpiryReminders,
 };
 

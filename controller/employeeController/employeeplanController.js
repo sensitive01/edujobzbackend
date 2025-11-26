@@ -199,6 +199,15 @@ exports.activateVerifiedBadge = async (req, res) => {
     
     await employee.save();
 
+    // Send plan upgrade notification
+    const notificationService = require('../../utils/notificationService');
+    await notificationService.notifyEmployeePlanUpgraded(
+      employeeId,
+      plan.name,
+      plan.validityDays,
+      isFreeTrial
+    );
+
     return res.status(200).json({
       success: true,
       message: `Verified badge activated successfully for ${plan.validityDays} days`,

@@ -292,6 +292,9 @@ cron.schedule("0 0 * * *", async () => {
         
         // If subscription expired, update status
         if (daysLeft <= 0) {
+          // Get plan name before clearing subscription
+          const planName = employee.currentSubscription?.planDetails?.name || 'Verified Badge Plan';
+          
           employee.isVerified = false;
           employee.verificationstatus = 'pending';
           employee.subscription = "false";
@@ -305,6 +308,13 @@ cron.schedule("0 0 * * *", async () => {
               activeSub.daysLeft = 0;
             }
           }
+          
+          // Send plan expired notification
+          const notificationService = require('./utils/notificationService');
+          await notificationService.notifyEmployeePlanExpired(
+            employee._id.toString(),
+            planName
+          );
           
           console.log(`🔴 Subscription expired for employee: ${employee.userName || employee.userEmail}`);
         }
@@ -321,6 +331,71 @@ cron.schedule("0 0 * * *", async () => {
   timezone: "Asia/Kolkata"
 });
 console.log('Employee subscription cron job scheduled.');
+
+// Daily employer subscription days decrease and expiry check
+cron.schedule("0 0 * * *", async () => {
+  console.log("⏰ Running daily employer subscription days decrease...");
+  
+  try {
+    const Employer = require('./models/employerSchema');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Find all employers with active subscriptions
+    const employersWithSubscriptions = await Employer.find({
+      'currentSubscription': { $ne: null },
+      'subscription': 'true'
+    });
+    
+    for (const employer of employersWithSubscriptions) {
+      if (employer.currentSubscription && employer.currentSubscription.endDate) {
+        const endDate = new Date(employer.currentSubscription.endDate);
+        endDate.setHours(0, 0, 0, 0);
+        
+        const diffTime = endDate - today;
+        const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Update days left
+        employer.subscriptionleft = daysLeft > 0 ? daysLeft : 0;
+        
+        // If subscription expired, update status
+        if (daysLeft <= 0) {
+          // Get plan name before clearing subscription
+          const planName = employer.currentSubscription?.planDetails?.name || 'Subscription Plan';
+          
+          employer.subscription = "false";
+          employer.currentSubscription = null;
+          
+          // Update subscription history
+          if (employer.subscriptions && employer.subscriptions.length > 0) {
+            const activeSub = employer.subscriptions.find(sub => sub.status === 'active');
+            if (activeSub) {
+              activeSub.status = 'expired';
+            }
+          }
+          
+          // Send plan expired notification
+          const notificationService = require('./utils/notificationService');
+          await notificationService.notifyEmployerPlanExpired(
+            employer._id.toString(),
+            planName
+          );
+          
+          console.log(`🔴 Subscription expired for employer: ${employer.schoolName || employer.uuid}`);
+        }
+        
+        await employer.save();
+      }
+    }
+    
+    console.log("✅ Daily employer subscription days decrease completed.");
+  } catch (error) {
+    console.error("❌ Error in employer subscription cron job:", error);
+  }
+}, {
+  timezone: "Asia/Kolkata"
+});
+console.log('Employer subscription cron job scheduled.');
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

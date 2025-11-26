@@ -216,6 +216,15 @@ exports.activateSubscription = async (req, res) => {
 
     await employer.save();
 
+    // Send plan upgrade notification
+    const notificationService = require('../../utils/notificationService');
+    await notificationService.notifyEmployerPlanUpgraded(
+      employerId,
+      plan.name,
+      plan.validityDays,
+      isFreeTrial
+    );
+
     return res.status(200).json({
       success: true,
       message: `Subscription plan "${plan.name}" activated successfully`,

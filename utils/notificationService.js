@@ -943,3 +943,119 @@ exports.notifyEmployeeAppUpdates = async (employeeId, updateMessage) => {
   }
 };
 
+/**
+ * ============================================
+ * SUBSCRIPTION NOTIFICATIONS
+ * ============================================
+ */
+
+/**
+ * EMPLOYER SUBSCRIPTION NOTIFICATIONS
+ */
+
+// Plan upgraded/activated
+exports.notifyEmployerPlanUpgraded = async (employerId, planName, validityDays, isTrial) => {
+  try {
+    await createAndSendNotification(
+      employerId,
+      'employer',
+      'Plan Activated',
+      `Your subscription plan "${planName}" has been ${isTrial ? 'activated (Free Trial)' : 'upgraded'} for ${validityDays} days`,
+      'plan_upgraded',
+      null,
+      { planName, validityDays, isTrial, action: 'view_subscription' }
+    );
+  } catch (error) {
+    console.error('Error notifying employer of plan upgrade:', error);
+  }
+};
+
+// Plan expiring soon (5 days before)
+exports.notifyEmployerPlanExpiringSoon = async (employerId, planName, daysLeft) => {
+  try {
+    await createAndSendNotification(
+      employerId,
+      'employer',
+      'Plan Expiring Soon',
+      `Your subscription plan "${planName}" will expire in ${daysLeft} day${daysLeft > 1 ? 's' : ''}. Renew now to continue enjoying premium features.`,
+      'plan_expiring_soon',
+      null,
+      { planName, daysLeft, action: 'renew_subscription' }
+    );
+  } catch (error) {
+    console.error('Error notifying employer of plan expiring soon:', error);
+  }
+};
+
+// Plan expired
+exports.notifyEmployerPlanExpired = async (employerId, planName) => {
+  try {
+    await createAndSendNotification(
+      employerId,
+      'employer',
+      'Plan Expired',
+      `Your subscription plan "${planName}" has expired. Renew now to restore premium features.`,
+      'plan_expired',
+      null,
+      { planName, action: 'renew_subscription' }
+    );
+  } catch (error) {
+    console.error('Error notifying employer of plan expired:', error);
+  }
+};
+
+/**
+ * EMPLOYEE SUBSCRIPTION NOTIFICATIONS
+ */
+
+// Plan upgraded/activated (verified badge)
+exports.notifyEmployeePlanUpgraded = async (employeeId, planName, validityDays, isTrial) => {
+  try {
+    await createAndSendNotification(
+      employeeId,
+      'employee',
+      'Verified Badge Activated',
+      `Your verified badge subscription "${planName}" has been ${isTrial ? 'activated (Free Trial)' : 'upgraded'} for ${validityDays} days`,
+      'plan_upgraded',
+      null,
+      { planName, validityDays, isTrial, action: 'view_subscription' }
+    );
+  } catch (error) {
+    console.error('Error notifying employee of plan upgrade:', error);
+  }
+};
+
+// Plan expiring soon (5 days before)
+exports.notifyEmployeePlanExpiringSoon = async (employeeId, planName, daysLeft) => {
+  try {
+    await createAndSendNotification(
+      employeeId,
+      'employee',
+      'Verified Badge Expiring Soon',
+      `Your verified badge subscription "${planName}" will expire in ${daysLeft} day${daysLeft > 1 ? 's' : ''}. Renew now to keep your verified status.`,
+      'plan_expiring_soon',
+      null,
+      { planName, daysLeft, action: 'renew_subscription' }
+    );
+  } catch (error) {
+    console.error('Error notifying employee of plan expiring soon:', error);
+  }
+};
+
+// Plan expired
+exports.notifyEmployeePlanExpired = async (employeeId, planName) => {
+  try {
+    await createAndSendNotification(
+      employeeId,
+      'employee',
+      'Verified Badge Expired',
+      `Your verified badge subscription "${planName}" has expired. Renew now to restore your verified status.`,
+      'plan_expired',
+      null,
+      { planName, action: 'renew_subscription' }
+    );
+  } catch (error) {
+    console.error('Error notifying employee of plan expired:', error);
+  }
+};
+
