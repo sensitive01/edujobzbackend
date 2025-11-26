@@ -7,6 +7,7 @@ const employeeRoute = require("./routes/employee/employeeRoute.js");
 const employerRoute = require("./routes/employer/employerRoute.js");
 const mainadminRoute = require("./routes/mainadmin/mainadmin.js");
 const employeradminRoute = require("./routes/admin/employeradminRoute.js");
+const fcmTestRoute = require("./routes/test/fcmTestRoute.js");
 const Employer = require("./models/employerSchema.js");
 const app = express();
 const { PORT } = require("./config/variables.js");
@@ -40,6 +41,7 @@ app.use("/", employeeRoute);
 app.use("/employer", employerRoute);
 app.use("/employeradmin", employeradminRoute);
 app.use("/admin", mainadminRoute);
+app.use("/test/fcm", fcmTestRoute);
 // 404 Route Handling
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

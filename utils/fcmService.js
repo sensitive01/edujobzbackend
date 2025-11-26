@@ -1,38 +1,56 @@
 const admin = require('firebase-admin');
+const { FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY } = require('../config/variables');
 
 // Initialize Firebase Admin if not already initialized
 if (!admin.apps.length) {
   try {
-    // Try to initialize with service account from environment variable
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    // Check if we have the required Firebase credentials from variables
+    if (FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
+      // Construct service account object from individual credentials
+      const serviceAccount = {
+        type: 'service_account',
+        project_id: FIREBASE_PROJECT_ID || 'edujobz-d714c',
+        private_key_id: '', // Not required for initialization
+        private_key: FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'), // Replace escaped newlines
+        client_email: FIREBASE_CLIENT_EMAIL,
+        client_id: '', // Not required for initialization
+        auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+        token_uri: 'https://oauth2.googleapis.com/token',
+        auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+        client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${encodeURIComponent(FIREBASE_CLIENT_EMAIL)}`,
+        universe_domain: 'googleapis.com'
+      };
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: FIREBASE_PROJECT_ID || 'edujobz-d714c'
+      });
+      console.log('✅ Firebase Admin initialized with credentials from variables');
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      // Fallback: Try to initialize with service account from environment variable (legacy support)
       const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID || 'edujobz-d714c'
+        projectId: serviceAccount.project_id || FIREBASE_PROJECT_ID || 'edujobz-d714c'
       });
-      console.log('✅ Firebase Admin initialized with service account');
+      console.log('✅ Firebase Admin initialized with service account (legacy method)');
     } else if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
-      // Initialize with service account file path
+      // Fallback: Initialize with service account file path (legacy support)
       const serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        projectId: serviceAccount.project_id || process.env.FIREBASE_PROJECT_ID || 'edujobz-d714c'
+        projectId: serviceAccount.project_id || FIREBASE_PROJECT_ID || 'edujobz-d714c'
       });
-      console.log('✅ Firebase Admin initialized with service account file');
-    } else if (process.env.FIREBASE_PROJECT_ID) {
-      // Initialize with default credentials (for Google Cloud environments)
-      admin.initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID || 'edujobz-d714c'
-      });
-      console.log('✅ Firebase Admin initialized with project ID (using default credentials)');
+      console.log('✅ Firebase Admin initialized with service account file (legacy method)');
     } else {
       console.warn('⚠️ Firebase Admin not initialized. FCM notifications will not work.');
-      console.warn('Please set FIREBASE_SERVICE_ACCOUNT, FIREBASE_SERVICE_ACCOUNT_PATH, or FIREBASE_PROJECT_ID in environment variables.');
+      console.warn('Please set FIREBASE_CLIENT_EMAIL and FIREBASE_PRIVATE_KEY in environment variables.');
+      console.warn('Or use FIREBASE_SERVICE_ACCOUNT or FIREBASE_SERVICE_ACCOUNT_PATH (legacy methods).');
       console.warn('Using default project ID: edujobz-d714c');
       // Try with default project ID
       try {
         admin.initializeApp({
-          projectId: 'edujobz-d714c'
+          projectId: FIREBASE_PROJECT_ID || 'edujobz-d714c'
         });
         console.log('✅ Firebase Admin initialized with default project ID');
       } catch (defaultError) {
@@ -63,17 +81,22 @@ const sendNotification = async (fcmToken, title, body, data = {}) => {
     return { success: false, error: 'No FCM token' };
   }
 
+  // Convert all data values to strings (FCM requirement)
+  const stringifiedData = {};
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    stringifiedData[key] = value !== null && value !== undefined ? String(value) : '';
+  });
+
   const message = {
     notification: {
       title: title,
       body: body,
-      sound: 'default', // Ensure sound is in notification object too
     },
     data: {
-      ...data,
-      title: title,
-      body: body,
-      sound: 'default', // Also in data for reliability
+      ...stringifiedData,
+      title: String(title || ''),
+      body: String(body || ''),
     },
     token: fcmToken,
     android: {
@@ -139,17 +162,22 @@ const sendMulticastNotification = async (fcmTokens, title, body, data = {}) => {
     return { success: false, error: 'No valid FCM tokens' };
   }
 
+  // Convert all data values to strings (FCM requirement)
+  const stringifiedData = {};
+  Object.keys(data).forEach(key => {
+    const value = data[key];
+    stringifiedData[key] = value !== null && value !== undefined ? String(value) : '';
+  });
+
   const message = {
     notification: {
       title: title,
       body: body,
-      sound: 'default', // Ensure sound is in notification object too
     },
     data: {
-      ...data,
-      title: title,
-      body: body,
-      sound: 'default', // Also in data for reliability
+      ...stringifiedData,
+      title: String(title || ''),
+      body: String(body || ''),
     },
     tokens: validTokens,
     android: {
