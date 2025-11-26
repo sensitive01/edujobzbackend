@@ -11,12 +11,29 @@ exports.getPlansByEmployer = async (req, res, next) => {
     }
 
     // Match either plans with this specific employerId OR plans with no employerId (default plans)
-    const plans = await Plan.find({
+    let plans = await Plan.find({
       $or: [
         { employerid: employerId, isActive: true },
         { employerid: { $exists: false }, isActive: true }
       ]
     }).sort({ price: 1 });
+
+    // Check if employer has already used a free plan
+    if (employerId) {
+      const employer = await Employer.findById(employerId);
+      if (employer && employer.subscriptions && employer.subscriptions.length > 0) {
+        // Check if employer has any free plan in their history
+        const hasUsedFreePlan = employer.subscriptions.some(sub => {
+          const planDetails = sub.planDetails || {};
+          return planDetails.price === 0 || planDetails.price === null || planDetails.price === undefined;
+        });
+        
+        // Filter out free plans if employer has already used one
+        if (hasUsedFreePlan) {
+          plans = plans.filter(plan => plan.price > 0);
+        }
+      }
+    }
 
     if (!plans.length) {
       return next(createError(404, 'No plans found for this employer'));
