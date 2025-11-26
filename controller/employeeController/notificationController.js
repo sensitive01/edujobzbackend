@@ -1,4 +1,5 @@
 const Notification = require('../../models/notificationSchema');
+const mongoose = require('mongoose');
 
 /**
  * Get all notifications for an employee
@@ -7,27 +8,42 @@ const Notification = require('../../models/notificationSchema');
 const getEmployeeNotifications = async (req, res) => {
   try {
     const { employeeId } = req.params;
+    console.log(`📬 [GET] /notifications/${employeeId} - Request received`);
 
     if (!employeeId) {
+      console.log('❌ Employee ID is missing');
       return res.status(400).json({
         success: false,
         message: 'Employee ID is required'
       });
     }
 
+    // Convert string ID to ObjectId for proper querying
+    let queryUserId;
+    try {
+      queryUserId = mongoose.Types.ObjectId.isValid(employeeId) 
+        ? new mongoose.Types.ObjectId(employeeId) 
+        : employeeId;
+    } catch (error) {
+      queryUserId = employeeId;
+    }
+
+    console.log(`🔍 Querying notifications for employeeId: ${employeeId} (ObjectId: ${queryUserId}), userType: employee`);
     const notifications = await Notification.find({
-      userId: employeeId,
+      userId: queryUserId,
       userType: 'employee'
     })
       .sort({ createdAt: -1 })
       .limit(100); // Limit to last 100 notifications
 
+    console.log(`✅ Found ${notifications.length} notifications for employee ${employeeId}`);
     res.json({
       success: true,
       notifications: notifications
     });
   } catch (error) {
     console.error('❌ Error fetching employee notifications:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch notifications',
@@ -89,26 +105,41 @@ const markNotificationAsRead = async (req, res) => {
 const getUnreadCount = async (req, res) => {
   try {
     const { employeeId } = req.params;
+    console.log(`📬 [GET] /notifications/${employeeId}/unread-count - Request received`);
 
     if (!employeeId) {
+      console.log('❌ Employee ID is missing');
       return res.status(400).json({
         success: false,
         message: 'Employee ID is required'
       });
     }
 
+    // Convert string ID to ObjectId for proper querying
+    let queryUserId;
+    try {
+      queryUserId = mongoose.Types.ObjectId.isValid(employeeId) 
+        ? new mongoose.Types.ObjectId(employeeId) 
+        : employeeId;
+    } catch (error) {
+      queryUserId = employeeId;
+    }
+
+    console.log(`🔍 Counting unread notifications for employeeId: ${employeeId} (ObjectId: ${queryUserId}), userType: employee`);
     const count = await Notification.countDocuments({
-      userId: employeeId,
+      userId: queryUserId,
       userType: 'employee',
       isRead: false
     });
 
+    console.log(`✅ Unread count for employee ${employeeId}: ${count}`);
     res.json({
       success: true,
       unreadCount: count
     });
   } catch (error) {
     console.error('❌ Error fetching unread count:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch unread count',

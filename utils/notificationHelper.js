@@ -2,6 +2,7 @@ const Notification = require('../models/notificationSchema');
 const Employee = require('../models/employeeschema');
 const Employer = require('../models/employerSchema');
 const { sendMulticastNotification } = require('./fcmService');
+const mongoose = require('mongoose');
 
 /**
  * Create and send notification to user
@@ -16,9 +17,21 @@ const { sendMulticastNotification } = require('./fcmService');
  */
 const createAndSendNotification = async (userId, userType, title, subtitle, type = null, relatedId = null, data = {}) => {
   try {
+    console.log(`📬 Creating notification for ${userType} ${userId}: ${title}`);
+    
+    // Convert string ID to ObjectId for proper storage
+    let queryUserId;
+    try {
+      queryUserId = mongoose.Types.ObjectId.isValid(userId) 
+        ? new mongoose.Types.ObjectId(userId) 
+        : userId;
+    } catch (error) {
+      queryUserId = userId;
+    }
+    
     // Create notification in database
     const notification = new Notification({
-      userId,
+      userId: queryUserId,
       userType,
       title,
       subtitle,
@@ -29,23 +42,47 @@ const createAndSendNotification = async (userId, userType, title, subtitle, type
     });
 
     await notification.save();
+    console.log(`✅ Notification saved to database with ID: ${notification._id}`);
 
-    // Get FCM tokens based on user type
+    // Get FCM tokens based on user type (using queryUserId already converted above)
     let fcmTokens = [];
     if (userType === 'employee') {
-      const employee = await Employee.findById(userId);
-      if (employee && employee.employeefcmtoken && Array.isArray(employee.employeefcmtoken)) {
-        fcmTokens = employee.employeefcmtoken.filter(token => token && token.trim() !== '');
+      const employee = await Employee.findById(queryUserId);
+      if (employee) {
+        console.log(`👤 Found employee: ${employee.userName || employee.userEmail}`);
+        if (employee.employeefcmtoken && Array.isArray(employee.employeefcmtoken)) {
+          fcmTokens = employee.employeefcmtoken.filter(token => token && token.trim() !== '');
+          console.log(`📱 Found ${fcmTokens.length} FCM token(s) for employee`);
+          if (fcmTokens.length === 0) {
+            console.warn(`⚠️ Employee ${userId} has no valid FCM tokens stored`);
+          }
+        } else {
+          console.warn(`⚠️ Employee ${userId} has no FCM token array or it's not an array`);
+        }
+      } else {
+        console.error(`❌ Employee not found with ID: ${userId}`);
       }
     } else if (userType === 'employer') {
-      const employer = await Employer.findById(userId);
-      if (employer && employer.employerfcmtoken && Array.isArray(employer.employerfcmtoken)) {
-        fcmTokens = employer.employerfcmtoken.filter(token => token && token.trim() !== '');
+      const employer = await Employer.findById(queryUserId);
+      if (employer) {
+        console.log(`👤 Found employer: ${employer.schoolName || employer.uuid}`);
+        if (employer.employerfcmtoken && Array.isArray(employer.employerfcmtoken)) {
+          fcmTokens = employer.employerfcmtoken.filter(token => token && token.trim() !== '');
+          console.log(`📱 Found ${fcmTokens.length} FCM token(s) for employer`);
+          if (fcmTokens.length === 0) {
+            console.warn(`⚠️ Employer ${userId} has no valid FCM tokens stored`);
+          }
+        } else {
+          console.warn(`⚠️ Employer ${userId} has no FCM token array or it's not an array`);
+        }
+      } else {
+        console.error(`❌ Employer not found with ID: ${userId}`);
       }
     }
 
     // Send FCM push notification if tokens exist
     if (fcmTokens.length > 0) {
+      console.log(`🚀 Attempting to send FCM push notification to ${fcmTokens.length} device(s)`);
       const fcmData = {
         notificationId: notification._id.toString(),
         type: type || '',
@@ -54,16 +91,26 @@ const createAndSendNotification = async (userId, userType, title, subtitle, type
       };
 
       const fcmResult = await sendMulticastNotification(fcmTokens, title, subtitle, fcmData);
+      
+      if (fcmResult.success) {
+        console.log(`✅ FCM notification sent successfully. Success: ${fcmResult.successCount}, Failed: ${fcmResult.failureCount || 0}`);
+      } else {
+        console.error(`❌ FCM notification failed: ${fcmResult.error || 'Unknown error'}`);
+      }
 
       // Remove invalid tokens if any
       if (fcmResult.invalidTokens && fcmResult.invalidTokens.length > 0) {
+        console.log(`🧹 Removing ${fcmResult.invalidTokens.length} invalid FCM token(s)`);
         await removeInvalidTokens(userId, userType, fcmResult.invalidTokens);
       }
+    } else {
+      console.warn(`⚠️ No FCM tokens found for ${userType} ${userId}. Push notification not sent, but notification saved to database.`);
     }
 
     return notification;
   } catch (error) {
     console.error('❌ Error creating notification:', error);
+    console.error('Error stack:', error.stack);
     throw error;
   }
 };

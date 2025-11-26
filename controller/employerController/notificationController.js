@@ -1,4 +1,5 @@
 const Notification = require('../../models/notificationSchema');
+const mongoose = require('mongoose');
 
 /**
  * Get all notifications for an employer
@@ -7,27 +8,42 @@ const Notification = require('../../models/notificationSchema');
 const getEmployerNotifications = async (req, res) => {
   try {
     const { employerId } = req.params;
+    console.log(`📬 [GET] /employer/notifications/${employerId} - Request received`);
 
     if (!employerId) {
+      console.log('❌ Employer ID is missing');
       return res.status(400).json({
         success: false,
         message: 'Employer ID is required'
       });
     }
 
+    // Convert string ID to ObjectId for proper querying
+    let queryUserId;
+    try {
+      queryUserId = mongoose.Types.ObjectId.isValid(employerId) 
+        ? new mongoose.Types.ObjectId(employerId) 
+        : employerId;
+    } catch (error) {
+      queryUserId = employerId;
+    }
+
+    console.log(`🔍 Querying notifications for employerId: ${employerId} (ObjectId: ${queryUserId}), userType: employer`);
     const notifications = await Notification.find({
-      userId: employerId,
+      userId: queryUserId,
       userType: 'employer'
     })
       .sort({ createdAt: -1 })
       .limit(100); // Limit to last 100 notifications
 
+    console.log(`✅ Found ${notifications.length} notifications for employer ${employerId}`);
     res.json({
       success: true,
       notifications: notifications
     });
   } catch (error) {
     console.error('❌ Error fetching employer notifications:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch notifications',
@@ -89,26 +105,41 @@ const markNotificationAsRead = async (req, res) => {
 const getUnreadCount = async (req, res) => {
   try {
     const { employerId } = req.params;
+    console.log(`📬 [GET] /employer/notifications/${employerId}/unread-count - Request received`);
 
     if (!employerId) {
+      console.log('❌ Employer ID is missing');
       return res.status(400).json({
         success: false,
         message: 'Employer ID is required'
       });
     }
 
+    // Convert string ID to ObjectId for proper querying
+    let queryUserId;
+    try {
+      queryUserId = mongoose.Types.ObjectId.isValid(employerId) 
+        ? new mongoose.Types.ObjectId(employerId) 
+        : employerId;
+    } catch (error) {
+      queryUserId = employerId;
+    }
+
+    console.log(`🔍 Counting unread notifications for employerId: ${employerId} (ObjectId: ${queryUserId}), userType: employer`);
     const count = await Notification.countDocuments({
-      userId: employerId,
+      userId: queryUserId,
       userType: 'employer',
       isRead: false
     });
 
+    console.log(`✅ Unread count for employer ${employerId}: ${count}`);
     res.json({
       success: true,
       unreadCount: count
     });
   } catch (error) {
     console.error('❌ Error fetching unread count:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch unread count',
