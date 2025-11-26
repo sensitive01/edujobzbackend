@@ -67,11 +67,13 @@ const sendNotification = async (fcmToken, title, body, data = {}) => {
     notification: {
       title: title,
       body: body,
+      sound: 'default', // Ensure sound is in notification object too
     },
     data: {
       ...data,
       title: title,
       body: body,
+      sound: 'default', // Also in data for reliability
     },
     token: fcmToken,
     android: {
@@ -79,6 +81,8 @@ const sendNotification = async (fcmToken, title, body, data = {}) => {
       notification: {
         sound: 'default',
         channelId: 'default',
+        clickAction: 'FLUTTER_NOTIFICATION_CLICK', // Important for Flutter
+        priority: 'high',
       },
     },
     apns: {
@@ -86,6 +90,7 @@ const sendNotification = async (fcmToken, title, body, data = {}) => {
         aps: {
           sound: 'default',
           badge: 1,
+          contentAvailable: true,
         },
       },
     },
@@ -138,11 +143,13 @@ const sendMulticastNotification = async (fcmTokens, title, body, data = {}) => {
     notification: {
       title: title,
       body: body,
+      sound: 'default', // Ensure sound is in notification object too
     },
     data: {
       ...data,
       title: title,
       body: body,
+      sound: 'default', // Also in data for reliability
     },
     tokens: validTokens,
     android: {
@@ -150,6 +157,8 @@ const sendMulticastNotification = async (fcmTokens, title, body, data = {}) => {
       notification: {
         sound: 'default',
         channelId: 'default',
+        clickAction: 'FLUTTER_NOTIFICATION_CLICK', // Important for Flutter
+        priority: 'high',
       },
     },
     apns: {
@@ -157,6 +166,7 @@ const sendMulticastNotification = async (fcmTokens, title, body, data = {}) => {
         aps: {
           sound: 'default',
           badge: 1,
+          contentAvailable: true,
         },
       },
     },
