@@ -1920,7 +1920,7 @@ const updateProfilePicture = async (req, res) => {
 // List all employees (for employer to view)
 const listAllEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find().select("-userPassword").sort({ createdAt: -1 });
+    const employees = await Employer.find().select("-userPassword").sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
       count: employees.length,
