@@ -237,11 +237,12 @@ const getAllEmployers = async (req, res) => {
 // Email/Mobile Login
 const login = async (req, res) => {
   try {
+    console.log(req.body)
     const { userMobile, userEmail, userPassword, fcmToken } = req.body;
 
     // ---------- Input Validation ----------
-    if (!userMobile && !userEmail) {
-      return res.status(400).json({ message: "Mobile or email is required." });
+    if (userEmail) {
+      return res.status(400).json({ message: "Email is required." });
     }
 
     // Normalize mobile number
@@ -254,6 +255,7 @@ const login = async (req, res) => {
 
     const user = await Employer.findOne({ $or: conditions });
 
+    console.log(user);
     if (!user) {
       return res
         .status(400)
@@ -269,18 +271,71 @@ const login = async (req, res) => {
     }
 
     // ---------- FCM Token Save ----------
-    if (fcmToken && typeof fcmToken === "string") {
-      if (!Array.isArray(user.employerfcmtoken)) {
-        user.employerfcmtoken = [];
-      }
+    // if (fcmToken && typeof fcmToken === "string") {
+    //   if (!Array.isArray(user.employerfcmtoken)) {
+    //     user.employerfcmtoken = [];
+    //   }
 
-      if (!user.employerfcmtoken.includes(fcmToken)) {
-        user.employerfcmtoken.push(fcmToken);
-        await user.save();
-      }
-    }
+    //   if (!user.employerfcmtoken.includes(fcmToken)) {
+    //     user.employerfcmtoken.push(fcmToken);
+    //     await user.save();
+    //   }
+    // }
 
     // ---------- Generate JWT ----------
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // ---------- Remove Password ----------
+    const safeUser = user.toObject();
+    delete safeUser.userPassword;
+
+    return res.json({
+      message: "Login successful",
+      user: safeUser,
+      token,
+    });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+const loginweb = async (req, res) => {
+  try {
+  
+    const {  userEmail, userPassword} = req.body;
+    console.log(userEmail, userPassword,req.body)
+    
+
+    // ---------- Input Validation ----------
+    if (!userEmail) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const user = await Employer.findOne({ userEmail:userEmail });
+      console.log("user----->",user);
+
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "User not found. Please check your credentials." });
+    }
+
+    // ---------- Password Check ----------
+    const match = await bcrypt.compare(userPassword, user.userPassword);
+    console.log(match);
+    if (!match) {
+      return res
+        .status(400)
+        .json({ message: "Invalid password. Try again." });
+    }
+
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
@@ -2306,6 +2361,7 @@ module.exports = {
   verifyEmailOtp,
   signUp,
   login,
+  loginweb,
   getDesiredJobAlertswithouttoken,
   googleAuth,
   googleAuthV2,

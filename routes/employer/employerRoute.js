@@ -96,6 +96,7 @@ employerRoute.post('/signup', employerController.signUp);
 
 // Email/Mobile Login
 employerRoute.post('/login', employerController.login);
+employerRoute.post('/loginweb', employerController.loginweb);
 
 // Google Sign-In
 employerRoute.post('/google', employerController.googleAuth);

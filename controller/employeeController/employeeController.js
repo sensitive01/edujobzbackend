@@ -6,6 +6,7 @@ const Job = require("../../models/jobSchema");
 const Employee = require("../../models/employeeschema");
 // Note: userModel is kept for backward compatibility but should use Employee instead
 const userModel = Employee; // Alias for Employee model
+const Employer = require("../../models/employerSchema")
 
 const generateOTP = require("../../utils/generateOTP");
 const jwtDecode = require("jwt-decode");
@@ -1577,9 +1578,13 @@ const deleteResumeLetter = async (req, res) => {
   }
 };
 
+
+
 const getHeaderCategoriesCount = async (req, res) => {
   try {
-    // Predefined categories (you can modify this list if needed)
+    // --------------------------
+    // CATEGORY COUNT (your code)
+    // --------------------------
     const categories = [
       "Teaching Jobs",
       "Leadership and Administration",
@@ -1601,20 +1606,43 @@ const getHeaderCategoriesCount = async (req, res) => {
       categoryCounts.push({ category, count });
     }
 
-    // Send response
+    // --------------------------
+    // 🆕 EMPLOYER TYPE GROUPING
+    // --------------------------
+    const employerTypeCounts = await Employer.aggregate([
+      {
+        $group: {
+          _id: "$employerType",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          employerType: "$_id",
+          count: 1,
+          _id: 0
+        }
+      }
+    ]);
+    console.log(employerTypeCounts)
+    // --------------------------
+    // SEND RESPONSE
+    // --------------------------
     res.status(200).json({
       success: true,
-      data: categoryCounts,
+      categories: categoryCounts,
+      employerTypes: employerTypeCounts
     });
+
   } catch (err) {
-    console.error("Error in getting category counts:", err);
     res.status(500).json({
       success: false,
-      message: "Error fetching category counts",
+      message: "Error fetching counts",
       error: err.message,
     });
   }
 };
+
 
 // Get referral list for an employee
 const getReferralList = async (req, res) => {
