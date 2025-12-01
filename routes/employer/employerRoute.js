@@ -109,6 +109,8 @@ employerRoute.put('/uploadprofilepic/:employid', dynamicUploadMiddleware, employ
 
 
 employerRoute.post('/postjob', jobController.createJob);
+employerRoute.delete('/deletejob/:id', jobController.deleteJob);
+
 employerRoute.get('/fetchjobs', jobController.getAllJobs);
 employerRoute.get("/viewjobs/:id", jobController.getJobById);
 employerRoute.get("/fetchjob/:employid", jobController.getJobsByEmployee);
