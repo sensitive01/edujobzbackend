@@ -178,6 +178,9 @@ const getAllJobs = async (req, res) => {
   try {
     const jobs = await Job.aggregate([
       {
+        $match: { isActive: true }   
+      },
+      {
         $sort: { createdAt: -1 },
       },
       {
