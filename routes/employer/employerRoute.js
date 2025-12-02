@@ -94,8 +94,8 @@ employerRoute.put('/decrease/:employerId/:employeeId', employerController.decrea
 
 employerRoute.post('/signup', employerController.signUp);
 
-// Email/Mobile Login
-employerRoute.post('/login', employerController.login);
+// Mobile Login
+employerRoute.post('/mobilelogin', employerController.mobileLogin);
 employerRoute.post('/loginweb', employerController.loginweb);
 
 // Google Sign-In

@@ -234,28 +234,27 @@ const getAllEmployers = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch employers" });
   }
 };
-// Email/Mobile Login
-const login = async (req, res) => {
+// Mobile Login (Based on Flutter App)
+const mobileLogin = async (req, res) => {
   try {
-    console.log(req.body)
-    const { userMobile, userEmail, userPassword, fcmToken } = req.body;
+    console.log('📱 Employer Mobile Login Request:', req.body);
+    const { userEmail, userPassword, fcmToken } = req.body;
 
     // ---------- Input Validation ----------
-    if (userEmail) {
+    // Check if email is provided and not empty
+    if (!userEmail || userEmail.trim() === '') {
       return res.status(400).json({ message: "Email is required." });
     }
 
-    // Normalize mobile number
-    const mobile = userMobile ? userMobile.toString() : null;
+    // Check if password is provided and not empty
+    if (!userPassword || userPassword.trim() === '') {
+      return res.status(400).json({ message: "Password is required." });
+    }
 
-    // ---------- Build OR Conditions ----------
-    const conditions = [];
-    if (mobile) conditions.push({ userMobile: mobile });
-    if (userEmail) conditions.push({ userEmail });
+    // ---------- Find user by email only (as per Flutter code) ----------
+    const user = await Employer.findOne({ userEmail: userEmail.trim() });
 
-    const user = await Employer.findOne({ $or: conditions });
-
-    console.log(user);
+    console.log('👤 User found:', user ? 'Yes' : 'No');
     if (!user) {
       return res
         .status(400)
@@ -271,16 +270,17 @@ const login = async (req, res) => {
     }
 
     // ---------- FCM Token Save ----------
-    // if (fcmToken && typeof fcmToken === "string") {
-    //   if (!Array.isArray(user.employerfcmtoken)) {
-    //     user.employerfcmtoken = [];
-    //   }
+    if (fcmToken && typeof fcmToken === "string" && fcmToken.trim() !== '') {
+      if (!Array.isArray(user.employerfcmtoken)) {
+        user.employerfcmtoken = [];
+      }
 
-    //   if (!user.employerfcmtoken.includes(fcmToken)) {
-    //     user.employerfcmtoken.push(fcmToken);
-    //     await user.save();
-    //   }
-    // }
+      if (!user.employerfcmtoken.includes(fcmToken)) {
+        user.employerfcmtoken.push(fcmToken);
+        await user.save();
+        console.log('✅ FCM token saved for employer:', user._id);
+      }
+    }
 
     // ---------- Generate JWT ----------
     const token = jwt.sign(
@@ -293,14 +293,16 @@ const login = async (req, res) => {
     const safeUser = user.toObject();
     delete safeUser.userPassword;
 
-    return res.json({
+    console.log('✅ Login successful for employer:', user._id);
+
+    return res.status(200).json({
       message: "Login successful",
       user: safeUser,
       token,
     });
 
   } catch (err) {
-    console.error("Login error:", err);
+    console.error("❌ Login error:", err);
     res.status(500).json({ message: "Internal server error." });
   }
 };
@@ -2360,7 +2362,7 @@ module.exports = {
   sendOtpToEmail,
   verifyEmailOtp,
   signUp,
-  login,
+  mobileLogin,
   loginweb,
   getDesiredJobAlertswithouttoken,
   googleAuth,
