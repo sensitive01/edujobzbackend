@@ -116,7 +116,7 @@ employeeRoute.get(
 
 employeeRoute.get(
   "/getrejectedjob/:applicantId",
-  jobController.getPendingJobs
+  jobController.getRejectedJobs
 );
 
 
