@@ -25,28 +25,108 @@ const updateJobById = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
-
     const updatedJob = await Job.findByIdAndUpdate(
       id,
       { ...updatedData, updatedAt: Date.now() },
       { new: true, runValidators: true }
     );
-
     if (!updatedJob) {
       return res.status(404).json({ success: false, message: "Job not found" });
     }
-
     res.status(200).json({
       success: true,
       message: "Job updated successfully",
       job: updatedJob
     });
-
   } catch (error) {
     console.error("Error updating job:", error);
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+const createJob = async (req, res) => {
+  try {
+    const jobData = req.body;
+    console.log("Creating Job with Data:", jobData);
+    // Find the employer by employid or email
+    const employer = await Employer.findOne({
+      $or: [{ _id: jobData.employid }, { userEmail: jobData.contactEmail }],
+    });
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
+    // Check if a job with the same jobTitle already exists for this employer (case-insensitive)
+    if (jobData.jobTitle) {
+      // Escape special regex characters to prevent regex injection
+      const escapedJobTitle = jobData.jobTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const existingJob = await Job.findOne({
+        employid: jobData.employid,
+        jobTitle: { $regex: new RegExp(`^${escapedJobTitle}$`, 'i') },
+      });
+      if (existingJob) {
+        return res.status(400).json({
+          success: false,
+          message: "A job with this title already exists. Please use a different job title.",
+        });
+      }
+    }
+    // Check subscription status
+    if (employer.subscription === "false" || !employer.currentSubscription) {
+      return res.status(403).json({
+        success: false,
+        message: "No active subscription. Please subscribe to post jobs.",
+      });
+    }
+    // Get allowed job limit from current subscription plan (as fallback)
+    let allowedJobLimit = 0;
+    if (employer.currentSubscription && employer.currentSubscription.planDetails) {
+      allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
+    }
+    // Use totaljobpostinglimit as primary limit, fallback to subscription plan limit if totaljobpostinglimit is 0
+    const effectiveLimit = employer.totaljobpostinglimit > 0 
+      ? employer.totaljobpostinglimit 
+      : allowedJobLimit;
+    // Check if effective limit is valid
+    if (effectiveLimit <= 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Job posting limit reached. Please upgrade your subscription.",
+      });
+    }
+    // Check how many active jobs the employer currently has
+    const activeJobsCount = await Job.countDocuments({
+      employid: jobData.employid,
+      isActive: true,
+    });
+    // If active jobs count is already at or exceeds the plan limit, don't allow new job posting
+    if (activeJobsCount >= effectiveLimit) {
+      return res.status(403).json({
+        success: false,
+        message: `You have reached your active job limit (${effectiveLimit}). Please close an existing job before posting a new one.`,
+      });
+    }
+    // Create the new job
+    // jobData includes 'employerType' from the frontend
+    const newJob = new Job(jobData);
+    const savedJob = await newJob.save();
+    // Verify if notification service exists before using it
+    try {
+      const notificationService = require('../../utils/notificationService');
+      await notificationService.notifyEmployerJobPosted(
+        jobData.employid,
+        savedJob._id.toString(),
+        savedJob.jobTitle
+      );
+    } catch (notifyError) {
+      console.warn("Notification failed, but job was posted:", notifyError.message);
+    }
+    // Return the saved job
+    res.status(201).json(savedJob);
+  } catch (error) {
+    console.error("Error in createJob:", error);
+    res.status(400).json({ message: error.message });
+  }
+};
+
 
 const deleteJob = async (req, res) => {
   try {
@@ -78,101 +158,7 @@ const deleteJob = async (req, res) => {
 
 
 
-const createJob = async (req, res) => {
-  try {
-    const jobData = req.body;
-    console.log("jobData", jobData);
 
-    console.log("jobData", jobData);
-
-    // Find the employer by employid
-    // const employer = await Employer.findOne({ _id: jobData.employid });
-    const employer = await Employer.findOne({
-      $or: [{ _id: jobData.employid }, { userEmail: jobData.contactEmail }],
-    });
-
-    if (!employer) {
-      return res.status(404).json({ message: "Employer not found" });
-    }
-
-    // Check if a job with the same jobTitle already exists for this employer (case-insensitive)
-    if (jobData.jobTitle) {
-      // Escape special regex characters to prevent regex injection
-      const escapedJobTitle = jobData.jobTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const existingJob = await Job.findOne({
-        employid: jobData.employid,
-        jobTitle: { $regex: new RegExp(`^${escapedJobTitle}$`, 'i') },
-      });
-
-      if (existingJob) {
-        return res.status(400).json({
-          success: false,
-          message: "A job with this title already exists. Please use a different job title.",
-        });
-      }
-    }
-
-    // Check subscription status
-    if (employer.subscription === "false" || !employer.currentSubscription) {
-      return res.status(403).json({
-        success: false,
-        message: "No active subscription. Please subscribe to post jobs.",
-      });
-    }
-
-    // Get allowed job limit from current subscription plan (as fallback)
-    let allowedJobLimit = 0;
-    if (employer.currentSubscription && employer.currentSubscription.planDetails) {
-      allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
-    }
-
-    // Use totaljobpostinglimit as primary limit, fallback to subscription plan limit if totaljobpostinglimit is 0
-    const effectiveLimit = employer.totaljobpostinglimit > 0 
-      ? employer.totaljobpostinglimit 
-      : allowedJobLimit;
-
-    // Check if effective limit is valid
-    if (effectiveLimit <= 0) {
-      return res.status(403).json({
-        success: false,
-        message: "Job posting limit reached. Please upgrade your subscription.",
-      });
-    }
-
-    // Check how many active jobs the employer currently has
-    const activeJobsCount = await Job.countDocuments({
-      employid: jobData.employid,
-      isActive: true,
-    });
-
-    // If active jobs count is already at or exceeds the plan limit, don't allow new job posting
-    if (activeJobsCount >= effectiveLimit) {
-      return res.status(403).json({
-        success: false,
-        message: `You have reached your active job limit (${effectiveLimit}). Please close an existing job before posting a new one.`,
-      });
-    }
-
-    // Create the new job
-    const newJob = new Job(jobData);
-    const savedJob = await newJob.save();
-
-    // DO NOT reduce totaljobpostinglimit - it's a fixed limit based on subscription
-
-    // Notify employer of successful job posting
-    const notificationService = require('../../utils/notificationService');
-    await notificationService.notifyEmployerJobPosted(
-      jobData.employid,
-      savedJob._id.toString(),
-      savedJob.jobTitle
-    );
-
-    // Return the saved job
-    res.status(201).json(savedJob);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
 
 const getAllJobs = async (req, res) => {
   try {
