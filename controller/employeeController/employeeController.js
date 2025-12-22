@@ -204,7 +204,7 @@ const googleAuth = async (req, res) => {
       // Check if user exists with this email
       if (payload.email) {
         user = await userModel.findOne({ userEmail: payload.email });
-        
+
         if (user) {
           // Update existing user with googleId
           user.googleId = payload.sub;
@@ -214,7 +214,7 @@ const googleAuth = async (req, res) => {
           await user.save();
         }
       }
-      
+
       // If still no user, create new one
       if (!user) {
         user = new userModel({
@@ -268,12 +268,12 @@ const googleAuthV2 = async (req, res) => {
 
     // Check if user exists with googleId
     let user = await userModel.findOne({ googleId: payload.sub });
-    
+
     if (!user) {
       // Check if user exists with this email
       if (payload.email) {
         user = await userModel.findOne({ userEmail: payload.email });
-        
+
         if (user) {
           // Update existing user with googleId
           user.googleId = payload.sub;
@@ -283,7 +283,7 @@ const googleAuthV2 = async (req, res) => {
           await user.save();
         }
       }
-      
+
       // If still no user, create new one
       if (!user) {
         user = new userModel({
@@ -335,14 +335,14 @@ const appleAuth = async (req, res) => {
       // Check if user exists with this email
       if (decoded.email) {
         user = await userModel.findOne({ userEmail: decoded.email });
-        
+
         if (user) {
           // Update existing user with appleId
           user.appleId = decoded.sub;
           await user.save();
         }
       }
-      
+
       // If still no user, create new one
       if (!user) {
         user = new userModel({
@@ -458,10 +458,10 @@ const applyForJob = async (req, res) => {
     const Employer = require('../models/employerSchema');
     const Employee = require('../models/employeeschema');
     const notificationService = require('../../utils/notificationService');
-    
+
     const employer = await Employer.findById(updatedJob.employid);
     const employee = await Employee.findById(applicantId);
-    
+
     // Notify employer of new application
     if (employer && updatedJob.jobTitle) {
       await notificationService.notifyEmployerNewApplication(
@@ -833,13 +833,13 @@ const calculateProfileCompletion = (employee) => {
   // Calculate Total
   report.total = Math.round(
     report.basicInfo +
-      report.address +
-      report.education +
-      report.workExperience +
-      report.profileDetails +
-      report.documents +
-      report.socialLinks +
-      report.jobPreferences
+    report.address +
+    report.education +
+    report.workExperience +
+    report.profileDetails +
+    report.documents +
+    report.socialLinks +
+    report.jobPreferences
   );
 
   return report;
@@ -1580,7 +1580,7 @@ const deleteResumeLetter = async (req, res) => {
 
 const getHeaderCategoriesCount = async (req, res) => {
   try {
-    // Predefined categories (you can modify this list if needed)
+    // Predefined categories
     const categories = [
       "Teaching Jobs",
       "Leadership and Administration",
@@ -1595,27 +1595,50 @@ const getHeaderCategoriesCount = async (req, res) => {
       "Other Specialized Roles",
     ];
 
-    const categoryCounts = [];
+    // 1️⃣ Category counts
+    const categoryCounts = await Promise.all(
+      categories.map(async (category) => {
+        const count = await Job.countDocuments({ category });
+        return { category, count };
+      })
+    );
 
-    for (const category of categories) {
-      const count = await Job.countDocuments({ category });
-      categoryCounts.push({ category, count });
-    }
+    // 2️⃣ Predefined employer types
+    const definedEmployerTypes = [
+      "Schools",
+      "Coaching Institute",
+      "Pre-Schools",
+      "EdTech Companies",
+      "College / Universities",
+      "Training Centers",
+    ];
 
-    // Send response
+    const employerTypeCounts = await Promise.all(
+      definedEmployerTypes.map(async (type) => {
+        const count = await Job.countDocuments({ employerType: type });
+        return { employerType: type, count };
+      })
+    );
+
+    // Response
     res.status(200).json({
       success: true,
-      data: categoryCounts,
+      data: {
+        categories: categoryCounts,
+        employerTypes: employerTypeCounts
+      }
     });
+
   } catch (err) {
-    console.error("Error in getting category counts:", err);
+    console.error("Error in getting header data:", err);
     res.status(500).json({
       success: false,
-      message: "Error fetching category counts",
+      message: "Error fetching header data",
       error: err.message,
     });
   }
 };
+
 
 // Get referral list for an employee
 const getReferralList = async (req, res) => {

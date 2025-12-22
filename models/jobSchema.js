@@ -102,7 +102,8 @@ const jobSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
  postingstatus: { type: String, default: 'pending' },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  employerType:{type:String},
 });
 
 
