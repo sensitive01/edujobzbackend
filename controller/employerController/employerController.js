@@ -2,11 +2,17 @@ const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Job = require("../../models/jobSchema");
+<<<<<<< Updated upstream
 // Models: Use Employee for employee operations, Employer for employer operations
 const Employee = require("../../models/employeeschema");
 const Employer = require("../../models/employerSchema");
 // Note: userModel is kept for backward compatibility but should use Employee instead
 const userModel = Employee; // Alias for Employee model
+=======
+const userModel = require("../../models/employeeschema");
+const Employee = require("../../models/employeeschema");
+const Employer = require("../../models/employerSchema");
+>>>>>>> Stashed changes
 
 const generateOTP = require("../../utils/generateOTP");
 const jwtDecode = require("jwt-decode");
@@ -30,17 +36,12 @@ const JobFilter = require("../../models/jobAlertModal");
 // Email/Mobile Signup
 const signUp = async (req, res) => {
   try {
-    let {
-      employerType,
-      schoolName,
-      userMobile,
-      lastName,
-      firstName,
-      userEmail,
-      userPassword,
-      referralCode = "",
-    } = req.body;
+    console.log("req.body", req.body);
+    const { userName, userMobile, userEmail, userPassword, referralCode } =
+      req.body;
+    const mobile = parseInt(userMobile);
 
+<<<<<<< Updated upstream
     // Trim all inputs
     employerType = employerType?.trim();
     schoolName = schoolName?.trim();
@@ -59,27 +60,36 @@ const signUp = async (req, res) => {
     // Check if user already exists
     const existUser = await Employer.findOne({
       $or: [{ userMobile }, { userEmail }],
+=======
+    const existUser = await userModel.findOne({
+      $or: [{ userMobile: mobile }, { userEmail }],
+>>>>>>> Stashed changes
     });
 
-     if (existUser?.userEmail === userEmail && existUser?.userMobile == userMobile) {
+    console.log("existUser", existUser);
+
+    if (existUser?.userEmail === userEmail && existUser?.userMobile == mobile) {
       return res.status(400).json({
         message: "Employer email and mobile number is already registered.",
       });
     } else if (existUser?.userEmail === userEmail) {
       return res
         .status(400)
+<<<<<<< Updated upstream
         .json({ message: "Employer email is already registered." });
     } else if (existUser?.userMobile == userMobile) {
+=======
+        .json({ message: "Employee email is already registered." });
+    } else if (existUser?.userMobile == mobile) {
+>>>>>>> Stashed changes
       return res.status(400).json({
         message: "Employer mobile number is already registered.",
       });
     }
 
-
-  
-    // Hash password
     const hashedPassword = await bcrypt.hash(userPassword, 10);
 
+<<<<<<< Updated upstream
     // Handle referral code if provided
     let referredBy = null;
     let referredByName = null;
@@ -95,27 +105,30 @@ const signUp = async (req, res) => {
 
     // Create new employer
     const newEmployer = new Employer({
+=======
+    const newUser = new userModel({
+>>>>>>> Stashed changes
       uuid: uuidv4(),
-      employerType,
-      schoolName,
-      userMobile,
-      lastName,
-      firstName,
+      userName,
+      userMobile: mobile,
       userEmail,
+      userPassword: hashedPassword,
       verificationstatus: "pending",
       blockstatus: "unblock",
-      userPassword: hashedPassword,
       emailverifedstatus: true,
-      referredBy,
-      referredByName,
     });
 
-    // Generate unique referral code
-    newEmployer.referralCode = newEmployer.generateReferralCode();
+    // Generate and assign referral code
+    newUser.referralCode = newUser.generateReferralCode();
 
-    // Save the new employer
-    await newEmployer.save();
+    let referralApplied = false;
+    let referrer = null;
+    if (referralCode && referralCode.trim() !== "") {
+      referrer = await userModel.findOne({
+        referralCode: referralCode.trim(),
+      });
 
+<<<<<<< Updated upstream
     // Update referrer's counts and add to referrals list if applicable
     if (referredBy) {
       const newEmployerName = `${newEmployer.firstName || ''} ${newEmployer.lastName || ''}`.trim();
@@ -124,21 +137,45 @@ const signUp = async (req, res) => {
         referredEmployerName: newEmployerName || newEmployer.schoolName || 'Unknown',
         referredEmployerEmail: newEmployer.userEmail,
         referredEmployerMobile: newEmployer.userMobile,
+=======
+      if (referrer) {
+        newUser.referredBy = referrer._id;
+        newUser.referredByName = referrer.userName || "N/A"; // Store referrer's name
+        referralApplied = true;
+      }
+    }
+
+    // Save the new user first to get the _id
+    await newUser.save();
+
+    // After saving, add to referrer's referrals list if referral code was used
+    if (referralApplied && referrer) {
+      const referralEntry = {
+        referredUserId: newUser._id,
+        referredUserName: newUser.userName,
+        referredUserEmail: newUser.userEmail,
+        referredUserMobile: newUser.userMobile,
+>>>>>>> Stashed changes
         referredDate: new Date(),
         rewardEarned: 100
       };
 
+<<<<<<< Updated upstream
       await Employer.findByIdAndUpdate(referredBy, {
+=======
+      await userModel.findByIdAndUpdate(referrer._id, {
+>>>>>>> Stashed changes
         $push: {
           referralsList: referralEntry
         },
         $inc: {
           referralCount: 1,
-          referralRewards: 100, // You can adjust this value
+          referralRewards: 100,
         },
       });
     }
 
+<<<<<<< Updated upstream
     // ✅ Send email with login details
     const loginLink = "https://gregarious-empanada-38a625.netlify.app/employer/login";
     const logoUrl = "../../assets/logo (1).png"; // put your actual EdProfio logo URL here
@@ -183,48 +220,24 @@ const signUp = async (req, res) => {
 
     // Create JWT token
     const token = jwt.sign({ id: newEmployer._id }, process.env.JWT_SECRET, {
+=======
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+>>>>>>> Stashed changes
       expiresIn: "7d",
     });
 
-    // Return success response
     res.status(201).json({
-      success: true,
-      message: "Employer registered successfully",
-      data: {
-        id: newEmployer._id,
-        uuid: newEmployer.uuid,
-        firstName: newEmployer.firstName,
-        lastName: newEmployer.lastName,
-        userEmail: newEmployer.userEmail,
-        userMobile: newEmployer.userMobile,
-        referralCode: newEmployer.referralCode,
-        verificationstatus: newEmployer.verificationstatus,
-        blockstatus: newEmployer.blockstatus,
-        emailverifedstatus: newEmployer.emailverifedstatus,
-        referredBy: referredBy,
-      },
+      message: "Employee registered successfully.",
+      user: newUser,
       token,
     });
   } catch (err) {
-    console.error("Error in employer registration:", err.message);
-    console.error(err.stack);
-
-    if (err.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: "Registration failed due to duplicate data",
-        error: err.message,
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Server error during registration",
-      error: err.message,
-    });
+    console.error("Error in registration:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
+<<<<<<< Updated upstream
 const getAllEmployers = async (req, res) => {
   try {
     const employers = await Employer.find().select("-userPassword"); // Exclude password
@@ -232,6 +245,15 @@ const getAllEmployers = async (req, res) => {
   } catch (error) {
     console.error("Error fetching employers:", error);
     res.status(500).json({ message: "Failed to fetch employers" });
+=======
+const getAllEmployees = async (req, res) => {
+  try {
+    const employees = await userModel.find(); // You can add `.select()` to limit fields
+    res.status(200).json(employees);
+  } catch (error) {
+    console.error("Error fetching employees:", error);
+    res.status(500).json({ message: "Failed to fetch employees" });
+>>>>>>> Stashed changes
   }
 };
 // Email/Mobile Login
@@ -244,6 +266,7 @@ const login = async (req, res) => {
       return res.status(400).json({ message: "Mobile or email is required." });
     }
 
+<<<<<<< Updated upstream
     // Normalize mobile number
     const mobile = userMobile ? userMobile.toString() : null;
 
@@ -253,6 +276,14 @@ const login = async (req, res) => {
     if (userEmail) conditions.push({ userEmail });
 
     const user = await Employer.findOne({ $or: conditions });
+=======
+    const user = await userModel.findOne({
+      $or: [
+        ...(userMobile ? [{ userMobile: userMobile.toString() }] : []),
+        ...(userEmail ? [{ userEmail }] : []),
+      ],
+    });
+>>>>>>> Stashed changes
 
     if (!user) {
       return res
@@ -265,6 +296,7 @@ const login = async (req, res) => {
     if (!match) {
       return res
         .status(400)
+<<<<<<< Updated upstream
         .json({ message: "Invalid password. Try again." });
     }
 
@@ -292,6 +324,28 @@ const login = async (req, res) => {
     delete safeUser.userPassword;
 
     return res.json({
+=======
+        .json({ message: "Please check your email and password." });
+    }
+
+    // ✅ Optional FCM token saving logic
+    if (
+      fcmToken &&
+      typeof fcmToken === "string" &&
+      !user.employeefcmtoken.includes(fcmToken)
+    ) {
+      user.employeefcmtoken.push(fcmToken);
+      await user.save(); // only if token is new
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    const { userPassword: _, ...safeUser } = user._doc;
+
+    res.json({
+>>>>>>> Stashed changes
       message: "Login successful",
       user: safeUser,
       token,
@@ -352,9 +406,15 @@ const googleAuthV2 = async (req, res) => {
     });
     const payload = ticket.getPayload();
 
+<<<<<<< Updated upstream
     let user = await Employer.findOne({ googleId: payload.sub });
     if (!user) {
       user = new Employer({
+=======
+    let user = await userModel.findOne({ googleId: payload.sub });
+    if (!user) {
+      user = new userModel({
+>>>>>>> Stashed changes
         uuid: uuidv4(), // Using uuidv4() instead of generateUserUUID()
         googleId: payload.sub,
         userEmail: payload.email,
@@ -389,7 +449,11 @@ const appleAuth = async (req, res) => {
     let user = await Employer.findOne({ appleId: decoded.sub });
 
     if (!user) {
+<<<<<<< Updated upstream
       user = new Employer({
+=======
+      user = new userModel({
+>>>>>>> Stashed changes
         uuid: uuidv4(),
         appleId: decoded.sub,
         userEmail: decoded.email,
@@ -412,6 +476,7 @@ const appleAuth = async (req, res) => {
     res.status(401).json({ message: "Invalid Apple token" });
   }
 };
+<<<<<<< Updated upstream
 
 // Note: This function seems to be a duplicate or incorrectly named
 // It's using Employer model, so it should probably be removed or renamed
@@ -430,13 +495,34 @@ const getEmployeeDetails = async (req, res) => {
 
     if (!employer) {
       return res.status(404).json({ message: "Employer not found" });
+=======
+
+const getEmployeeDetails = async (req, res) => {
+  try {
+    const employeeId = req.userId || req.params.id;
+
+    if (!employeeId) {
+      return res.status(400).json({ message: "Employee ID is required" });
+    }
+
+    const employee = await userModel
+      .findById(employeeId)
+      .select("-userPassword");
+
+    if (!employee) {
+      return res.status(404).json({ message: "Employee not found" });
+>>>>>>> Stashed changes
     }
 
     res.json(employer);
   } catch (err) {
+<<<<<<< Updated upstream
     console.error("Error fetching employer details:", err);
+=======
+    console.error("Error fetching employee details:", err);
+>>>>>>> Stashed changes
     if (err.kind === "ObjectId") {
-      return res.status(400).json({ message: "Invalid employer ID format" });
+      return res.status(400).json({ message: "Invalid employee ID format" });
     }
     res.status(500).json({ message: "Server error" });
   }
@@ -579,6 +665,7 @@ const uploadFile = async (req, res) => {
         message: "Cloudinary upload failed: No URL returned",
         details: result,
       });
+<<<<<<< Updated upstream
     }
 
     console.log("response in upload", result);
@@ -592,12 +679,32 @@ const uploadFile = async (req, res) => {
       return res.status(404).json({ message: "Employer not found" });
     }
 
+=======
+    }
+
+    console.log("response in upload", result);
+
+    // Use secure_url if available, otherwise fall back to url or path
+    const fileUrl = result.secure_url || result.url || result.path;
+
+    // First, get the current employee to check for existing files
+    const currentEmployee = await userModel.findById(employid);
+    if (!currentEmployee) {
+      return res.status(404).json({ message: "Employee not found" });
+    }
+
+>>>>>>> Stashed changes
     // Delete old file from Cloudinary if it exists
     try {
       switch (fileType) {
         case "profileImage":
+<<<<<<< Updated upstream
           if (currentEmployer.userProfilePic) {
             const publicId = currentEmployer.userProfilePic
+=======
+          if (currentEmployee.userProfilePic) {
+            const publicId = currentEmployee.userProfilePic
+>>>>>>> Stashed changes
               .split("/")
               .slice(-2)
               .join("/")
@@ -606,8 +713,13 @@ const uploadFile = async (req, res) => {
           }
           break;
         case "resume":
+<<<<<<< Updated upstream
           if (currentEmployer.resume?.url) {
             const publicId = currentEmployer.resume.url
+=======
+          if (currentEmployee.resume?.url) {
+            const publicId = currentEmployee.resume.url
+>>>>>>> Stashed changes
               .split("/")
               .slice(-2)
               .join("/")
@@ -618,8 +730,13 @@ const uploadFile = async (req, res) => {
           }
           break;
         case "coverLetter":
+<<<<<<< Updated upstream
           if (currentEmployer.coverLetterFile?.url) {
             const publicId = currentEmployer.coverLetterFile.url
+=======
+          if (currentEmployee.coverLetterFile?.url) {
+            const publicId = currentEmployee.coverLetterFile.url
+>>>>>>> Stashed changes
               .split("/")
               .slice(-2)
               .join("/")
@@ -661,16 +778,24 @@ const uploadFile = async (req, res) => {
         return res.status(400).json({ message: "Invalid file type provided" });
     }
 
+<<<<<<< Updated upstream
     // Update employer document
     const updatedEmployer = await Employer.findByIdAndUpdate(
+=======
+    // Update employee document
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+>>>>>>> Stashed changes
       employid,
       { $set: updateField },
       { new: true, runValidators: true }
     );
+<<<<<<< Updated upstream
 
     if (!updatedEmployer) {
       return res.status(404).json({ message: "Employer not found" });
     }
+=======
+>>>>>>> Stashed changes
 
     res.status(200).json({
       success: true,
@@ -696,23 +821,39 @@ const updateProfile = async (req, res) => {
     const { employid } = req.params;
     const profileData = req.body;
 
+<<<<<<< Updated upstream
     // Update employer profile
     const updatedEmployer = await Employer.findByIdAndUpdate(
+=======
+    // Update employee profile
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+>>>>>>> Stashed changes
       employid,
       { $set: profileData },
       { new: true }
     );
 
+<<<<<<< Updated upstream
     if (!updatedEmployer) {
       return res.status(404).json({
         success: false,
         message: "Employer not found",
+=======
+    if (!updatedEmployee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+>>>>>>> Stashed changes
       });
     }
 
     res.status(200).json({
       success: true,
+<<<<<<< Updated upstream
       data: updatedEmployer,
+=======
+      data: updatedEmployee,
+>>>>>>> Stashed changes
       message: "Profile updated successfully",
     });
   } catch (error) {
@@ -860,11 +1001,19 @@ const calculateProfileCompletion = (employee) => {
 
 const getProfileCompletion = async (req, res) => {
   try {
+<<<<<<< Updated upstream
     const employer = await Employer.findById(req.params.id);
     if (!employer)
       return res.status(404).json({ message: "Employer not found" });
 
     const percentageReport = calculateProfileCompletion(employer);
+=======
+    const employee = await userModel.findById(req.params.id);
+    if (!employee)
+      return res.status(404).json({ message: "Employee not found" });
+
+    const percentageReport = calculateProfileCompletion(employee);
+>>>>>>> Stashed changes
     res.json({ total: percentageReport.total }); // Return only the total
   } catch (err) {
     res.status(500).json({ message: "Server Error", error: err.message });
@@ -953,7 +1102,11 @@ const userChangePassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Find the user by contact number
+<<<<<<< Updated upstream
     const user = await Employer.findOne({ userMobile: userMobile });
+=======
+    const user = await userModel.findOne({ userMobile: userMobile });
+>>>>>>> Stashed changes
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -984,7 +1137,11 @@ const candidateChangePassword = async (req, res) => {
     }
 
     // Find candidate
+<<<<<<< Updated upstream
     const candidate = await Employer.findById(candidateId);
+=======
+    const candidate = await userModel.findById(candidateId);
+>>>>>>> Stashed changes
     if (!candidate) {
       return res.status(404).json({ message: "Candidate not found" });
     }
@@ -1042,16 +1199,27 @@ const uploadProfileVideo = async (req, res) => {
       thumbnail: `${file.path}-thumbnail`, // Adjust if you're generating real thumbnails
     };
 
+<<<<<<< Updated upstream
     const updatedEmployer = await Employer.findByIdAndUpdate(
+=======
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+>>>>>>> Stashed changes
       employeeId,
       { profileVideo: fileInfo },
       { new: true } // returns updated document (optional)
     );
 
+<<<<<<< Updated upstream
     if (!updatedEmployer) {
       return res
         .status(404)
         .json({ success: false, message: "Employer not found" });
+=======
+    if (!updatedEmployee) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found" });
+>>>>>>> Stashed changes
     }
 
     res.status(200).json({
@@ -1077,7 +1245,11 @@ const uploadIntroAudio = async (req, res) => {
         .json({ success: false, message: "No file uploaded" });
     }
 
+<<<<<<< Updated upstream
     const updatedEmployer = await Employer.findByIdAndUpdate(
+=======
+    const updatedEmployee = await userModel.findByIdAndUpdate(
+>>>>>>> Stashed changes
       employeeId,
       {
         introductionAudio: {
@@ -1089,7 +1261,11 @@ const uploadIntroAudio = async (req, res) => {
       { new: true }
     );
 
+<<<<<<< Updated upstream
     res.status(200).json({ success: true, employer: updatedEmployer });
+=======
+    res.status(200).json({ success: true, employee: updatedEmployee });
+>>>>>>> Stashed changes
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1174,7 +1350,11 @@ const verifyTheCandidateRegisterOrNot = async (req, res) => {
   try {
     const { candidateEmail } = req.params;
 
+<<<<<<< Updated upstream
     const candidateData = await Employer.findOne({
+=======
+    const candidateData = await userModel.findOne({
+>>>>>>> Stashed changes
       userEmail: candidateEmail,
     });
 
@@ -1641,11 +1821,19 @@ const getReferralList = async (req, res) => {
       });
     }
 
+<<<<<<< Updated upstream
     // Get the employer's referral data including the referralsList
     const employer = await Employer.findById(employeeId).select("referralCount referralRewards referralsList");
     const employerReferralCount = employer?.referralCount || 0;
     const employerReferralRewards = employer?.referralRewards || 0;
     const referralsList = employer?.referralsList || [];
+=======
+    // Get the employee's referral data including the referralsList
+    const employee = await userModel.findById(employeeId).select("referralCount referralRewards referralsList");
+    const employeeReferralCount = employee?.referralCount || 0;
+    const employeeReferralRewards = employee?.referralRewards || 0;
+    const referralsList = employee?.referralsList || [];
+>>>>>>> Stashed changes
 
     // Format the referrals list from the stored array
     const referralList = referralsList.map((referral) => {
@@ -1667,8 +1855,8 @@ const getReferralList = async (req, res) => {
       success: true,
       data: referralList,
       totalReferrals: referralList.length,
-      referralCount: employerReferralCount, // Total referral count from employer profile
-      referralRewards: employerReferralRewards, // Total rewards earned
+      referralCount: employeeReferralCount, // Total referral count from employee profile
+      referralRewards: employeeReferralRewards, // Total rewards earned
     });
   } catch (err) {
     console.error("Error in getting referral list:", err);
@@ -1789,7 +1977,10 @@ const decreaseResumeDownload = async (req, res) => {
 };
 
 // Get employer details by ID
+<<<<<<< Updated upstream
 // Get employer details by ID
+=======
+>>>>>>> Stashed changes
 const getEmployerDetails = async (req, res) => {
   try {
     const { id } = req.params;
@@ -1798,6 +1989,7 @@ const getEmployerDetails = async (req, res) => {
       return res.status(400).json({ message: "Employer ID is required" });
     }
 
+<<<<<<< Updated upstream
     // Check if ID is a valid MongoDB ObjectId format
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ 
@@ -1812,11 +2004,15 @@ const getEmployerDetails = async (req, res) => {
       .findById(id)
       .select("-userPassword")
       .lean();
+=======
+    const employer = await Employer.findById(id).select("-userPassword");
+>>>>>>> Stashed changes
 
     if (!employer) {
       return res.status(404).json({ message: "Employer not found" });
     }
 
+<<<<<<< Updated upstream
     // Return all fields
     res.json(employer);
   } catch (err) {
@@ -1829,6 +2025,18 @@ const getEmployerDetails = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+=======
+    res.json(employer);
+  } catch (error) {
+    console.error("Error fetching employer details:", error);
+    if (error.kind === "ObjectId") {
+      return res.status(400).json({ message: "Invalid employer ID format" });
+    }
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+>>>>>>> Stashed changes
 // Update employer details
 const updateEmployerDetails = async (req, res) => {
   try {
@@ -2318,7 +2526,11 @@ module.exports = {
   userChangePassword,
   userForgotPassword,
   verifyOTP,
+<<<<<<< Updated upstream
   getAllEmployers,
+=======
+  getAllEmployees,
+>>>>>>> Stashed changes
   getProfileCompletion,
   calculateProfileCompletion,
   getApplicationStatus,
