@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const employeradminController = require("../../controller/employeradminController/employeradminController");
 const emailverifycontroller = require("../../controller/employerController/emailverfycontoller")
-const employeradminRoute = express.Router();
+const employerAdminRoute = express.Router();
 const multer = require("multer");
 
 const profileImageStorage = multer.memoryStorage();
@@ -30,7 +30,7 @@ const getStorage = (fileType) => {
 
 // Dynamic middleware for fileType-based upload
 const dynamicUploadMiddleware = (req, res, next) => {
-    const fileType = req.query.fileType || req.headers['filetype'] || req.body.fileType;
+  const fileType = req.query.fileType || req.headers['filetype'] || req.body.fileType;
 
   const storage = getStorage(fileType);
 
@@ -54,23 +54,23 @@ const dynamicUploadMiddleware = (req, res, next) => {
   });
 };
 
-employeradminRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmailEmployer);
-employeradminRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtpEmployer);
+employerAdminRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmailEmployer);
+employerAdminRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtpEmployer);
 
-employeradminRoute.post('/employeradminsignup', employeradminController.employersignupAdmin);
-employeradminRoute.post('/employerloginAdmin', employeradminController.employerloginAdmin);
-employeradminRoute.get('/fetchprofile/:id', employeradminController.employergetAdminById);
-employeradminRoute.post('/employeradminforgotpassword', employeradminController.employeradminForgotPassword);
-employeradminRoute.post('/employeradminverifyotp', employeradminController.employeradminVerifyOTP);
-employeradminRoute.post('/employeradminchangepassword', employeradminController.employeradminChangePassword);
-employeradminRoute.post('/createemployer', employeradminController.createemployersignUp);
+employerAdminRoute.post('/employeradminsignup', employeradminController.employersignupAdmin);
+employerAdminRoute.post('/employerloginAdmin', employeradminController.employerloginAdmin);
+employerAdminRoute.get('/fetchprofile/:id', employeradminController.employergetAdminById);
+employerAdminRoute.post('/employeradminforgotpassword', employeradminController.employeradminForgotPassword);
+employerAdminRoute.post('/employeradminverifyotp', employeradminController.employeradminVerifyOTP);
+employerAdminRoute.post('/employeradminchangepassword', employeradminController.employeradminChangePassword);
+employerAdminRoute.post('/createemployer', employeradminController.createemployersignUp);
 
-employeradminRoute.get('/fetchbyorg/:organizationid', employeradminController.getEmployersByOrganizationId);
+employerAdminRoute.get('/fetchbyorg/:organizationid', employeradminController.getEmployersByOrganizationId);
 
-employeradminRoute.get('/fetchallemployee', employeradminController.getAllEmployees);
-employeradminRoute.get('/fetchallemployers', employeradminController.getAllEmployers);
-employeradminRoute.put('/updateemployeradmin/:id', dynamicUploadMiddleware, employeradminController.updateEmployerAdmin);
+employerAdminRoute.get('/fetchallemployee', employeradminController.getAllEmployees);
+employerAdminRoute.get('/fetchallemployers', employeradminController.getAllEmployers);
+employerAdminRoute.put('/updateemployeradmin/:id', dynamicUploadMiddleware, employeradminController.updateEmployerAdmin);
 
 // employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
-employeradminRoute.get('/getjobsbyorg/:employerAdminId', employeradminController.getJobsByEmployerAdmin);
-module.exports = employeradminRoute;
+employerAdminRoute.get('/getjobsbyorg/:employerAdminId', employeradminController.getJobsByEmployerAdmin);
+module.exports = employerAdminRoute;

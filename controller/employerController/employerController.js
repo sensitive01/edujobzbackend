@@ -45,7 +45,7 @@ const signUp = async (req, res) => {
     firstName = firstName?.trim();
     userEmail = userEmail?.trim();
     userPassword = userPassword?.trim();
-    referralCode = referralCode.trim();
+    referralCode = referralCode?.trim();
 
     // Validation
     if (!userEmail && !userMobile) {
