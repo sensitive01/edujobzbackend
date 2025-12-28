@@ -63,15 +63,15 @@ employerAdminRoute.get('/fetchprofile/:id', employeradminController.employergetA
 employerAdminRoute.post('/employeradminforgotpassword', employeradminController.employeradminForgotPassword);
 employerAdminRoute.post('/employeradminverifyotp', employeradminController.employeradminVerifyOTP);
 employerAdminRoute.post('/employeradminchangepassword', employeradminController.employeradminChangePassword);
-employerAdminRoute.post('/createemployer', employeradminController.createempgitloyersignUp);
+employerAdminRoute.post('/createemployer', employeradminController.createemployersignUp);
 
 
 
-employeradminRoute.delete('/deleteunit/:id', employeradminController.deleteunit);
+employerAdminRoute.delete('/deleteunit/:id', employeradminController.deleteunit);
 
 
 
-employeradminRoute.get('/fetchbyorg/:organizationid', employeradminController.getEmployersByOrganizationId);
+employerAdminRoute.get('/fetchbyorg/:organizationid', employeradminController.getEmployersByOrganizationId);
 
 employerAdminRoute.get('/fetchallemployee', employeradminController.getAllEmployees);
 employerAdminRoute.get('/fetchallemployers', employeradminController.getAllEmployers);
@@ -79,4 +79,6 @@ employerAdminRoute.put('/updateemployeradmin/:id', dynamicUploadMiddleware, empl
 
 // employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
 employerAdminRoute.get('/getjobsbyorg/:employerAdminId', employeradminController.getJobsByEmployerAdmin);
+
+
 module.exports = employerAdminRoute;
