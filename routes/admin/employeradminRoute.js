@@ -65,7 +65,13 @@ employerAdminRoute.post('/employeradminverifyotp', employeradminController.emplo
 employerAdminRoute.post('/employeradminchangepassword', employeradminController.employeradminChangePassword);
 employerAdminRoute.post('/createemployer', employeradminController.createemployersignUp);
 
-employerAdminRoute.get('/fetchbyorg/:organizationid', employeradminController.getEmployersByOrganizationId);
+
+
+employeradminRoute.delete('/deleteunit/:id', employeradminController.deleteunit);
+
+
+
+employeradminRoute.get('/fetchbyorg/:organizationid', employeradminController.getEmployersByOrganizationId);
 
 employerAdminRoute.get('/fetchallemployee', employeradminController.getAllEmployees);
 employerAdminRoute.get('/fetchallemployers', employeradminController.getAllEmployers);

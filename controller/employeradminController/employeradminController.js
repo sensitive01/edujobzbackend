@@ -582,3 +582,34 @@ exports.getJobsByEmployerAdmin = async (req, res) => {
     });
   }
 };
+
+
+
+exports.deleteunit = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find and delete the unit by ID
+    const deletedUnit = await employerModel.findByIdAndDelete(id);
+
+    if (!deletedUnit) {
+      return res.status(404).json({
+        success: false,
+        message: 'Unit not found',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Unit deleted successfully',
+      data: deletedUnit,
+    });
+  } catch (error) {
+    console.error('Error deleting unit:', error.message, error.stack);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
+    });
+  }
+};

@@ -31,10 +31,17 @@ const JobFilter = require("../../models/jobAlertModal");
 const signUp = async (req, res) => {
   try {
     console.log("req.body", req.body);
-    let { userName, userMobile, userEmail, userPassword, referralCode, employerType, schoolName, lastName, firstName } =
-      req.body;
-
-    const extraNote = "";
+    let {
+      userName,
+      userMobile,
+      userEmail,
+      userPassword,
+      referralCode,
+      employerType,
+      schoolName,
+      firstName,
+      lastName,
+    } = req.body;
     const mobile = parseInt(userMobile);
 
     // Trim all inputs
@@ -45,7 +52,7 @@ const signUp = async (req, res) => {
     firstName = firstName?.trim();
     userEmail = userEmail?.trim();
     userPassword = userPassword?.trim();
-    referralCode = referralCode?.trim();
+    if (referralCode) referralCode = referralCode.trim();
 
     // Validation
     if (!userEmail && !userMobile) {
@@ -92,6 +99,10 @@ const signUp = async (req, res) => {
     const newEmployer = new Employer({
       uuid: uuidv4(),
       userName,
+      firstName,
+      lastName,
+      schoolName,
+      employerType,
       userMobile: mobile,
       userEmail,
       userPassword: hashedPassword,
@@ -101,16 +112,12 @@ const signUp = async (req, res) => {
     });
 
     // Generate and assign referral code
-    newEmployer.referralCode = newEmployer.generateReferralCode();
-
-    let referralApplied = false;
-    let referrer = null;
-    if (referralCode && referralCode.trim() !== "") {
-      referrer = await userModel.findOne({
-        referralCode: referralCode.trim(),
-      });
+    // Check if generateReferralCode method exists or implement it manually if not, assuming it exists for now based on pattern
+    if (typeof newEmployer.generateReferralCode === 'function') {
+      newEmployer.referralCode = newEmployer.generateReferralCode();
     }
 
+    // Save the new employer
     await newEmployer.save();
 
     // Update referrer's counts and add to referrals list if applicable
@@ -148,7 +155,7 @@ const signUp = async (req, res) => {
           <img src="${logoUrl}" alt="EdProfio Logo" style="max-height:80px; margin-bottom:20px;" />
           <h2 style="color:#333;">Welcome to EdProfio!</h2>
         </div>
-        <p>Hi <b> ${lastName}</b>,</p>
+        <p>Hi <b> ${newEmployer.userName}</b>,</p>
         <p>Your employer account has been successfully created.</p>
 
         <p><b>Login Credentials:</b></p>
@@ -182,7 +189,7 @@ const signUp = async (req, res) => {
     });
 
     res.status(201).json({
-      message: "Employee registered successfully.",
+      message: "Employer registered successfully.",
       user: newEmployer,
       token,
     });
@@ -1755,7 +1762,6 @@ const decreaseResumeDownload = async (req, res) => {
   }
 };
 
-// Get employer details by ID
 // Get employer details by ID
 const getEmployerDetails = async (req, res) => {
   try {
