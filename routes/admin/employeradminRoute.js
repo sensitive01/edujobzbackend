@@ -63,7 +63,7 @@ employerAdminRoute.get('/fetchprofile/:id', employeradminController.employergetA
 employerAdminRoute.post('/employeradminforgotpassword', employeradminController.employeradminForgotPassword);
 employerAdminRoute.post('/employeradminverifyotp', employeradminController.employeradminVerifyOTP);
 employerAdminRoute.post('/employeradminchangepassword', employeradminController.employeradminChangePassword);
-employerAdminRoute.post('/createemployer', employeradminController.createemployersignUp);
+employerAdminRoute.post('/createemployer', employeradminController.createempgitloyersignUp);
 
 
 
