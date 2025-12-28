@@ -78,12 +78,12 @@ const createJob = async (req, res) => {
     }
 
     // Check subscription status
-    if (employer.subscription === "false" || !employer.currentSubscription) {
-      return res.status(403).json({
-        success: false,
-        message: "No active subscription. Please subscribe to post jobs.",
-      });
-    }
+    // if (employer.subscription === "false" || !employer.currentSubscription) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "No active subscription. Please subscribe to post jobs.",
+    //   });
+    // }
 
     // Get allowed job limit from current subscription plan (as fallback)
     let allowedJobLimit = 0;
