@@ -199,6 +199,78 @@ const signUp = async (req, res) => {
   }
 };
 
+const mobileLogin = async (req, res) => {
+  try {
+    console.log('📱 Employer Mobile Login Request:', req.body);
+    const { userEmail, userPassword, fcmToken } = req.body;
+
+    // ---------- Input Validation ----------
+    // Check if email is provided and not empty
+    if (!userEmail || userEmail.trim() === '') {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    // Check if password is provided and not empty
+    if (!userPassword || userPassword.trim() === '') {
+      return res.status(400).json({ message: "Password is required." });
+    }
+
+    // ---------- Find user by email only (as per Flutter code) ----------
+    const user = await Employer.findOne({ userEmail: userEmail.trim() });
+
+    console.log('👤 User found:', user ? 'Yes' : 'No');
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "User not found. Please check your credentials." });
+    }
+
+    // ---------- Password Check ----------
+    const match = await bcrypt.compare(userPassword, user.userPassword);
+    if (!match) {
+      return res
+        .status(400)
+        .json({ message: "Invalid password. Try again." });
+    }
+
+    // ---------- FCM Token Save ----------
+    if (fcmToken && typeof fcmToken === "string" && fcmToken.trim() !== '') {
+      if (!Array.isArray(user.employerfcmtoken)) {
+        user.employerfcmtoken = [];
+      }
+
+      if (!user.employerfcmtoken.includes(fcmToken)) {
+        user.employerfcmtoken.push(fcmToken);
+        await user.save();
+        console.log('✅ FCM token saved for employer:', user._id);
+      }
+    }
+
+    // ---------- Generate JWT ----------
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // ---------- Remove Password ----------
+    const safeUser = user.toObject();
+    delete safeUser.userPassword;
+
+    console.log('✅ Login successful for employer:', user._id);
+
+    return res.status(200).json({
+      message: "Login successful",
+      user: safeUser,
+      token,
+    });
+
+  } catch (err) {
+    console.error("❌ Login error:", err);
+    res.status(500).json({ message: "Internal server error." });
+  }
+};
+
 const getAllEmployers = async (req, res) => {
   try {
     const employers = await Employer.find().select("-userPassword"); // Exclude password
