@@ -2338,6 +2338,7 @@ const getEmployerDashboardCount = async (req, res) => {
 
 //hbh
 module.exports = {
+  mobileLogin,
   getHeaderCategoriesCount,
   deleteResumeLetter,
   deleteCoverLetter,
