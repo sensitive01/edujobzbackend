@@ -9,9 +9,13 @@ const mainadminRoute = require("./routes/mainadmin/mainadmin.js");
 const employerAdminRoute = require("./routes/admin/employeradminRoute.js");
 const Employer = require("./models/employerSchema.js");
 const app = express();
+const http = require("http");
+const { Server } = require("socket.io");
 const { PORT } = require("./config/variables.js");
 const cron = require('node-cron');
 app.set("trust proxy", true);
+
+const server = http.createServer(app);
 
 // DATABASE CONNECTION
 dbConnect();
@@ -33,6 +37,53 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+const io = new Server(server, {
+  cors: corsOptions,
+});
+
+io.on("connection", (socket) => {
+  console.log(`User Connected: ${socket.id}`);
+
+  // Join a personal room for private calling signaling
+  socket.on("join_user_room", (userId) => {
+    socket.join(userId);
+    console.log(`User ${socket.id} joined personal room: ${userId}`);
+  });
+
+  // Join conversation room for chat
+  socket.on("join_conversation", (conversationId) => {
+    socket.join(conversationId);
+    console.log(`User ${socket.id} joined conversation: ${conversationId}`);
+  });
+
+  // Send Message
+  socket.on("send_message", (data) => {
+    socket.to(data.conversationId).emit("receive_message", data);
+  });
+
+  // WebRTC Signaling
+  socket.on("callUser", (data) => {
+    io.to(data.userToCall).emit("callUser", {
+      signal: data.signalData,
+      from: data.from,
+      name: data.name,
+      isVideo: data.isVideo
+    });
+  });
+
+  socket.on("answerCall", (data) => {
+    io.to(data.to).emit("callAccepted", data.signal);
+  });
+
+  socket.on("endCall", (data) => {
+    io.to(data.to).emit("callEnded");
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User Disconnected", socket.id);
+  });
+});
 
 app.disable("x-powered-by");
 
@@ -265,6 +316,6 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
 });
