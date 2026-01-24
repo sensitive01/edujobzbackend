@@ -8,6 +8,7 @@ const employerRoute = require("./routes/employer/employerRoute.js");
 const mainadminRoute = require("./routes/mainadmin/mainadmin.js");
 const employerAdminRoute = require("./routes/admin/employeradminRoute.js");
 const Employer = require("./models/employerSchema.js");
+const Employee = require("./models/employeeschema.js");
 const app = express();
 const http = require("http");
 const { Server } = require("socket.io");
@@ -305,6 +306,55 @@ cron.schedule("59 23 * * *", async () => {
   timezone: "Asia/Kolkata" // Set timezone to IST
 });
 console.log('Cron job scheduled.'); // To confirm that the job is scheduled
+
+// Employee subscription expiration check
+cron.schedule("59 23 * * *", async () => {
+  console.log("⏰ Running daily employee subscription check...");
+
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Check all employees with active subscriptions
+    const employeesWithSubscriptions = await Employee.find({
+      isVerified: true,
+      currentSubscription: { $ne: null }
+    });
+
+    for (const employee of employeesWithSubscriptions) {
+      if (employee.currentSubscription && employee.currentSubscription.endDate) {
+        const endDate = new Date(employee.currentSubscription.endDate);
+        endDate.setHours(0, 0, 0, 0);
+
+        // If subscription end date has passed
+        if (endDate < today) {
+          employee.isVerified = false;
+          employee.verificationstatus = 'expired';
+          employee.currentSubscription = null;
+
+          // Update subscription status in subscriptions array
+          if (employee.subscriptions && employee.subscriptions.length > 0) {
+            employee.subscriptions.forEach(sub => {
+              if (sub.status === 'active') {
+                sub.status = 'expired';
+              }
+            });
+          }
+
+          await employee.save();
+          console.log(`🚫 Subscription expired for employee: ${employee.userName || employee.userEmail || employee._id}`);
+        }
+      }
+    }
+
+    console.log("✅ Daily employee subscription check completed.");
+  } catch (error) {
+    console.error("❌ Error in employee subscription cron job:", error);
+  }
+}, {
+  timezone: "Asia/Kolkata" // Set timezone to IST
+});
+console.log('Employee subscription cron job scheduled.');
 
 // Initialize scheduled notifications
 const { initializeScheduledNotifications } = require('./utils/scheduledNotifications');
