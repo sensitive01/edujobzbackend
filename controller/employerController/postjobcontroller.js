@@ -556,7 +556,8 @@ const updateApplicantStatus = async (req, res) => {
             job.employid,
             applicationId,
             applicantName,
-            job.jobTitle
+            job.jobTitle,
+            job._id
           );
         }
       } else if (status === 'Rejected') {
@@ -572,7 +573,8 @@ const updateApplicantStatus = async (req, res) => {
             job.employid,
             applicationId,
             applicantName,
-            job.jobTitle
+            job.jobTitle,
+            job._id
           );
         }
       } else if (status === 'Interview Scheduled') {
@@ -594,7 +596,8 @@ const updateApplicantStatus = async (req, res) => {
             applicationId,
             applicantName,
             interviewdate,
-            interviewtime
+            interviewtime,
+            job._id
           );
         }
       } else {
