@@ -204,4 +204,10 @@ employeeRoute.get("/notifications/:employeeId", employeeNotificationController.g
 employeeRoute.put("/notifications/:notificationId/read", employeeNotificationController.markNotificationAsRead);
 employeeRoute.get("/notifications/:employeeId/unread-count", employeeNotificationController.getUnreadCount);
 
+// Employee Plan Routes
+const employeePlanController = require("../../controller/employeeController/employeeplanController");
+employeeRoute.get("/plans", employeePlanController.getPlans);
+employeeRoute.post("/plans/activate", employeePlanController.activatePlan);
+employeeRoute.get("/verification-status/:employeeid", employeePlanController.getVerificationStatus);
+
 module.exports = employeeRoute;
