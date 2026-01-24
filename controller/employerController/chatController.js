@@ -105,7 +105,8 @@ exports.sendMessage = async (req, res) => {
         employeeId,
         employeeName || 'Employee',
         jobTitle,
-        messagePreview
+        messagePreview,
+        jobId
       );
     } else if (sender === 'employer') {
       // Notify employee of new message from employer
