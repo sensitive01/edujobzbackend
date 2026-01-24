@@ -125,7 +125,7 @@ exports.notifyEmployerCandidateSaved = async (employerId, candidateId, candidate
  */
 
 // Interview scheduled confirmation
-exports.notifyEmployerInterviewScheduled = async (employerId, interviewId, candidateName, interviewDate, interviewTime) => {
+exports.notifyEmployerInterviewScheduled = async (employerId, interviewId, candidateName, interviewDate, interviewTime, jobId = null) => {
   try {
     await createAndSendNotification(
       employerId,
@@ -134,7 +134,7 @@ exports.notifyEmployerInterviewScheduled = async (employerId, interviewId, candi
       `Interview with ${candidateName} scheduled for ${interviewDate} at ${interviewTime}`,
       'interview_scheduled',
       interviewId,
-      { candidateName, interviewDate, interviewTime, action: 'view_interview' }
+      { candidateName, interviewDate, interviewTime, action: 'view_interview', ...(jobId && { jobId: jobId.toString() }) }
     );
   } catch (error) {
     console.error('Error notifying employer of interview scheduled:', error);
@@ -193,7 +193,7 @@ exports.notifyEmployerInterviewCancelled = async (employerId, interviewId, candi
 };
 
 // Application accepted
-exports.notifyEmployerApplicationAccepted = async (employerId, applicationId, candidateName, jobTitle) => {
+exports.notifyEmployerApplicationAccepted = async (employerId, applicationId, candidateName, jobTitle, jobId = null) => {
   try {
     await createAndSendNotification(
       employerId,
@@ -202,7 +202,7 @@ exports.notifyEmployerApplicationAccepted = async (employerId, applicationId, ca
       `You accepted ${candidateName}'s application for ${jobTitle}`,
       'application_accepted',
       applicationId,
-      { candidateName, jobTitle, action: 'view_application' }
+      { candidateName, jobTitle, action: 'view_application', ...(jobId && { jobId: jobId.toString() }) }
     );
   } catch (error) {
     console.error('Error notifying employer of application accepted:', error);
@@ -210,7 +210,7 @@ exports.notifyEmployerApplicationAccepted = async (employerId, applicationId, ca
 };
 
 // Application rejected
-exports.notifyEmployerApplicationRejected = async (employerId, applicationId, candidateName, jobTitle) => {
+exports.notifyEmployerApplicationRejected = async (employerId, applicationId, candidateName, jobTitle, jobId = null) => {
   try {
     await createAndSendNotification(
       employerId,
@@ -219,7 +219,7 @@ exports.notifyEmployerApplicationRejected = async (employerId, applicationId, ca
       `You rejected ${candidateName}'s application for ${jobTitle}`,
       'application_rejected',
       applicationId,
-      { candidateName, jobTitle, action: 'view_application' }
+      { candidateName, jobTitle, action: 'view_application', ...(jobId && { jobId: jobId.toString() }) }
     );
   } catch (error) {
     console.error('Error notifying employer of application rejected:', error);
@@ -320,7 +320,7 @@ exports.notifyEmployerJobViews = async (employerId, jobId, jobTitle, viewCount) 
  */
 
 // New message
-exports.notifyEmployerNewMessage = async (employerId, employeeId, employeeName, jobTitle, messagePreview) => {
+exports.notifyEmployerNewMessage = async (employerId, employeeId, employeeName, jobTitle, messagePreview, jobId = null) => {
   try {
     await createAndSendNotification(
       employerId,
@@ -329,7 +329,7 @@ exports.notifyEmployerNewMessage = async (employerId, employeeId, employeeName, 
       `${employeeName}: ${messagePreview || 'Sent you a message'}`,
       'message',
       employeeId,
-      { employeeName, jobTitle, messagePreview, action: 'open_chat' }
+      { employeeName, jobTitle, messagePreview, action: 'open_chat', ...(jobId && { jobId: jobId.toString() }) }
     );
   } catch (error) {
     console.error('Error notifying employer of new message:', error);
