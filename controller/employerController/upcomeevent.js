@@ -77,7 +77,6 @@ exports.getOrganizerEvents = async (req, res) => {
 //     res.status(500).json({ message: error.message });
 //   }
 // };
-
 exports.getAllEvents = async (req, res) => {
   try {
     const today = new Date();
@@ -85,9 +84,9 @@ exports.getAllEvents = async (req, res) => {
 
     let events = await OrganizedEvent.find().sort({ eventDate: 1 });
 
-    // Convert string dates into real Date before filtering
     events = events.filter((ev) => {
-      const evDate = new Date(ev.eventDate);
+      const [day, month, year] = ev.eventDate.split('/'); // "DD/MM/YYYY"
+      const evDate = new Date(`${year}-${month}-${day}`); // "YYYY-MM-DD"
       return evDate >= today;
     });
 
@@ -96,6 +95,7 @@ exports.getAllEvents = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 exports.getMyEvents = async (req, res) => {
   try {
