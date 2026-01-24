@@ -58,7 +58,7 @@ const createEvent = async (req, res) => {
     res.status(201).json({
       success: true,
       data: {
-        id: event._id,
+        id: event._id != null ? String(event._id) : null,
         employerId: event.employerId,
         title: event.title,
         description: event.description,
@@ -81,6 +81,8 @@ const createEvent = async (req, res) => {
 };
 
 // Get All Events
+// Use overlap logic: events that overlap [start, end] satisfy
+// event.start <= rangeEnd && event.end >= rangeStart
 const getEvents = async (req, res) => {
   const { employerId, start, end } = req.query;
 
@@ -93,8 +95,12 @@ const getEvents = async (req, res) => {
   const query = { employerId };
 
   if (start && end) {
-    query.start = { $gte: new Date(start) };
-    query.end = { $lte: new Date(end) };
+    const rangeStart = new Date(start);
+    const rangeEnd = new Date(end);
+    query.$and = [
+      { start: { $lte: rangeEnd } },
+      { end: { $gte: rangeStart } },
+    ];
   }
 
   try {
@@ -104,13 +110,13 @@ const getEvents = async (req, res) => {
       success: true,
       count: events.length,
       data: events.map((event) => ({
-        id: event._id,
+        id: event._id != null ? String(event._id) : null,
         title: event.title,
         location: event.location,
         description: event.description,
         start: event.start,
         end: event.end,
-        color: event.color,
+        color: event.color || "#6C63FF",
         allDay: false,
       })),
     });
