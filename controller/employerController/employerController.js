@@ -2,6 +2,7 @@ const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const Job = require("../../models/jobSchema");
+const Event = require("../../models/calenderschema");
 // Models: Use Employee for employee operations, Employer for employer operations
 const Employee = require("../../models/employeeschema");
 const Employer = require("../../models/employerSchema");
@@ -2304,27 +2305,64 @@ const getEmployerDashboardCount = async (req, res) => {
       isActive: true
     });
 
-    // Count total applications
-    const jobs = await Job.find({ employid: employerId });
-    const totalApplications = jobs.reduce((sum, job) => sum + (job.applications?.length || 0), 0);
+    // Count total jobs
+    const totalJobsCount = await Job.countDocuments({
+      employid: employerId
+    });
 
-    // Count pending applications
-    const pendingApplications = jobs.reduce((sum, job) => {
-      const pending = job.applications?.filter(app => app.employapplicantstatus === "Pending") || [];
-      return sum + pending.length;
-    }, 0);
+    // Count applications by status
+    const jobsData = await Job.find({ employid: employerId });
+    
+    let appliedCount = 0;
+    let shortlistedCount = 0;
+    let rejectedCount = 0;
+    let pendingCount = 0;
+    let interviewScheduledCount = 0;
+
+    jobsData.forEach(job => {
+      if (job.applications && Array.isArray(job.applications)) {
+        job.applications.forEach(app => {
+          appliedCount++;
+          if (app.employapplicantstatus === "Shortlisted") {
+            shortlistedCount++;
+          } else if (app.employapplicantstatus === "Rejected") {
+            rejectedCount++;
+          } else if (app.employapplicantstatus === "Pending") {
+            pendingCount++;
+          } else if (app.employapplicantstatus === "Interview Scheduled" || app.status === "Interview Scheduled") {
+            interviewScheduledCount++;
+          }
+        });
+      }
+    });
+
+    // Fetch interview data (meetings/events)
+    const interViewData = await Event.find({ employerId: employerId }).lean();
 
     res.status(200).json({
       success: true,
-      data: {
+      counts: {
+        totalJobs: totalJobsCount,
         activeJobs: activeJobsCount,
-        totalApplications: totalApplications,
-        pendingApplications: pendingApplications,
-        totalProfileViews: employer.totalprofileviews || 0,
-        totalResumeDownloads: employer.totaldownloadresume || 0,
-        subscriptionStatus: employer.subscription === "true",
-        subscriptionLeft: employer.subscriptionleft || 0
-      }
+        appliedCount: appliedCount,
+        shortlistedCount: shortlistedCount,
+        rejectedCount: rejectedCount,
+        pendingCount: pendingCount,
+        interviewScheduledCount: interviewScheduledCount,
+      },
+      interViewData: interViewData.map(event => ({
+        id: event._id,
+        title: event.title,
+        start: event.start,
+        end: event.end,
+        location: event.location,
+        description: event.description,
+        color: event.color
+      })),
+      totalProfileViews: employer.totalprofileviews || 0,
+      totalResumeDownloads: employer.totaldownloadresume || 0,
+      subscriptionStatus: employer.subscription === "true",
+      subscriptionLeft: employer.subscriptionleft || 0
     });
   } catch (error) {
     console.error("Error getting employer dashboard count:", error);

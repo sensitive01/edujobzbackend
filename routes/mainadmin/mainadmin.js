@@ -4,33 +4,36 @@ const planController = require('../../controller/employerController/employerplan
 const adminfunction = require('../../controller/adminController/adminfunction');
 const banercontroller = require('../../controller/adminController/eventbannerController');
 const employeebanner = require('../../controller/adminController/employeebanner');
-const { bannerImageStorage } = require("../../config/cloudinary"); 
+const { bannerImageStorage } = require("../../config/cloudinary");
 const multer = require("multer");
 
 // Use the Cloudinary storage instead of memoryStorage
 const upload = multer({ storage: bannerImageStorage });
 const adminlogincontroller = require('../../controller/adminController/adminlogin');
+const dashboardController = require('../../controller/adminController/dashboardController');
 const mainadminRoute = express.Router();
+
+mainadminRoute.get('/dashboard-stats', dashboardController.getDashboardStats);
 
 mainadminRoute.get('/fetchplanbyemp/:employerId', planController.getPlansByEmployer);
 mainadminRoute.post('/activateplans', planController.activateSubscription);
 mainadminRoute.get('/getallplans', planController.getAllPlans);
 mainadminRoute.get('/getplans:id', planController.getPlanById);
-mainadminRoute.post('/createplan',  planController.createPlan);
-mainadminRoute.put('/updateplan:id',  planController.updatePlan);
+mainadminRoute.post('/createplan', planController.createPlan);
+mainadminRoute.put('/updateplan:id', planController.updatePlan);
 mainadminRoute.delete('/deleteplan:id', planController.deletePlan);
-mainadminRoute.put('/approveemployer/:id',  adminfunction.approveSingleEmployer);
-mainadminRoute.put('/approve-all',  adminfunction.approveAllEmployers);
-mainadminRoute.put('/approveemployee/:id',  adminfunction.approveSingleEmployee);
-mainadminRoute.put('/approveallemployee',  adminfunction.approveAllEmployee);
-mainadminRoute.put('/approveemployeradmin/:id',  adminfunction.approveSingleEmployeradmin);
-mainadminRoute.put('/approveallemployeradmin',  adminfunction.approveAllEmployeradmin);
-mainadminRoute.put('/updateapprovejobs/:id',  adminfunction.updateJobStatus);
-mainadminRoute.put('/updateallapprved',  adminfunction.updateapproved);
-mainadminRoute.put('/updateblockstatus/:id',  adminfunction.blockunblockemployer);
-mainadminRoute.put('/updateblockstatusemploye/:id',  adminfunction.blockunblockemployee);
-mainadminRoute.put('/updateblockstatusemployeradmin/:id',  adminfunction.blockunblockemployeradmin);
-mainadminRoute.put('/updateunlick',  adminfunction.updateallblock);
+mainadminRoute.put('/approveemployer/:id', adminfunction.approveSingleEmployer);
+mainadminRoute.put('/approve-all', adminfunction.approveAllEmployers);
+mainadminRoute.put('/approveemployee/:id', adminfunction.approveSingleEmployee);
+mainadminRoute.put('/approveallemployee', adminfunction.approveAllEmployee);
+mainadminRoute.put('/approveemployeradmin/:id', adminfunction.approveSingleEmployeradmin);
+mainadminRoute.put('/approveallemployeradmin', adminfunction.approveAllEmployeradmin);
+mainadminRoute.put('/updateapprovejobs/:id', adminfunction.updateJobStatus);
+mainadminRoute.put('/updateallapprved', adminfunction.updateapproved);
+mainadminRoute.put('/updateblockstatus/:id', adminfunction.blockunblockemployer);
+mainadminRoute.put('/updateblockstatusemploye/:id', adminfunction.blockunblockemployee);
+mainadminRoute.put('/updateblockstatusemployeradmin/:id', adminfunction.blockunblockemployeradmin);
+mainadminRoute.put('/updateunlick', adminfunction.updateallblock);
 mainadminRoute.get('/getallemployers', adminfunction.getAllEmployers);
 
 mainadminRoute.get('/getsubscribedemployers', adminfunction.getSubscribedEmployers);

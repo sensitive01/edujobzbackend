@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const employeradminController = require("../../controller/employeradminController/employeradminController");
-const emailverifycontroller = require("../../controller/employerController/emailverfycontoller")
+const emailverifyadminController = require("../../controller/employeradminController/emailverifycontroller");
 const employerAdminRoute = express.Router();
 const multer = require("multer");
 
@@ -54,8 +54,8 @@ const dynamicUploadMiddleware = (req, res, next) => {
   });
 };
 
-employerAdminRoute.post('/sendemailotp', emailverifycontroller.sendOtpToEmailEmployer);
-employerAdminRoute.post('/verifyemailotp', emailverifycontroller.verifyEmailOtpEmployer);
+employerAdminRoute.post('/sendemailotp', emailverifyadminController.sendOtpToEmailEmployerAdmin);
+employerAdminRoute.post('/verifyemailotp', emailverifyadminController.verifyEmailOtpEmployerAdmin);
 
 employerAdminRoute.post('/employeradminsignup', employeradminController.employersignupAdmin);
 employerAdminRoute.post('/employerloginAdmin', employeradminController.employerloginAdmin);
@@ -79,6 +79,9 @@ employerAdminRoute.put('/updateemployeradmin/:id', dynamicUploadMiddleware, empl
 
 // employeradminRoute.get('/fetchsubunitjobs/:applicantId', employeradminController.getJobsByApplicant);
 employerAdminRoute.get('/getjobsbyorg/:employerAdminId', employeradminController.getJobsByEmployerAdmin);
+employerAdminRoute.get('/dashboard-stats/:employerAdminId', employeradminController.getEmployerAdminDashboardStats);
+employerAdminRoute.post('/send-connect-otp', employeradminController.sendConnectSubunitOtp);
+employerAdminRoute.post('/connect-subunit', employeradminController.verifyAndConnectSubunit);
 
 
 module.exports = employerAdminRoute;

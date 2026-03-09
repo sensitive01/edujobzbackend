@@ -860,28 +860,44 @@ const getProfileCompletion = async (req, res) => {
 
 const userForgotPassword = async (req, res) => {
   try {
-    const { userMobile } = req.body;
+    const { userEmail } = req.body;
 
-    const existUser = await userModel.findOne({ userMobile: userMobile });
+    if (!userEmail) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const existUser = await userModel.findOne({ userEmail: userEmail });
 
     if (!existUser) {
       return res.status(404).json({
-        message: "User not found with the provided contact number",
+        message: "User not found with the provided email",
       });
     }
 
-    if (!userMobile) {
-      return res.status(400).json({ message: "Mobile number is required" });
-    }
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes validity
 
-    const otp = generateOTP();
+    existUser.otp = otp;
+    existUser.otpExpires = otpExpires;
+    await existUser.save();
+
     console.log("Generated OTP:", otp);
 
-    req.app.locals.otp = otp;
+    // Send email with OTP
+    try {
+      await sendEmail(
+        userEmail,
+        "Password Reset OTP",
+        `Your OTP for password reset is: ${otp}. It will expire in 10 minutes.`
+      );
+    } catch (emailErr) {
+      console.error("Failed to send OTP email:", emailErr);
+      return res.status(500).json({ message: "Failed to send OTP email" });
+    }
 
     return res.status(200).json({
       message: "OTP sent successfully",
-      otp: otp,
+      otp: otp, // Keeping this for backward compatibility with frontend if needed, but email is primary
     });
   } catch (err) {
     console.log("Error in sending OTP in forgot password:", err);
@@ -891,27 +907,26 @@ const userForgotPassword = async (req, res) => {
 
 const verifyOTP = async (req, res) => {
   try {
-    const { otp } = req.body;
+    const { userEmail, otp } = req.body;
 
-    if (!otp) {
-      return res.status(400).json({ message: "OTP is required" });
+    if (!userEmail || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
     }
 
-    if (req.app.locals.otp) {
-      if (otp == req.app.locals.otp) {
-        return res.status(200).json({
-          message: "OTP verified successfully",
-          success: true,
-        });
-      } else {
-        return res.status(400).json({
-          message: "Invalid OTP",
-          success: false,
-        });
-      }
+    const user = await userModel.findOne({ userEmail });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.otp === otp && new Date() < new Date(user.otpExpires)) {
+      return res.status(200).json({
+        message: "OTP verified successfully",
+        success: true,
+      });
     } else {
       return res.status(400).json({
-        message: "OTP has expired or is invalid",
+        message: "Invalid or expired OTP",
         success: false,
       });
     }
@@ -922,37 +937,31 @@ const verifyOTP = async (req, res) => {
 };
 const userChangePassword = async (req, res) => {
   try {
-    console.log("Welcome to user change password");
+    const { userEmail, password, confirmPassword } = req.body;
 
-    const { userMobile, password, confirmPassword } = req.body;
-
-    // Validate inputs
-    if (!userMobile || !password || !confirmPassword) {
+    if (!userEmail || !password || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // Check if passwords match
     if (password !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Find the user by contact number
-    const user = await userModel.findOne({ userMobile: userMobile });
+    const user = await userModel.findOne({ userEmail: userEmail });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Update the user's password field
+    const hashedPassword = await bcrypt.hash(password, 10);
     user.userPassword = hashedPassword;
 
-    // Save the updated user to trigger schema validation and middleware
+    // Clear OTP fields
+    user.otp = undefined;
+    user.otpExpires = undefined;
+
     await user.save();
 
-    // Send success response
     res.status(200).json({ message: "Password updated successfully" });
   } catch (err) {
     console.error("Error in user change password:", err);

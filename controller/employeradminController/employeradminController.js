@@ -46,8 +46,8 @@ exports.employersignupAdmin = async (req, res) => {
       employeradminEmail,
       employeradminMobile,
       employeradminPassword: hashedPassword,
-       verificationstatus: 'pending',
-       blockstatus: 'unblock',
+      verificationstatus: 'pending',
+      blockstatus: 'unblock',
     });
 
     await newAdmin.save();
@@ -470,22 +470,22 @@ exports.updateEmployerAdmin = async (req, res) => {
     if (employeradminMobile) admin.employeradminMobile = employeradminMobile;
 
     // File Upload Check
-if (req.file) {
-  console.log("File received:", req.file);
-  const uploadStream = cloudinary.uploader.upload_stream(
-    { folder: 'employerAdminProfilePics' },
-    async (error, result) => {
-      if (error) {
-        console.error("Cloudinary upload error:", error);
-        throw error;
-      }
-      admin.employeradminProfilePic = result.secure_url;
-      await admin.save();
-      return res.status(200).json({ message: "Employer admin updated successfully", data: admin });
+    if (req.file) {
+      console.log("File received:", req.file);
+      const uploadStream = cloudinary.uploader.upload_stream(
+        { folder: 'employerAdminProfilePics' },
+        async (error, result) => {
+          if (error) {
+            console.error("Cloudinary upload error:", error);
+            throw error;
+          }
+          admin.employeradminProfilePic = result.secure_url;
+          await admin.save();
+          return res.status(200).json({ message: "Employer admin updated successfully", data: admin });
+        }
+      ).end(req.file.buffer);
+      return; // Important to return here to prevent double response
     }
-  ).end(req.file.buffer);
-  return; // Important to return here to prevent double response
-}
 
     // Password update
     if (employeradminPassword || employerconfirmPassword) {
@@ -548,21 +548,78 @@ exports.getJobsByEmployerAdmin = async (req, res) => {
     // Step 6: Extract employer _id values for job query
     const employerIds = employers.map(employer => employer._id);
 
-    // Step 7: Fetch jobs where employid matches any employer _id
-    const jobs = await Job.find({
-      employid: { $in: employerIds },
-    }).select(
-      'companyName jobTitle description category applydatetime salaryFrom salaryTo salaryType jobType experienceLevel educationLevel openings locationTypes location isRemote skills benefits contactEmail contactPhone companyUrl applicationInstructions deadline priority status createdAt updatedAt isActive applications'
-    ).lean();
+    // Step 7: Fetch jobs using aggregation to include employer data (like profile pic)
+    const jobs = await Job.aggregate([
+      {
+        $match: {
+          employid: { $in: [...employerIds.map(id => id.toString()), employerAdminId] }
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $addFields: {
+          employidObject: {
+            $cond: {
+              if: { $eq: [{ $strLenCP: "$employid" }, 24] },
+              then: { $toObjectId: "$employid" },
+              else: null
+            }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: "employers",
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "employerInfo"
+        }
+      },
+      {
+        $lookup: {
+          from: "employeradmins",
+          localField: "employidObject",
+          foreignField: "_id",
+          as: "adminInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$employerInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $unwind: {
+          path: "$adminInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $addFields: {
+          employerProfilePic: {
+            $ifNull: ["$employerInfo.userProfilePic", "$adminInfo.employeradminProfilePic"]
+          }
+        }
+      },
+      {
+        $project: {
+          employerInfo: 0,
+          adminInfo: 0,
+          employidObject: 0
+        }
+      }
+    ]);
     console.log('Found jobs:', jobs.length);
 
-    // Step 8: Log job IDs and employid to verify matching
-    console.log('Jobs with employid:', jobs.map(job => ({ _id: job._id, employid: job.employid })));
-
     if (jobs.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'No jobs found for this employer admin',
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+        message: 'No jobs found for this employer admin'
       });
     }
 
@@ -611,5 +668,177 @@ exports.deleteunit = async (req, res) => {
       message: 'Server error',
       error: error.message,
     });
+  }
+};
+// ...existing code...
+exports.sendConnectSubunitOtp = async (req, res) => {
+  const { userEmail } = req.body;
+  try {
+    const employer = await Employer.findOne({ userEmail });
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found with this email" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = Date.now() + 10 * 60 * 1000;
+    req.app.locals.otps = req.app.locals.otps || {};
+    req.app.locals.otps[userEmail] = { otp, otpExpires };
+
+    const emailTemplate = `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial, sans-serif; padding: 20px;">
+        <div style="max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px;">
+            <h2 style="color: #4A90E2;">Connect Subunit Request</h2>
+            <p>An Employer Admin has requested to connect your account as a subunit to their organization.</p>
+            <p>Please use the following OTP to authorize this connection:</p>
+            <div style="background: #f8f9ff; padding: 15px; text-align: center; font-size: 30px; font-weight: bold; color: #4A90E2; border-radius: 8px;">
+                ${otp}
+            </div>
+            <p style="color: #666; font-size: 14px; margin-top: 20px;">This OTP is valid for 10 minutes. If you did not expect this request, please ignore this email.</p>
+        </div>
+    </body>
+    </html>`;
+
+    const sendEmail = require("../../utils/sendEmail");
+    await sendEmail(userEmail, "🔐 Connect Subunit Request - EdProfio", null, emailTemplate);
+
+    return res.status(200).json({ message: "OTP sent successfully" });
+  } catch (err) {
+    console.error("Error in sendConnectSubunitOtp:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.verifyAndConnectSubunit = async (req, res) => {
+  const { userEmail, otp, organizationid } = req.body;
+  try {
+    const storedData = req.app.locals.otps && req.app.locals.otps[userEmail];
+    if (!storedData || storedData.otp !== otp || Date.now() > storedData.otpExpires) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    const employer = await Employer.findOne({ userEmail });
+    if (!employer) {
+      return res.status(404).json({ message: "Employer not found" });
+    }
+
+    employer.organizationid = organizationid;
+    await employer.save();
+
+    delete req.app.locals.otps[userEmail];
+
+    return res.status(200).json({
+      success: true,
+      message: "Subunit connected successfully",
+      data: employer
+    });
+  } catch (err) {
+    console.error("Error in verifyAndConnectSubunit:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getEmployerAdminDashboardStats = async (req, res) => {
+  try {
+    const { employerAdminId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(employerAdminId)) {
+      return res.status(400).json({ success: false, message: 'Invalid employer admin ID' });
+    }
+
+    // 1. Get Subunits (Employers)
+    const subunits = await Employer.find({ organizationid: employerAdminId }).select('_id schoolName institutionName firstName lastName').lean();
+    const subunitCount = subunits.length;
+    const subunitIds = subunits.map(s => s._id.toString());
+
+    // 2. Get Jobs posted by these subunits OR the admin themselves
+    const jobs = await Job.find({ employid: { $in: [...subunitIds, employerAdminId] } }).lean();
+    const totalJobs = jobs.length;
+
+    // 3. Aggregate statistics
+    let totalApplications = 0;
+    let shortlisted = 0;
+    let hired = 0;
+    let rejected = 0;
+    let interviewScheduled = 0;
+    const uniqueApplicants = new Set();
+
+    const subunitStatsMap = {};
+    subunits.forEach(sub => {
+      subunitStatsMap[sub._id.toString()] = {
+        id: sub._id,
+        name: sub.schoolName || sub.institutionName || `${sub.firstName} ${sub.lastName}` || 'Unnamed Subunit',
+        jobsPosted: 0,
+        applications: 0,
+        hired: 0,
+        shortlisted: 0,
+        rejected: 0,
+        interviewScheduled: 0
+      };
+    });
+
+    jobs.forEach(job => {
+      if (job.employid) {
+        const subId = job.employid.toString();
+        if (subunitStatsMap[subId]) {
+          subunitStatsMap[subId].jobsPosted += 1;
+          if (job.applications) {
+            subunitStatsMap[subId].applications += job.applications.length;
+            totalApplications += job.applications.length;
+
+            job.applications.forEach(app => {
+              if (app.applicantId) uniqueApplicants.add(app.applicantId.toString());
+
+              const status = app.employapplicantstatus || 'Pending';
+              if (status === 'Accepted' || status === 'Hired') {
+                subunitStatsMap[subId].hired += 1;
+                hired++;
+              } else if (status === 'Shortlisted') {
+                subunitStatsMap[subId].shortlisted += 1;
+                shortlisted++;
+              } else if (status === 'Rejected') {
+                subunitStatsMap[subId].rejected += 1;
+                rejected++;
+              } else if (status === 'Interview Scheduled') {
+                subunitStatsMap[subId].interviewScheduled += 1;
+                interviewScheduled++;
+              }
+            });
+          }
+        }
+      }
+    });
+
+    const toTitleCase = (str) => {
+      if (!str) return "";
+      return str.toLowerCase().split(' ').map(word => {
+        return (word.charAt(0).toUpperCase() + word.slice(1));
+      }).join(' ');
+    };
+
+    const subunitStats = Object.values(subunitStatsMap).map(sub => ({
+      ...sub,
+      name: toTitleCase(sub.name)
+    })).sort((a, b) => a.name.localeCompare(b.name));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        subunitCount,
+        totalJobs,
+        totalApplications,
+        totalCandidates: uniqueApplicants.size,
+        shortlisted,
+        hired,
+        rejected,
+        interviewScheduled,
+        subunitStats
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching employer admin stats:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
