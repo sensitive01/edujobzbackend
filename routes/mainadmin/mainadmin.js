@@ -11,9 +11,11 @@ const multer = require("multer");
 const upload = multer({ storage: bannerImageStorage });
 const adminlogincontroller = require('../../controller/adminController/adminlogin');
 const dashboardController = require('../../controller/adminController/dashboardController');
+const orderController = require("../../controller/employeeController/orderController");
 const mainadminRoute = express.Router();
 
 mainadminRoute.get('/dashboard-stats', dashboardController.getDashboardStats);
+mainadminRoute.post('/createorderrazo', orderController.createOrder);
 
 mainadminRoute.get('/fetchplanbyemp/:employerId', planController.getPlansByEmployer);
 mainadminRoute.post('/activateplans', planController.activateSubscription);

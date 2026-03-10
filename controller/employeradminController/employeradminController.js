@@ -13,6 +13,7 @@ const Employer = require('../../models/employerSchema.js'); // Employer model
 const Employee = require('../../models/employeeschema.js'); // adjust the path if needed
 const employerModel = require('../../models/employerSchema.js'); // adjust the path as needed
 const Job = require('../../models/jobSchema');
+const Plan = require('../../models/employerplans.js');
 
 // Admin Signup
 exports.employersignupAdmin = async (req, res) => {
@@ -96,7 +97,10 @@ exports.employerloginAdmin = async (req, res) => {
     return res.status(200).json({
       message: "Login successful",
       token,
-      admin: adminData
+      admin: adminData,
+      // Explicitly include these for front-end ease of use
+      isProfileCompleted: admin.isProfileCompleted,
+      isSubscribed: admin.isSubscribed
     });
   } catch (err) {
     console.error("Login Error:", err);
@@ -457,7 +461,13 @@ exports.updateEmployerAdmin = async (req, res) => {
       employeradminEmail,
       employeradminMobile,
       employeradminPassword,
-      employerconfirmPassword
+      employerconfirmPassword,
+      address,
+      state,
+      city,
+      taluk,
+      pincode,
+      landmark
     } = req.body;
 
     const admin = await employerAdmin.findById(id);
@@ -468,6 +478,25 @@ exports.updateEmployerAdmin = async (req, res) => {
     if (employeradminUsername) admin.employeradminUsername = employeradminUsername;
     if (employeradminEmail) admin.employeradminEmail = employeradminEmail;
     if (employeradminMobile) admin.employeradminMobile = employeradminMobile;
+
+    // Update address fields
+    if (address !== undefined) admin.address = address;
+    if (state !== undefined) admin.state = state;
+    if (city !== undefined) admin.city = city;
+    if (taluk !== undefined) admin.taluk = taluk;
+    if (pincode !== undefined) admin.pincode = pincode;
+    if (landmark !== undefined) admin.landmark = landmark;
+
+    // Check if profile is complete (username, email, mobile, and address fields)
+    if (admin.employeradminUsername &&
+      admin.employeradminEmail &&
+      admin.employeradminMobile &&
+      admin.address &&
+      admin.state &&
+      admin.city &&
+      admin.pincode) {
+      admin.isProfileCompleted = true;
+    }
 
     // File Upload Check
     if (req.file) {
@@ -839,6 +868,87 @@ exports.getEmployerAdminDashboardStats = async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching employer admin stats:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+exports.purchasePlan = async (req, res) => {
+  try {
+    const { adminId, planId, paymentDetails } = req.body;
+
+    // Find admin and plan
+    const admin = await employerAdmin.findById(adminId);
+    const plan = await Plan.findById(planId);
+
+    if (!admin) {
+      return res.status(404).json({ success: false, message: "Admin not found" });
+    }
+    if (!plan || !plan.isActive) {
+      return res.status(404).json({ success: false, message: "Plan not found or inactive" });
+    }
+
+    const isPaid = plan.price > 0;
+
+    // Simple basic verification: if paid, verify paymentDetails exist
+    if (isPaid && (!paymentDetails || !paymentDetails.razorpay_payment_id)) {
+      return res.status(400).json({ success: false, message: "Payment details required for paid plans" });
+    }
+
+    const currentDate = new Date();
+    let subscriptionEndDate;
+
+    // Calculate end date based on validity days
+    if (admin.subscriptionEndDate && new Date(admin.subscriptionEndDate) > currentDate) {
+      // Extend existing subscription
+      subscriptionEndDate = new Date(admin.subscriptionEndDate);
+      subscriptionEndDate.setDate(subscriptionEndDate.getDate() + plan.validityDays);
+    } else {
+      // New subscription
+      subscriptionEndDate = new Date();
+      subscriptionEndDate.setDate(subscriptionEndDate.getDate() + plan.validityDays);
+    }
+
+    const isTrial = plan.price === 0;
+
+    // Create subscription record
+    const subscriptionRecord = {
+      planId: plan._id,
+      planDetails: plan.toObject(),
+      isTrial: isTrial,
+      startDate: currentDate,
+      endDate: subscriptionEndDate,
+      paymentDetails: paymentDetails || null,
+      status: 'active'
+    };
+
+    // Update admin's subscription totals by adding the new plan's limits
+    admin.totalperdaylimit = (admin.totalperdaylimit || 0) + (plan.perDayLimit || 0);
+    admin.totalprofileviews = (admin.totalprofileviews || 0) + (plan.profileViews || 0);
+    admin.totaldownloadresume = (admin.totaldownloadresume || 0) + (plan.downloadResume || 0);
+    admin.totaljobpostinglimit = (admin.totaljobpostinglimit || 0) + (plan.jobPostingLimit || 0);
+
+    // Update main status fields
+    admin.isSubscribed = true;
+    admin.planId = planId;
+    admin.subscriptionEndDate = subscriptionEndDate;
+    admin.subscription = "true";
+    admin.trial = isTrial ? "true" : "false";
+    admin.subscriptionleft = Math.ceil((subscriptionEndDate - currentDate) / (1000 * 60 * 60 * 24));
+
+    // Store in history
+    if (!admin.subscriptions) admin.subscriptions = [];
+    admin.subscriptions.push(subscriptionRecord);
+    admin.currentSubscription = subscriptionRecord;
+
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: `${plan.name} Plan activated successfully`,
+      data: admin
+    });
+  } catch (error) {
+    console.error('Error purchasing plan:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

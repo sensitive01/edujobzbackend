@@ -33,16 +33,26 @@ const getStorage = (fileType) => {
 
 // Dynamic middleware for fileType-based upload
 const dynamicUploadMiddleware = (req, res, next) => {
-  console.log("file info:", req.file,req.file?.mimetype, req.file?.originalname);
-
   const fileType =
-    req.query.fileType || req.headers["filetype"] || req.body.fileType;
-  console.log("fileType", fileType);
+    req.query.fileType || req.headers["filetype"] || req.body?.fileType;
+
+  // Check if this is a multipart request (likely a file upload)
+  const contentType = req.headers["content-type"] || "";
+  const isMultipart = contentType.includes("multipart/form-data");
+
+  if (!isMultipart && !fileType) {
+    // If not a multipart request and no fileType, proceed as a normal JSON update
+    return next();
+  }
 
   const storage = getStorage(fileType);
 
   if (!storage) {
-    return res.status(400).json({ message: "Invalid or missing fileType" });
+    if (isMultipart) {
+      return res.status(400).json({ message: "Invalid or missing fileType for upload" });
+    }
+    // If JSON request but no fileType, we can still proceed
+    return next();
   }
 
   const upload = multer({
@@ -186,7 +196,7 @@ employeeRoute.delete(
   employeeController.deleteResumeLetter
 );
 
-employeeRoute.get("/get-header-categories-count",employeeController.getHeaderCategoriesCount)
+employeeRoute.get("/get-header-categories-count", employeeController.getHeaderCategoriesCount)
 
 // Employee Referral Routes
 employeeRoute.get("/referral-list/:employeeId", employeeController.getReferralList);

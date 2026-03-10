@@ -18,7 +18,7 @@ exports.createOrder = async (req, res) => {
 
   try {
     const options = {
-      amount: parseInt(amount) * 100, // In paise
+      amount: Math.round(Number(amount) * 100), // In paise
       currency: 'INR',
       receipt: `rcptid_${Date.now()}`,
       notes: {
