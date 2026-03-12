@@ -23,10 +23,18 @@ const employeradminSchema = new mongoose.Schema({
   totalperdaylimit: { type: Number, default: 0 },
   totalprofileviews: { type: Number, default: 0 },
   totaldownloadresume: { type: Number, default: 0 },
-  totaljobpostinglimit: { type: Number, default: 1 },
+  totaljobpostinglimit: { type: Number, default: 0 },
   subscriptionleft: { type: Number, default: 0 },
   subscription: { type: String, default: "false" },
   trial: { type: String, default: "false" },
+  viewedEmployees: [{
+    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
+    viewedAt: { type: Date, default: Date.now }
+  }],
+  resumedownload: [{
+    employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'employee' },
+    viewedAt: { type: Date, default: Date.now }
+  }],
 
   currentSubscription: {
     type: {

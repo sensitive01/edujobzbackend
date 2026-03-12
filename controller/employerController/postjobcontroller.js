@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Job = require("../../models/jobSchema");
 const Employer = require("../../models/employerSchema");
+const EmployerAdmin = require("../../models/employeradminSchema");
 const SavedCandidate = require('../../models/savedcandiSchema');
 const getJobTitleByJobId = async (req, res) => {
   try {
@@ -50,15 +51,32 @@ const createJob = async (req, res) => {
 
     console.log("jobData", jobData);
 
-    // Find the employer by employid
-    // const employer = await Employer.findOne({ _id: jobData.employid });
-    const employer = await Employer.findOne({
-      $or: [{ _id: jobData.employid }, { userEmail: jobData.contactEmail }],
+    // Find the employer by employid or email in both collections
+    let user = await Employer.findOne({
+      $or: [
+        { _id: mongoose.isValidObjectId(jobData.employid) ? jobData.employid : null },
+        { userEmail: jobData.contactEmail }
+      ],
     });
 
-    if (!employer) {
-      return res.status(404).json({ message: "Employer not found" });
+    if (!user) {
+      user = await EmployerAdmin.findOne({
+        $or: [
+          { _id: mongoose.isValidObjectId(jobData.employid) ? jobData.employid : null },
+          { employeradminEmail: jobData.contactEmail }
+        ],
+      });
     }
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Employer account not found" });
+    }
+
+    // Assign the correct fields based on which model we found
+    const isEmployerAdmin = user.employeradminEmail !== undefined;
+    const emailField = isEmployerAdmin ? 'employeradminEmail' : 'userEmail';
+
+    console.log(`Found ${isEmployerAdmin ? 'EmployerAdmin' : 'Employer'}: ${user[emailField]}`);
 
     // Check if a job with the same jobTitle already exists for this employer (case-insensitive)
     if (jobData.jobTitle) {
@@ -87,20 +105,22 @@ const createJob = async (req, res) => {
 
     // Get allowed job limit from current subscription plan (as fallback)
     let allowedJobLimit = 0;
-    if (employer.currentSubscription && employer.currentSubscription.planDetails) {
-      allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
+    if (user.currentSubscription && user.currentSubscription.planDetails) {
+      allowedJobLimit = user.currentSubscription.planDetails.jobPostingLimit || 0;
     }
 
-    // Use totaljobpostinglimit as primary limit, fallback to subscription plan limit if totaljobpostinglimit is 0
-    const effectiveLimit = employer.totaljobpostinglimit > 0 
-      ? employer.totaljobpostinglimit 
+    // Use totaljobpostinglimit as primary limit
+    const effectiveLimit = (user.totaljobpostinglimit !== undefined && user.totaljobpostinglimit > 0)
+      ? user.totaljobpostinglimit
       : allowedJobLimit;
+
+    console.log(`Effective Job Limit for ${user[emailField]}: ${effectiveLimit}`);
 
     // Check if effective limit is valid
     if (effectiveLimit <= 0) {
       return res.status(403).json({
         success: false,
-        message: "Job posting limit reached. Please upgrade your subscription.",
+        message: "Your current plan does not allow job posting. Please subscribe to a plan.",
       });
     }
 
@@ -110,11 +130,13 @@ const createJob = async (req, res) => {
       isActive: true,
     });
 
+    console.log(`Current Active Jobs: ${activeJobsCount}`);
+
     // If active jobs count is already at or exceeds the plan limit, don't allow new job posting
     if (activeJobsCount >= effectiveLimit) {
       return res.status(403).json({
         success: false,
-        message: `You have reached your active job limit (${effectiveLimit}). Please close an existing job before posting a new one.`,
+        message: `Job limit reached. Your plan allows only ${effectiveLimit} active ${effectiveLimit === 1 ? 'job' : 'jobs'}. Please upgrade your plan or close an existing job to post a new one.`,
       });
     }
 
@@ -528,7 +550,7 @@ const updateApplicantStatus = async (req, res) => {
     const notificationService = require('../../utils/notificationService');
     const Employee = require('../../models/employeeschema');
     const Employer = require('../../models/employerSchema');
-    
+
     const employee = await Employee.findById(applicantId);
     const employer = await Employer.findById(job.employid);
     const employerName = employer ? `${employer.firstName || ''} ${employer.lastName || ''}`.trim() || employer.companyName || 'Employer' : 'Employer';
@@ -755,7 +777,7 @@ const toggleSaveJob = async (req, res) => {
       job.saved.push({ applicantId, saved: true });
       await job.save();
       console.log("[TOGGLE-SAVE-JOB] job saved");
-      
+
       // Notify employee of job saved
       const Employer = require('../../models/employerSchema');
       const notificationService = require('../../utils/notificationService');
@@ -769,7 +791,7 @@ const toggleSaveJob = async (req, res) => {
           employerName
         );
       }
-      
+
       return res
         .status(201)
         .json({ message: "Job saved successfully", isSaved: true });
@@ -1294,7 +1316,7 @@ const updateJobActiveStatus = async (req, res) => {
     // If trying to activate, check the limit first
     if (isActive === true) {
       const employer = await Employer.findById(job.employid);
-      
+
       if (!employer) {
         return res.status(404).json({ message: "Employer not found" });
       }
@@ -1311,8 +1333,8 @@ const updateJobActiveStatus = async (req, res) => {
       if (employer.currentSubscription && employer.currentSubscription.planDetails) {
         allowedJobLimit = employer.currentSubscription.planDetails.jobPostingLimit || 0;
       }
-      const effectiveLimit = employer.totaljobpostinglimit > 0 
-        ? employer.totaljobpostinglimit 
+      const effectiveLimit = employer.totaljobpostinglimit > 0
+        ? employer.totaljobpostinglimit
         : allowedJobLimit;
 
       // Check if limit is valid
@@ -1354,9 +1376,8 @@ const updateJobActiveStatus = async (req, res) => {
     );
 
     res.status(200).json({
-      message: `Job has been ${
-        isActive ? "activated" : "deactivated"
-      } successfully.`,
+      message: `Job has been ${isActive ? "activated" : "deactivated"
+        } successfully.`,
       job: updatedJob,
     });
   } catch (error) {

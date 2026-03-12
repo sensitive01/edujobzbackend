@@ -1739,37 +1739,52 @@ const decreaseProfileView = async (req, res) => {
       });
     }
 
-    const employer = await Employer.findById(employerId);
-    if (!employer) {
+    let user = await Employer.findById(employerId);
+    let isEmployerAdmin = false;
+
+    if (!user) {
+      const EmployerAdmin = require('../../models/employeradminSchema');
+      user = await EmployerAdmin.findById(employerId);
+      isEmployerAdmin = true;
+    }
+
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: "Employer not found"
       });
     }
 
-    // Decrease totalprofileviews if greater than 0
-    if (employer.totalprofileviews > 0) {
-      employer.totalprofileviews -= 1;
-      await employer.save();
+    // Check if limit is reached
+    if (user.totalprofileviews <= 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Profile view limit reached. Please upgrade your plan."
+      });
     }
 
+    // Decrease totalprofileviews
+    user.totalprofileviews -= 1;
+    await user.save();
+
     // Add to viewedEmployees array if not already present
-    const existingView = employer.viewedEmployees.find(
+    if (!user.viewedEmployees) user.viewedEmployees = [];
+    const existingView = user.viewedEmployees.find(
       view => view.employeeId.toString() === employeeId
     );
 
     if (!existingView) {
-      employer.viewedEmployees.push({
+      user.viewedEmployees.push({
         employeeId: employeeId,
         viewedAt: new Date()
       });
-      await employer.save();
+      await user.save();
     }
 
     return res.status(200).json({
       success: true,
       message: "Profile view decreased",
-      remainingViews: employer.totalprofileviews
+      remainingViews: user.totalprofileviews
     });
   } catch (error) {
     console.error("Error decreasing profile view:", error);
@@ -1793,37 +1808,52 @@ const decreaseResumeDownload = async (req, res) => {
       });
     }
 
-    const employer = await Employer.findById(employerId);
-    if (!employer) {
+    let user = await Employer.findById(employerId);
+    let isEmployerAdmin = false;
+
+    if (!user) {
+      const EmployerAdmin = require('../../models/employeradminSchema');
+      user = await EmployerAdmin.findById(employerId);
+      isEmployerAdmin = true;
+    }
+
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: "Employer not found"
       });
     }
 
-    // Decrease totaldownloadresume if greater than 0
-    if (employer.totaldownloadresume > 0) {
-      employer.totaldownloadresume -= 1;
-      await employer.save();
+    // Check if limit is reached
+    if (user.totaldownloadresume <= 0) {
+      return res.status(403).json({
+        success: false,
+        message: "Resume download limit reached. Please upgrade your plan."
+      });
     }
 
+    // Decrease totaldownloadresume
+    user.totaldownloadresume -= 1;
+    await user.save();
+
     // Add to resumedownload array if not already present
-    const existingDownload = employer.resumedownload.find(
+    if (!user.resumedownload) user.resumedownload = [];
+    const existingDownload = user.resumedownload.find(
       download => download.employeeId.toString() === employeeId
     );
 
     if (!existingDownload) {
-      employer.resumedownload.push({
+      user.resumedownload.push({
         employeeId: employeeId,
         viewedAt: new Date()
       });
-      await employer.save();
+      await user.save();
     }
 
     return res.status(200).json({
       success: true,
       message: "Resume download decreased",
-      remainingDownloads: employer.totaldownloadresume
+      remainingDownloads: user.totaldownloadresume
     });
   } catch (error) {
     console.error("Error decreasing resume download:", error);
@@ -2312,7 +2342,7 @@ const getEmployerDashboardCount = async (req, res) => {
 
     // Count applications by status
     const jobsData = await Job.find({ employid: employerId });
-    
+
     let appliedCount = 0;
     let shortlistedCount = 0;
     let rejectedCount = 0;
